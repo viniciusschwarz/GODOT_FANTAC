@@ -1,0 +1,15 @@
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+
+# Godot
+.import/
+.godot/
+*.translation.remap
+*.gen.h
+*.tmp
