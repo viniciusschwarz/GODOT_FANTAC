@@ -138,18 +138,29 @@ func perform_attack(target: Node2D):
 	var attack_dmg = get_dynamic_stat("attack_power")
 	var attack_type = stats.get("attack_type", "melee")
 
-	print(str(stats["unit_name"]) + " attacks " + str(target.stats["unit_name"]) + " using " + attack_type + " for " + str(attack_dmg) + " base damage!")
-
 	if attack_type == "aoe":
-		var enemy_team = GameHub.Team.ENEMY if team == GameHub.Team.PLAYER else GameHub.Team.PLAYER
+		# 1. Spawn the visual projectile effect targeting the center of the AoE
+		var proj = ProjectileScene.instantiate()
+		proj.global_position = global_position
+		proj.setup(target.global_position, 1) # Radius of 1 for visual expansion
+		get_parent().add_child(proj)
+		
+		# 2. Handle actual game logic & damage inside the units themselves
+		var enemy_team = Team.ENEMY if team == Team.PLAYER else Team.PLAYER
 		var enemies_in_range = GameHub.get_enemies_in_radius(target.grid_position, 1, enemy_team)
 		for enemy in enemies_in_range:
 			enemy.take_damage(attack_dmg)
+			
 	elif attack_type == "ranged":
+		# 1. Spawn visual projectile flying to the target's position
 		var proj = ProjectileScene.instantiate()
 		proj.global_position = global_position
-		proj.setup(target, attack_dmg)
+		proj.setup(target.global_position, 0)
 		get_parent().add_child(proj)
+		
+		# 2. Apply damage directly on the target
+		target.take_damage(attack_dmg)
+		
 	else: # Melee
 		target.take_damage(attack_dmg)
 
