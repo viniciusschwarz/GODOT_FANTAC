@@ -17,6 +17,8 @@ config/icon="res://icon.svg"
 [autoload]
 
 GameHub="*uid://dvh2di0dqvg67"
+Pathfinder="*uid://b5pyoeb1ie35f"
+UnitDatabase="*uid://c6x3tkdbegytn"
 
 [display]
 

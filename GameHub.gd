@@ -30,6 +30,8 @@ signal game_over(winning_team_name)
 # ==========================================
 var active_units = {}
 var grid_positions = {}
+var unwalkable_cells = {} # NEW: Remembers tiles like Mountains or Water
+var board_size: Vector2 = Vector2.ZERO
 
 # ==========================================
 # 4. INITIALIZATION
@@ -50,15 +52,35 @@ func register_unit(unit_node):
 	active_units[unit_node.unit_id] = unit_node
 	grid_positions[unit_node.grid_position] = unit_node.unit_id
 	print("Registered unit ", unit_node.unit_id, " at position ", unit_node.grid_position)
+	
+# Call this from the Board when setting up terrain
+func register_unwalkable_cell(cell_position: Vector2):
+	unwalkable_cells[cell_position] = true	
 
 func is_cell_empty(cell_position: Vector2) -> bool:
 	return not grid_positions.has(cell_position)
+
+# We check BOTH if a unit is there, AND if the terrain is blocked
+func is_cell_walkable(cell_position: Vector2) -> bool:
+	if unwalkable_cells.has(cell_position):
+		return false # A mountain is here!
+		
+	if grid_positions.has(cell_position):
+		return false # Another unit is standing here!
+		
+	return true # The tile is perfectly clear	
 
 func move_unit(unit_id, old_position: Vector2, new_position: Vector2):
 	if is_cell_empty(new_position):
 		grid_positions.erase(old_position)
 		grid_positions[new_position] = unit_id
 		unit_moved.emit(unit_id, new_position)
+
+# Called by the Board so the central systems know the limits of the world
+func register_board_size(size: Vector2):
+	board_size = size
+	# Pass the information to our independent Pathfinder module
+	Pathfinder.setup_grid(size)		
 
 # ==========================================
 # 6. WIN DETECTION LOGIC

@@ -6,87 +6,141 @@
 [ext_resource type="PackedScene" uid="uid://bdvx0s6jbphgq" path="res://FloatingText.tscn" id="3_3dxm6"]
 [ext_resource type="PackedScene" uid="uid://c88khhfurqp1b" path="res://TurnManager.tscn" id="3_fos0i"]
 
-[node name="Main" type="Node2D" unique_id=211694637]
+[node name="Main" type="Node2D" unique_id=1243698190]
 script = ExtResource("1_r0du0")
 unit_template = ExtResource("2_fos0i")
 floating_text_template = ExtResource("3_3dxm6")
 
-[node name="Board" parent="." unique_id=1135075819 instance=ExtResource("2_cm0pq")]
+[node name="Board" parent="." unique_id=1948460986 instance=ExtResource("2_cm0pq")]
+position = Vector2(300, 20)
 
-[node name="TurnManager" parent="." unique_id=227596077 instance=ExtResource("3_fos0i")]
+[node name="TurnManager" parent="." unique_id=1268339290 instance=ExtResource("3_fos0i")]
 
-[node name="UI" type="CanvasLayer" parent="." unique_id=617546494]
+[node name="UI" type="CanvasLayer" parent="." unique_id=969223877]
 
-[node name="Button" type="Button" parent="UI" unique_id=1835998702]
-offset_right = 96.0
-offset_bottom = 31.0
+[node name="Button" type="Button" parent="UI" unique_id=822721706]
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -120.0
+offset_top = -90.0
+offset_right = 120.0
+offset_bottom = -40.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_font_sizes/font_size = 24
 text = "Start Battle"
 
-[node name="GameOverPanel" type="Panel" parent="UI" unique_id=1624046119]
+[node name="GameOverPanel" type="Panel" parent="UI" unique_id=324200729]
 visible = false
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -150.0
-offset_top = -150.0
-offset_right = 150.0
-offset_bottom = 150.0
+offset_left = -200.0
+offset_top = -120.0
+offset_right = 200.0
+offset_bottom = 120.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="WinnerLabel" type="Label" parent="UI/GameOverPanel" unique_id=2016692085]
+[node name="WinnerLabel" type="Label" parent="UI/GameOverPanel" unique_id=1174927037]
 layout_mode = 1
 anchors_preset = 5
 anchor_left = 0.5
 anchor_right = 0.5
-offset_left = -54.0
-offset_top = 20.0
-offset_right = 54.0
-offset_bottom = 43.0
+offset_left = -150.0
+offset_top = 30.0
+offset_right = 150.0
+offset_bottom = 75.0
 grow_horizontal = 2
-offset_transform_enabled = true
+theme_override_font_sizes/font_size = 32
 text = "PLAYER WINS!"
 horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="RestartButton" type="Button" parent="UI/GameOverPanel" unique_id=621903214]
+[node name="RestartButton" type="Button" parent="UI/GameOverPanel" unique_id=1013092551]
 layout_mode = 1
 anchors_preset = 7
 anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -59.0
-offset_top = -50.0
-offset_right = 59.0
-offset_bottom = -19.0
+offset_left = -90.0
+offset_top = -70.0
+offset_right = 90.0
+offset_bottom = -25.0
 grow_horizontal = 2
 grow_vertical = 0
+theme_override_font_sizes/font_size = 20
 text = "Restart Game"
 
-[node name="SetupPanel" type="Panel" parent="UI" unique_id=1989158032]
+[node name="SetupPanel" type="Panel" parent="UI" unique_id=1489667112]
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -152.0
-offset_top = 30.0
-offset_right = -112.0
-offset_bottom = 70.0
+offset_left = -270.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = 130.0
 grow_horizontal = 0
 
-[node name="VBoxContainer" type="VBoxContainer" parent="UI/SetupPanel" unique_id=362982916]
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/SetupPanel" unique_id=1224836133]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_left = 15.0
+offset_top = 15.0
+offset_right = -15.0
+offset_bottom = -15.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_constants/separation = 10
 
-[node name="UnitNameLabel" type="Label" parent="UI/SetupPanel/VBoxContainer" unique_id=229427664]
+[node name="UnitNameLabel" type="Label" parent="UI/SetupPanel/VBoxContainer" unique_id=166242784]
 layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Select a Unit"
+horizontal_alignment = 1
 
-[node name="FocusDropdown" type="OptionButton" parent="UI/SetupPanel/VBoxContainer" unique_id=678796538]
+[node name="FocusDropdown" type="OptionButton" parent="UI/SetupPanel/VBoxContainer" unique_id=1123177850]
 layout_mode = 2
+theme_override_font_sizes/font_size = 16
+
+[node name="PlacementPanel" type="Panel" parent="UI" unique_id=1179775389]
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 220.0
+offset_bottom = 350.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/PlacementPanel" unique_id=201502647]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 10
+
+[node name="PointsLabel" type="Label" parent="UI/PlacementPanel/VBoxContainer" unique_id=96896232]
+layout_mode = 2
+text = "Points: 15"
+horizontal_alignment = 1
+
+[node name="ScrollContainer" type="ScrollContainer" parent="UI/PlacementPanel/VBoxContainer" unique_id=1541583121]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="UnitButtonContainer" type="VBoxContainer" parent="UI/PlacementPanel/VBoxContainer/ScrollContainer" unique_id=53327975]
+layout_mode = 2
+size_flags_horizontal = 3
 
 [connection signal="item_selected" from="UI/SetupPanel/VBoxContainer/FocusDropdown" to="." method="_on_focus_dropdown_item_selected"]

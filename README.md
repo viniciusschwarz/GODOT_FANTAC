@@ -1,3 +1,4 @@
+
 # ⚔️ Tactical 2D Auto-Battler MVP - Project Documentation
 
 ## 📖 Project Overview
@@ -7,100 +8,127 @@ The core gameplay loop involves the player setting up units (Knights, Archers, M
 
 ## 🏗️ Architectural Philosophy
 
-To ensure the project is scalable and beginner-friendly, it uses a Decoupled Modular Architecture.
+To ensure the project is scalable and beginner-friendly, it uses a **Decoupled Modular Architecture**.
 
-No Spaghettti Code: Modules (like the Board and the Units) do not directly speak to or depend on each other.
+* **No Spaghetti Code:** Modules (like the Board and the Units) do not directly speak to or depend on each other.
 
-The Central Hub: All data and communication flow through a central Autoload Singleton (GameHub).
 
-Event Bus (Signals): Actions are broadcasted to the game using Godot's Signal system, allowing any script to react without creating hard dependencies.
+* **The Central Hub:** All data and communication flow through a central Autoload Singleton (`GameHub`).
+
+
+* **Event Bus (Signals):** Actions are broadcasted to the game using Godot's Signal system, allowing any script to react without creating hard dependencies.
+
+
+* **Data-Driven Design:** Unit stats and costs are stored externally in a JSON database, allowing for rapid balancing and scaling without editing GDScript code.
 
 ## 📂 Current Modules & Script Summaries
 
-This section serves as a quick reference for what each script does.
+### 1. The Brain: `GameHub.gd` (Autoload / Singleton)
 
-1. The Brain: GameHub.gd (Autoload / Singleton)
-Purpose: The central memory and event router of the game.
+* **Purpose:** The central memory and event router of the game.
 
-Key Responsibilities:
 
-Holds the Game State (SETUP, BATTLE, RESOLUTION).
+* **Key Responsibilities:** Holds Game State, maintains active units/grid positions, handles win detection, and routes all Signals.
 
-Maintains dictionaries of all active units and their grid positions.
 
-Holds all the custom Signals (turn_started, unit_moved, unit_died, etc.).
 
-Provides mathematical helper functions, like get_closest_enemy(), so units don't have to search the board themselves.
+### 2. The Map: `Board.gd` (Attached to `Board.tscn`)
 
-2. The Map: Board.gd (Attached to Board.tscn)
-Purpose: Handles the mathematical grid and physical terrain.
+* **Purpose:** Handles the mathematical grid and physical terrain.
 
-Key Responsibilities:
 
-Translates logical grid coordinates (e.g., X:2, Y:4) into exact screen pixel coordinates (e.g., X:128, Y:256) for drawing sprites.
+* **Key Responsibilities:** Translates grid coordinates to pixels, draws the visual grid, and maintains terrain data (Grass, Mountain).
 
-Maintains a dictionary of terrain types (Grass, Mountain, Water) for future movement cost calculations.
 
-Note: Does not know what a "Unit" is. Purely mathematical.
 
-3. The Actor: UnitBase.gd (Attached to UnitBase.tscn)
-Purpose: The blueprint for every character on the board.
+### 3. The Actor: `UnitBase.gd` (Attached to `UnitBase.tscn`)
 
-Key Responsibilities:
+* **Purpose:** The blueprint for every character on the board.
 
-Stores stats (HP, Attack, Team, Movement Range) and the assigned AI behavior (current_focus).
 
-Listens to the GameHub for its turn.
+* **Key Responsibilities:** Reads its injected dictionary stats, executes AI logic (melee or ranged), manages its custom health bar, and handles click detection.
 
-Executes AI logic (e.g., finding the target via the Hub, calculating Manhattan distance, attacking or stepping closer).
 
-Handles visual setup (scaling AtlasTexture sprites dynamically to fit the 64x64 grid).
 
-4. The Clock: TurnManager.gd (Attached to TurnManager.tscn)
-Purpose: Controls the flow of time and unit turns.
+### 4. The Clock: `TurnManager.gd` (Attached to `TurnManager.tscn`)
 
-Key Responsibilities:
+* **Purpose:** Controls the flow of time and unit turns.
 
-Retrieves the list of living units from the GameHub at the start of every round.
 
-Tells the Hub to broadcast whose turn it is.
 
-Waits for the active unit to finish, then advances to the next unit, dynamically skipping units that died during the round.
+### 5. The Director: `Main.gd` (Attached to `Main.tscn`)
 
-5. The Director: Main.gd (Attached to Main.tscn)
-Purpose: The main game table that holds all the visual pieces together.
+* **Purpose:** The main game table.
 
-Key Responsibilities:
 
-Instantiates (spawns) the units at the start of the game and registers them with the Hub.
+* **Key Responsibilities:** Dynamically generates the UI based on the JSON database, handles the Placement Point System, spawns units, and manages Tween animations.
 
-Contains the UI (Start Battle button) to trigger the state change.
 
-Listens for logical movement (unit_moved) from the Hub and uses Godot Tween nodes to smoothly animate the unit's sprite gliding across the screen.
+
+### 6. The Visual Feedback: `FloatingText.gd` (Attached to `FloatingText.tscn`)
+
+* **Purpose:** A self-deleting animated node that pops up to show damage numbers when a unit is hit.
+
+
+
+### 7. The Navigator: `Pathfinder.gd` (Autoload / Singleton)
+
+* **Purpose:** Handles all routing and obstacle avoidance.
+* **Key Responsibilities:** Uses Godot's `AStarGrid2D` to calculate the shortest path around mountains and other units.
+
+### 8. The Feeder: `UnitDatabase.gd` & `units_database.json` (Autoload / Singleton)
+
+* **Purpose:** The central repository for all unit statistics.
+* **Key Responsibilities:** Parses the JSON file at runtime and provides data dictionaries (HP, Attack, Range, Cost) to the Director for UI generation and Unit spawning.
 
 ## 🚀 Current Project Status
-### Phase: Core Prototyping
 
-[x] Establish Data Hub and Event Bus Architecture
+**Phase: Core Prototyping**
 
-[x] Create Grid-to-Pixel math mapping (Board)
+* [x] Establish Data Hub and Event Bus Architecture
 
-[x] Create self-contained Unit state machine (UnitBase)
 
-[x] Implement Turn Manager logic (Rounds and Turns)
+* [x] Create Grid-to-Pixel math mapping (Board)
 
-[x] Implement basic AI (Find closest enemy via Manhattan distance, step forward, and attack)
 
-[x] Add visual representation via sprite scaling and Tween animations.
+* [x] Implement Turn Manager logic (Rounds and Turns)
 
-## 🔮 Future Next Steps (Roadmap)
 
-Visual Feedback (Health Bars & Damage Numbers): Add UI elements to the UnitBase so the player can visually see HP dropping without looking at the console.
+* [x] Implement basic AI (Find closest enemy, move, attack)
 
-Expanded AI Behaviors: Implement the logic for other focuses (e.g., "Defend Position" or "Hunt Weakest").
 
-Terrain Effects: Update the movement logic so mountains block movement or cost double the movement range.
+* [x] Add visual representation via sprite scaling and Tween animations
 
-Game Over Detection: Make the GameHub or TurnManager recognize when all units on one team are defeated and trigger the RESOLUTION state to show a victory screen.
 
-Pre-Battle Setup UI: Allow the player to click on units before pressing "Start" to select their behavior from a dropdown menu.
+* [x] Visual Feedback (Custom Health Bars & Floating Damage Numbers)
+
+
+* [x] Game Over Detection and Restart Logic
+
+
+* [x] Terrain Obstacles and A* Pathfinding
+
+
+* [x] Data-Driven Architecture (JSON Database integration)
+* [x] Dynamic Placement UI and Point-based Spawning System
+* [x] Advanced Combat: Ranged Attacks (Archer)
+
+
+
+---
+
+## 🔮 Future Next Steps (New Roadmap Plan)
+
+Now that our core systems are highly robust and modular, we can focus on game feel and expanding mechanics. Here is a proposed plan for our next iterations:
+
+**Phase 1: Projectiles and Visual Polish**
+Currently, Archers deal damage instantly from across the board. We should create a `Projectile.tscn` module that spawns an arrow, animates it flying to the target, and only applies damage when the animation finishes.
+
+**Phase 2: Complex Terrain Costs**
+We have mountains that block movement, but we can expand the `Pathfinder` to understand terrain *weights*. For example, adding "Water" tiles that do not block movement, but cost 2 steps to walk through instead of 1.
+
+**Phase 3: Area of Effect (AoE) Combat & Mages**
+Expand the JSON database with an `attack_type` key. Implement a Mage unit that, instead of dealing single-target damage, asks the `GameHub` for all units within a 1-tile radius of the target and damages all of them simultaneously.
+
+**Phase 4: Expanded AI Behaviors**
+Flesh out the "Defend Position" (Unit holds ground and only attacks if an enemy enters their range) and "Hunt Weakest" (Unit asks `GameHub` for the enemy with the lowest HP instead of the closest) options we added to our dropdown menu.

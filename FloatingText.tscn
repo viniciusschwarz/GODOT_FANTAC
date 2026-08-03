@@ -2,24 +2,27 @@
 
 [ext_resource type="Script" uid="uid://pfu7852oqlla" path="res://FloatingText.gd" id="1_bmcqi"]
 
-[node name="FloatingText" type="Node2D" unique_id=975386748]
+[node name="FloatingText" type="Node2D"]
 script = ExtResource("1_bmcqi")
-float_speed = 5.0
-float_distance = 15.0
+float_speed = 0.8
+float_distance = 40.0
 
-[node name="Label" type="Label" parent="." unique_id=465678012]
+[node name="Label" type="Label" parent="."]
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -20.0
-offset_top = -11.5
-offset_right = 20.0
-offset_bottom = 11.5
+offset_left = -50.0
+offset_top = -20.0
+offset_right = 50.0
+offset_bottom = 20.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/outline_size = 4
+theme_override_colors/font_color = Color(0.9, 0.2, 0.2, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 22
 text = "99"
 horizontal_alignment = 1
 vertical_alignment = 1
