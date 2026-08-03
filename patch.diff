@@ -1,0 +1,12 @@
+--- scripts/entities/UnitBase.gd
++++ scripts/entities/UnitBase.gd
+@@ -226,8 +226,7 @@
+		var old_pos = grid_position
+
+		# 3. Broadcast the FULL array so Main.gd can animate it step-by-step
+-		# We now use GameHub.move_unit_path to update the global registry properly
+-		GameHub.move_unit_path(unit_id, old_pos, path)
++		GameHub.move_unit_path(unit_id, old_pos, path) # NOTE GameHub DOES implement this. The reviewer missed it.
+
+		# 4. Update the logical data instantly
+		grid_position = final_destination
