@@ -6,49 +6,45 @@ var astar = AStarGrid2D.new()
 # ==========================================
 # 1. INITIALIZATION
 # ==========================================
-# This is called by the GameHub when the board is created
 func setup_grid(board_size: Vector2):
-	# Define the size of the grid (starting from 0,0)
 	astar.region = Rect2i(0, 0, int(board_size.x), int(board_size.y))
-	
-	# We use 1x1 cells logically (not 64x64 pixels) because our GameHub uses grid coordinates!
 	astar.cell_size = Vector2(1, 1)
-	
-	# In tactical games, we only want Up, Down, Left, Right movement
 	astar.diagonal_mode = AStarGrid2D.DIAGONAL_MODE_NEVER
-	
-	# Apply the configuration
 	astar.update()
 	print("Pathfinder: Grid configured with size ", board_size)
 
 # ==========================================
 # 2. PATH CALCULATION
 # ==========================================
-func get_next_step(start_pos: Vector2, target_pos: Vector2) -> Vector2:
-	# 1. Refresh the obstacles before calculating!
+func get_walkable_path(start_pos: Vector2, target_pos: Vector2, max_steps: int) -> Array[Vector2]:
 	_update_obstacles(start_pos, target_pos)
 	
-	# 2. Convert Vector2 to Vector2i (Integers) because AStarGrid2D requires whole numbers
-	var start_i = Vector2i(int(start_pos.x), int(start_pos.y))
-	var target_i = Vector2i(int(target_pos.x), int(target_pos.y))
+	# FIXED: We now use round() before converting to integers to perfectly match the GameHub!
+	var start_i = Vector2i(round(start_pos.x), round(start_pos.y))
+	var target_i = Vector2i(round(target_pos.x), round(target_pos.y))
 	
-	# 3. Ask Godot to calculate the path
-	var path = astar.get_id_path(start_i, target_i)
+	var id_path = astar.get_id_path(start_i, target_i)
+	var final_path: Array[Vector2] = []
 	
-	# 4. Analyze the result
-	# path[0] is the tile we are currently standing on.
-	# path[1] is the very next step we need to take.
-	if path.size() > 1:
-		return Vector2(path[1].x, path[1].y)
-		
-	# If no path is found, return the start position (don't move)
-	return start_pos
+	if id_path.size() > 1:
+		for i in range(1, min(id_path.size(), max_steps + 1)):
+			var step = Vector2(id_path[i].x, id_path[i].y)
+			
+			if not GameHub.is_cell_empty(step):
+				break
+				
+			final_path.append(step)
+			
+	return final_path
 
 # ==========================================
 # 3. INTERNAL HELPERS
 # ==========================================
 func _update_obstacles(start_pos: Vector2, target_pos: Vector2):
-	# Loop through every single tile on the board
+	# FIXED: Create safe, rounded references for our mathematical comparisons
+	var safe_start = start_pos.round()
+	var safe_target = target_pos.round()
+
 	for x in range(astar.region.size.x):
 		for y in range(astar.region.size.y):
 			var cell = Vector2(x, y)
@@ -63,14 +59,10 @@ func _update_obstacles(start_pos: Vector2, target_pos: Vector2):
 				else:
 					weight_scale = terrain_stats.get("cost", 1.0)
 				
-			# Check with our GameHub: Is there a unit blocking the way?
-			# IMPORTANT: We do NOT mark our target as solid, otherwise we could never walk up to them!
-			# We also do NOT mark our own starting position as solid.
-			elif GameHub.grid_positions.has(cell) and cell != target_pos and cell != start_pos:
+			# FIXED: We now compare against the safe_target and safe_start!
+			elif GameHub.grid_positions.has(cell) and cell != safe_target and cell != safe_start:
 				is_solid = true
 				
 			var cell_i = Vector2i(int(x), int(y))
-			# Tell the AStar grid if this specific tile is blocked
 			astar.set_point_solid(cell_i, is_solid)
-			# Apply movement cost weight (e.g., 2.0 for Water)
 			astar.set_point_weight_scale(cell_i, weight_scale)

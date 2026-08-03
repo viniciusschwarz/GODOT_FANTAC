@@ -23,7 +23,6 @@ extends Node2D
 
 @onready var placement_panel = $UI/PlacementPanel
 @onready var points_label = $UI/PlacementPanel/VBoxContainer/PointsLabel
-# NEW: We only need to reference the empty container now!
 @onready var unit_button_container = $UI/PlacementPanel/VBoxContainer/ScrollContainer/UnitButtonContainer
 
 # ==========================================
@@ -41,7 +40,10 @@ func _ready():
 	restart_button.pressed.connect(_on_restart_button_pressed)
 	
 	GameHub.change_game_state(GameHub.GameState.SETUP)
-	GameHub.unit_moved.connect(_on_unit_moved)
+	
+	# FIXED: Connect to our new path-based signal instead of the old single-tile one
+	GameHub.unit_moved_path.connect(_on_unit_moved_path)
+	
 	GameHub.unit_took_damage.connect(_on_unit_took_damage)
 	GameHub.game_over.connect(_on_game_over)
 	GameHub.unit_selected.connect(_on_unit_selected)
@@ -50,30 +52,20 @@ func _ready():
 	setup_panel.hide()
 	update_points_ui()
 	
-	# NEW: Generate the UI based on the JSON database!
 	generate_placement_buttons()
 
 # ==========================================
 # 5. DYNAMIC UI GENERATION
 # ==========================================
 func generate_placement_buttons():
-	# Loop through every single unit that exists in our JSON file
 	for unit_key in UnitDatabase.data.keys():
-		
-		# 1. Ask the database for this specific unit's data
 		var unit_data = UnitDatabase.get_unit_stats(unit_key)
 		var cost = int(unit_data["cost"])
 		
-		# 2. Create a brand new Button via code
 		var btn = Button.new()
-		
-		# 3. Style it and set the text dynamically
 		btn.text = "Place " + str(unit_data["unit_name"]) + " (" + str(cost) + " pts)"
-		
-		# 4. THE MAGIC: Connect the button to a generic function, but bind the specific unit_key to it!
 		btn.pressed.connect(_on_buy_unit_button_pressed.bind(unit_key))
 		
-		# 5. Add the finished button to our scrollable list
 		unit_button_container.add_child(btn)
 
 # ==========================================
@@ -87,9 +79,7 @@ func update_points_ui():
 	else:
 		points_label.text += "\nSelect a unit."
 
-# NEW: This single function now handles every unit in the game!
 func _on_buy_unit_button_pressed(unit_key: String):
-	# Ask the database for the cost dynamically!
 	var cost = int(UnitDatabase.get_unit_stats(unit_key)["cost"])
 	
 	if available_points >= cost:
@@ -138,13 +128,21 @@ func spawn_unit(grid_pos: Vector2, unit_key: String, team_id: int):
 	
 	GameHub.register_unit(new_unit)
 
-func _on_unit_moved(unit_id: String, new_grid_pos: Vector2):
+# FIXED: Replaced the old single-step movement function with our new path-based sequence
+func _on_unit_moved_path(unit_id: String, path_array: Array):
 	var unit = GameHub.active_units[unit_id]
-	var local_pixel_pos = board.grid_to_pixel(new_grid_pos)
-	var new_global_pixel_pos = board.to_global(local_pixel_pos)
 	
+	# 1. Create a Tween (Animation Engine)
 	var tween = create_tween()
-	tween.tween_property(unit, "global_position", new_global_pixel_pos, 0.3)
+	
+	# 2. Loop through every step provided by the Pathfinder via the GameHub
+	for step_pos in path_array:
+		# 3. Convert the logical grid coordinate (e.g., Vector2(3, 2)) into physical screen pixels
+		var local_pixel_pos = board.grid_to_pixel(step_pos)
+		var next_global_pixel_pos = board.to_global(local_pixel_pos)
+		
+		# 4. Add the movement step to the sequence. The unit will take 0.2 seconds per tile!
+		tween.tween_property(unit, "global_position", next_global_pixel_pos, 0.2)
 
 func _on_unit_took_damage(unit_id: String, amount: int):
 	if floating_text_template == null:
