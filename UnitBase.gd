@@ -17,7 +17,9 @@ var stats: Dictionary = {}
 
 var current_hp: int
 var grid_position: Vector2
-var unit_id: String 
+var unit_id: String
+
+var ProjectileScene = preload("res://Projectile.tscn")
 
 # @onready grabs these visual nodes the moment the scene is loaded
 @onready var sprite = $Sprite2D
@@ -78,37 +80,78 @@ func _on_turn_started(active_unit_id: String):
 		print(str(stats["unit_name"]) + " (" + unit_id + ") is starting its turn!")
 		execute_turn()
 
+func get_dynamic_stat(stat_name: String) -> int:
+	var base_val = int(stats.get(stat_name, 0))
+	var focus_name = Focus.keys()[current_focus]
+
+	var behavior_stats = AIDatabase.get_behavior_stats(focus_name)
+	if behavior_stats.has("stat_modifiers"):
+		var mods = behavior_stats["stat_modifiers"]
+		if mods.has(stat_name):
+			return base_val + int(mods[stat_name])
+
+	return base_val
+
 func execute_turn():
 	await get_tree().create_timer(0.5).timeout
 	
 	match current_focus:
 		Focus.ATTACK_NEAREST:
 			var target = GameHub.get_closest_enemy(self)
-			
-			if target == null:
-				print(str(stats["unit_name"]) + " won! No enemies left.")
-			else:
+			_handle_attack_or_move(target)
+
+		Focus.DEFEND_POSITION:
+			var target = GameHub.get_closest_enemy(self)
+			if target != null:
 				var dist_x = abs(grid_position.x - target.grid_position.x)
 				var dist_y = abs(grid_position.y - target.grid_position.y)
 				var distance = dist_x + dist_y
 				
-				# NEW: Read the attack range from the JSON database!
-				var my_range = int(stats["attack_range"])
-				
-				# If the distance is less than or equal to our range, we attack!
+				var my_range = get_dynamic_stat("attack_range")
 				if distance <= my_range:
-					var attack_dmg = int(stats["attack_power"])
-					print(str(stats["unit_name"]) + " attacks " + str(target.stats["unit_name"]) + " for " + str(attack_dmg) + " damage!")
-					target.take_damage(attack_dmg)
+					perform_attack(target)
 				else:
-					move_towards(target.grid_position)
-					
-		Focus.DEFEND_POSITION:
-			pass
+					print(str(stats["unit_name"]) + " is defending and skips movement.")
+
 		Focus.HUNT_WEAKEST:
-			pass
+			var target = GameHub.get_weakest_enemy(team)
+			_handle_attack_or_move(target)
 			
 	GameHub.turn_ended.emit(unit_id)
+
+func _handle_attack_or_move(target: Node2D):
+	if target == null:
+		print(str(stats["unit_name"]) + " won! No enemies left.")
+	else:
+		var dist_x = abs(grid_position.x - target.grid_position.x)
+		var dist_y = abs(grid_position.y - target.grid_position.y)
+		var distance = dist_x + dist_y
+
+		var my_range = get_dynamic_stat("attack_range")
+
+		if distance <= my_range:
+			perform_attack(target)
+		else:
+			move_towards(target.grid_position)
+
+func perform_attack(target: Node2D):
+	var attack_dmg = get_dynamic_stat("attack_power")
+	var attack_type = stats.get("attack_type", "melee")
+
+	print(str(stats["unit_name"]) + " attacks " + str(target.stats["unit_name"]) + " using " + attack_type + " for " + str(attack_dmg) + " base damage!")
+
+	if attack_type == "aoe":
+		var enemy_team = GameHub.Team.ENEMY if team == GameHub.Team.PLAYER else GameHub.Team.PLAYER
+		var enemies_in_range = GameHub.get_enemies_in_radius(target.grid_position, 1, enemy_team)
+		for enemy in enemies_in_range:
+			enemy.take_damage(attack_dmg)
+	elif attack_type == "ranged":
+		var proj = ProjectileScene.instantiate()
+		proj.global_position = global_position
+		proj.setup(target, attack_dmg)
+		get_parent().add_child(proj)
+	else: # Melee
+		target.take_damage(attack_dmg)
 
 func move_towards(target_pos: Vector2):
 	# Ask our independent Pathfinder module for the next safe route
@@ -125,10 +168,13 @@ func move_towards(target_pos: Vector2):
 # 6. COMBAT FUNCTIONS
 # ==========================================
 func take_damage(amount: int):
-	current_hp -= amount
+	var defense = get_dynamic_stat("base_defense")
+	var actual_damage = max(0, amount - defense)
+
+	current_hp -= actual_damage
 	health_bar.value = current_hp 
 	
-	print(str(stats["unit_name"]) + " took " + str(amount) + " damage! HP left: " + str(current_hp))
+	print(str(stats["unit_name"]) + " mitigated " + str(defense) + " and took " + str(actual_damage) + " damage! HP left: " + str(current_hp))
 	
 	# Broadcast damage so floating text can appear
 	GameHub.unit_took_damage.emit(unit_id, amount)

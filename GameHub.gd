@@ -30,7 +30,7 @@ signal game_over(winning_team_name)
 # ==========================================
 var active_units = {}
 var grid_positions = {}
-var unwalkable_cells = {} # NEW: Remembers tiles like Mountains or Water
+var terrain_cells = {} # Map of Vector2 -> terrain key (e.g. "Grass", "Water")
 var board_size: Vector2 = Vector2.ZERO
 
 # ==========================================
@@ -54,16 +54,19 @@ func register_unit(unit_node):
 	print("Registered unit ", unit_node.unit_id, " at position ", unit_node.grid_position)
 	
 # Call this from the Board when setting up terrain
-func register_unwalkable_cell(cell_position: Vector2):
-	unwalkable_cells[cell_position] = true	
+func register_terrain_cell(cell_position: Vector2, terrain_key: String):
+	terrain_cells[cell_position] = terrain_key
 
 func is_cell_empty(cell_position: Vector2) -> bool:
 	return not grid_positions.has(cell_position)
 
 # We check BOTH if a unit is there, AND if the terrain is blocked
 func is_cell_walkable(cell_position: Vector2) -> bool:
-	if unwalkable_cells.has(cell_position):
-		return false # A mountain is here!
+	if terrain_cells.has(cell_position):
+		var terrain_key = terrain_cells[cell_position]
+		var terrain_stats = TerrainDatabase.get_terrain_stats(terrain_key)
+		if not terrain_stats.get("walkable", true):
+			return false # A mountain is here!
 		
 	if grid_positions.has(cell_position):
 		return false # Another unit is standing here!
@@ -140,3 +143,31 @@ func get_closest_enemy(requesting_unit) -> Node2D:
 				closest_enemy = other_unit
 				
 	return closest_enemy
+
+func get_enemies_in_radius(center_grid_pos: Vector2, radius: int, enemy_team_id: int) -> Array:
+	var enemies = []
+
+	for unit_id in active_units:
+		var other_unit = active_units[unit_id]
+		if other_unit.team == enemy_team_id:
+			var dist_x = abs(center_grid_pos.x - other_unit.grid_position.x)
+			var dist_y = abs(center_grid_pos.y - other_unit.grid_position.y)
+			var distance = dist_x + dist_y
+
+			if distance <= radius:
+				enemies.append(other_unit)
+
+	return enemies
+
+func get_weakest_enemy(my_team_id: int) -> Node2D:
+	var weakest_enemy = null
+	var lowest_hp = 999999
+
+	for unit_id in active_units:
+		var other_unit = active_units[unit_id]
+		if other_unit.team != my_team_id:
+			if other_unit.current_hp < lowest_hp:
+				lowest_hp = other_unit.current_hp
+				weakest_enemy = other_unit
+
+	return weakest_enemy

@@ -53,10 +53,15 @@ func _update_obstacles(start_pos: Vector2, target_pos: Vector2):
 		for y in range(astar.region.size.y):
 			var cell = Vector2(x, y)
 			var is_solid = false
+			var weight_scale = 1.0
 			
-			# Check with our GameHub: Is there a mountain here?
-			if GameHub.unwalkable_cells.has(cell):
-				is_solid = true
+			if GameHub.terrain_cells.has(cell):
+				var terrain_key = GameHub.terrain_cells[cell]
+				var terrain_stats = TerrainDatabase.get_terrain_stats(terrain_key)
+				if not terrain_stats.get("walkable", true):
+					is_solid = true
+				else:
+					weight_scale = terrain_stats.get("cost", 1.0)
 				
 			# Check with our GameHub: Is there a unit blocking the way?
 			# IMPORTANT: We do NOT mark our target as solid, otherwise we could never walk up to them!
@@ -64,5 +69,8 @@ func _update_obstacles(start_pos: Vector2, target_pos: Vector2):
 			elif GameHub.grid_positions.has(cell) and cell != target_pos and cell != start_pos:
 				is_solid = true
 				
+			var cell_i = Vector2i(int(x), int(y))
 			# Tell the AStar grid if this specific tile is blocked
-			astar.set_point_solid(Vector2i(int(x), int(y)), is_solid)
+			astar.set_point_solid(cell_i, is_solid)
+			# Apply movement cost weight (e.g., 2.0 for Water)
+			astar.set_point_weight_scale(cell_i, weight_scale)

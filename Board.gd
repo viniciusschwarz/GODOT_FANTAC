@@ -3,12 +3,6 @@ extends Node2D
 @export var tile_size: Vector2 = Vector2(64, 64) 
 @export var board_size: Vector2 = Vector2(8, 8)  
 
-enum TerrainType {
-	GRASS,   
-	MOUNTAIN, 
-	WATER     
-}
-
 var terrain_map = {}
 
 func _ready():
@@ -18,18 +12,10 @@ func _ready():
 	GameHub.register_board_size(board_size)
 
 func generate_basic_board():
-	for x in range(board_size.x):
-		for y in range(board_size.y):
-			var grid_pos = Vector2(x, y)
-			
-			# By default, everything is grass
-			terrain_map[grid_pos] = TerrainType.GRASS
-			
-			# Let's create a small wall of mountains in the middle
-			if x == 4 and (y == 3 or y == 4 or y == 5):
-				terrain_map[grid_pos] = TerrainType.MOUNTAIN
-				# NEW: Tell the Hub that this tile blocks movement!
-				GameHub.register_unwalkable_cell(grid_pos)
+	terrain_map = MapGenerator.generate_map(board_size)
+
+	for grid_pos in terrain_map:
+		GameHub.register_terrain_cell(grid_pos, terrain_map[grid_pos])
 	
 	# NEW: This tells Godot to run the _draw() function to paint the board
 	queue_redraw()
@@ -44,11 +30,14 @@ func _draw():
 		var pixel_pos = grid_pos * tile_size
 		var rect = Rect2(pixel_pos, tile_size)
 		
-		# Pick a color based on the terrain type
-		if terrain_map[grid_pos] == TerrainType.MOUNTAIN:
-			draw_rect(rect, Color(0.3, 0.3, 0.3)) # Dark Gray
-		else:
-			draw_rect(rect, Color(0.2, 0.4, 0.2)) # Dark Green
+		var terrain_key = terrain_map[grid_pos]
+		var terrain_stats = TerrainDatabase.get_terrain_stats(terrain_key)
+
+		var hex_color = "336633" # Default grass green
+		if terrain_stats.has("color"):
+			hex_color = terrain_stats["color"]
+
+		draw_rect(rect, Color(hex_color))
 			
 		# Draw a thin black border around every tile so it looks like a grid
 		draw_rect(rect, Color(0, 0, 0, 0.5), false, 2.0)
