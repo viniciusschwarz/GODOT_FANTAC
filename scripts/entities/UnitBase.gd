@@ -111,49 +111,39 @@ func execute_turn():
 	GameHub.turn_ended.emit(unit_id)
 
 func _get_best_reachable_target() -> Node2D:
-	var enemies = []
-	for unit_id in GameHub.active_units:
-		var unit = GameHub.active_units[unit_id]
-		if unit.team != team:
-			enemies.append(unit)
-
-	if enemies.is_empty():
-		return null
-
-	# Filter reachable enemies
-	var reachable_enemies = []
-	var move_range = get_dynamic_stat("movement_range")
-	var attack_range = get_dynamic_stat("attack_range")
-
-	for enemy in enemies:
-		if is_in_attack_range(enemy):
-			reachable_enemies.append(enemy)
-		else:
-			var path = Pathfinder.get_walkable_path(grid_position, enemy.grid_position, move_range, attack_range)
-			if not path.is_empty():
-				reachable_enemies.append(enemy)
-
-	if reachable_enemies.is_empty():
-		return null
-
-	var best_target = null
+	var potential_target = null
 
 	match current_focus:
 		Focus.ATTACK_NEAREST, Focus.DEFEND_POSITION:
-			var shortest_distance = 9999
-			for enemy in reachable_enemies:
-				var distance = get_grid_distance(grid_position, enemy.grid_position)
-				if distance < shortest_distance:
-					shortest_distance = distance
-					best_target = enemy
+			potential_target = GameHub.get_closest_enemy(self)
 		Focus.HUNT_WEAKEST:
-			var lowest_hp = 999999
-			for enemy in reachable_enemies:
-				if enemy.current_hp < lowest_hp:
-					lowest_hp = enemy.current_hp
-					best_target = enemy
+			potential_target = GameHub.get_weakest_enemy(team)
 
-	return best_target
+	if potential_target and not is_in_attack_range(potential_target):
+		var move_range = get_dynamic_stat("movement_range")
+		var attack_range = get_dynamic_stat("attack_range")
+		# We want a true, unblocked path to the potential target.
+		# _get_walkable_path has a fallback to ignore units if fully blocked.
+		# If the target is fully blocked, the fallback will give a partial path to get closer,
+		# which is exactly what we want instead of switching targets if they are just behind a wall of units.
+		# However, if there's no path AT ALL (e.g. walled off by terrain), we should pick a new target.
+		var path = Pathfinder.get_walkable_path(grid_position, potential_target.grid_position, move_range, attack_range)
+		if path.is_empty():
+			# Walled off completely. Find ANY reachable enemy.
+			var enemies = []
+			for unit_id in GameHub.active_units:
+				var unit = GameHub.active_units[unit_id]
+				if unit.team != team and unit != potential_target:
+					enemies.append(unit)
+
+			for enemy in enemies:
+				if is_in_attack_range(enemy):
+					return enemy
+				var alt_path = Pathfinder.get_walkable_path(grid_position, enemy.grid_position, move_range, attack_range)
+				if not alt_path.is_empty():
+					return enemy
+
+	return potential_target
 
 func engage_target(target: Node2D):
 	# Flow Phase 1: Can I attack right now?
@@ -189,26 +179,35 @@ func engage_target(target: Node2D):
 # ==========================================
 func _get_kiting_path(target_pos: Vector2, target_distance: int) -> Array[Vector2]:
 	var move_range = get_dynamic_stat("movement_range")
-	# Simple kiting logic: move directly away from target
-	var dir = (grid_position - target_pos).sign()
-	if dir == Vector2.ZERO:
-		dir = Vector2(1, 0)
+	var current_dist = get_grid_distance(grid_position, target_pos)
 
-	var kite_dest = grid_position + (dir * move_range)
-	# Find path to kite_dest
-	var path = Pathfinder.get_walkable_path(grid_position, kite_dest, move_range, 0)
+	var best_dest = grid_position
+	var max_dist_achieved = current_dist
 
-	# We want to stop if we reach ideal range, but the pathfinder might not know our ideal range in this context.
-	# So we manually truncate the path.
-	var truncated_path: Array[Vector2] = []
-	for step in path:
-		var dist_to_target = get_grid_distance(step, target_pos)
-		if dist_to_target <= target_distance:
-			truncated_path.append(step)
-		else:
-			break
+	# Evaluate all cells in movement range to find the one that puts us furthest away
+	# but still within target_distance (attack range)
+	for x in range(-move_range, move_range + 1):
+		for y in range(-move_range, move_range + 1):
+			if abs(x) + abs(y) > move_range and max(abs(x), abs(y)) > move_range:
+				continue # skip if out of range bounds
 
-	return truncated_path
+			var candidate = grid_position + Vector2(x, y)
+
+			if GameHub.is_cell_walkable(candidate) and GameHub.is_cell_empty(candidate):
+				var dist_from_target = get_grid_distance(candidate, target_pos)
+
+				# We want to increase our distance, but not exceed attack range
+				if dist_from_target > max_dist_achieved and dist_from_target <= target_distance:
+					# Verify we can actually path there
+					var test_path = Pathfinder.get_walkable_path(grid_position, candidate, move_range, 0)
+					if not test_path.is_empty() and test_path[-1] == candidate:
+						max_dist_achieved = dist_from_target
+						best_dest = candidate
+
+	if best_dest != grid_position:
+		return Pathfinder.get_walkable_path(grid_position, best_dest, move_range, 0)
+
+	return []
 
 func attempt_movement(target_pos: Vector2):
 	var move_range = get_dynamic_stat("movement_range")
