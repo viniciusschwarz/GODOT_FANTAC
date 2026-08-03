@@ -14,6 +14,10 @@ config/name="Fantac"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"
 
+[autoload]
+
+GameHub="*uid://dvh2di0dqvg67"
+
 [display]
 
 window/stretch/mode="canvas_items"

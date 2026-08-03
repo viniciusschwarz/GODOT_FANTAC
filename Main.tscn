@@ -1,0 +1,92 @@
+[gd_scene format=3 uid="uid://d3yru6rcxwfwc"]
+
+[ext_resource type="Script" uid="uid://oeee1gjcsfvh" path="res://Main.gd" id="1_r0du0"]
+[ext_resource type="PackedScene" uid="uid://dg4oa2dro4qxg" path="res://Board.tscn" id="2_cm0pq"]
+[ext_resource type="PackedScene" uid="uid://n8f7qryd5abs" path="res://UnitBase.tscn" id="2_fos0i"]
+[ext_resource type="PackedScene" uid="uid://bdvx0s6jbphgq" path="res://FloatingText.tscn" id="3_3dxm6"]
+[ext_resource type="PackedScene" uid="uid://c88khhfurqp1b" path="res://TurnManager.tscn" id="3_fos0i"]
+
+[node name="Main" type="Node2D" unique_id=211694637]
+script = ExtResource("1_r0du0")
+unit_template = ExtResource("2_fos0i")
+floating_text_template = ExtResource("3_3dxm6")
+
+[node name="Board" parent="." unique_id=1135075819 instance=ExtResource("2_cm0pq")]
+
+[node name="TurnManager" parent="." unique_id=227596077 instance=ExtResource("3_fos0i")]
+
+[node name="UI" type="CanvasLayer" parent="." unique_id=617546494]
+
+[node name="Button" type="Button" parent="UI" unique_id=1835998702]
+offset_right = 96.0
+offset_bottom = 31.0
+text = "Start Battle"
+
+[node name="GameOverPanel" type="Panel" parent="UI" unique_id=1624046119]
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -150.0
+offset_top = -150.0
+offset_right = 150.0
+offset_bottom = 150.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="WinnerLabel" type="Label" parent="UI/GameOverPanel" unique_id=2016692085]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -54.0
+offset_top = 20.0
+offset_right = 54.0
+offset_bottom = 43.0
+grow_horizontal = 2
+offset_transform_enabled = true
+text = "PLAYER WINS!"
+horizontal_alignment = 1
+
+[node name="RestartButton" type="Button" parent="UI/GameOverPanel" unique_id=621903214]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -59.0
+offset_top = -50.0
+offset_right = 59.0
+offset_bottom = -19.0
+grow_horizontal = 2
+grow_vertical = 0
+text = "Restart Game"
+
+[node name="SetupPanel" type="Panel" parent="UI" unique_id=1989158032]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -152.0
+offset_top = 30.0
+offset_right = -112.0
+offset_bottom = 70.0
+grow_horizontal = 0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/SetupPanel" unique_id=362982916]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="UnitNameLabel" type="Label" parent="UI/SetupPanel/VBoxContainer" unique_id=229427664]
+layout_mode = 2
+
+[node name="FocusDropdown" type="OptionButton" parent="UI/SetupPanel/VBoxContainer" unique_id=678796538]
+layout_mode = 2
+
+[connection signal="item_selected" from="UI/SetupPanel/VBoxContainer/FocusDropdown" to="." method="_on_focus_dropdown_item_selected"]

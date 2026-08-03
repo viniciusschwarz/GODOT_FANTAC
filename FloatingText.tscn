@@ -1,0 +1,25 @@
+[gd_scene format=3 uid="uid://bdvx0s6jbphgq"]
+
+[ext_resource type="Script" uid="uid://pfu7852oqlla" path="res://FloatingText.gd" id="1_bmcqi"]
+
+[node name="FloatingText" type="Node2D" unique_id=975386748]
+script = ExtResource("1_bmcqi")
+float_speed = 5.0
+float_distance = 15.0
+
+[node name="Label" type="Label" parent="." unique_id=465678012]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -11.5
+offset_right = 20.0
+offset_bottom = 11.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/outline_size = 4
+text = "99"
+horizontal_alignment = 1
+vertical_alignment = 1
