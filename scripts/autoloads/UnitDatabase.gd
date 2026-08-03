@@ -13,7 +13,7 @@ func _ready():
 # 2. DATA LOADING
 # ==========================================
 func load_database():
-	var file_path = "res://units_database.json"
+	var file_path = "res://data/json/units_database.json"
 	
 	# Check if the file actually exists
 	if not FileAccess.file_exists(file_path):

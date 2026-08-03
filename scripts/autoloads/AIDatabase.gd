@@ -6,7 +6,7 @@ func _ready():
 	load_database()
 
 func load_database():
-	var file_path = "res://ai_behaviors.json"
+	var file_path = "res://data/json/ai_behaviors.json"
 
 	if not FileAccess.file_exists(file_path):
 		push_error("AIDatabase: Cannot find " + file_path)

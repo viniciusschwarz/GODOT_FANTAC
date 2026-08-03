@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://n8f7qryd5abs"]
 
-[ext_resource type="Script" uid="uid://xajc1luqnrcm" path="res://UnitBase.gd" id="1_655xi"]
-[ext_resource type="Texture2D" uid="uid://cs1a8e36cjgrw" path="res://Knight_Token.tres" id="2_655xi"]
+[ext_resource type="Script" uid="uid://xajc1luqnrcm" path="res://scripts/entities/UnitBase.gd" id="1_655xi"]
+[ext_resource type="Texture2D" uid="uid://cs1a8e36cjgrw" path="res://data/resources/Knight_Token.tres" id="2_655xi"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_black_bg"]
 bg_color = Color(0, 0, 0, 1)

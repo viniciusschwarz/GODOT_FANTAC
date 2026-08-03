@@ -1,10 +1,10 @@
 [gd_scene format=3 uid="uid://d3yru6rcxwfwc"]
 
-[ext_resource type="Script" uid="uid://oeee1gjcsfvh" path="res://Main.gd" id="1_r0du0"]
-[ext_resource type="PackedScene" uid="uid://dg4oa2dro4qxg" path="res://Board.tscn" id="2_cm0pq"]
-[ext_resource type="PackedScene" uid="uid://n8f7qryd5abs" path="res://UnitBase.tscn" id="2_fos0i"]
-[ext_resource type="PackedScene" uid="uid://bdvx0s6jbphgq" path="res://FloatingText.tscn" id="3_3dxm6"]
-[ext_resource type="PackedScene" uid="uid://c88khhfurqp1b" path="res://TurnManager.tscn" id="3_fos0i"]
+[ext_resource type="Script" uid="uid://oeee1gjcsfvh" path="res://scripts/core/Main.gd" id="1_r0du0"]
+[ext_resource type="PackedScene" uid="uid://dg4oa2dro4qxg" path="res://scenes/gameplay/Board.tscn" id="2_cm0pq"]
+[ext_resource type="PackedScene" uid="uid://n8f7qryd5abs" path="res://scenes/entities/UnitBase.tscn" id="2_fos0i"]
+[ext_resource type="PackedScene" uid="uid://bdvx0s6jbphgq" path="res://scenes/ui/FloatingText.tscn" id="3_3dxm6"]
+[ext_resource type="PackedScene" uid="uid://c88khhfurqp1b" path="res://scenes/gameplay/TurnManager.tscn" id="3_fos0i"]
 
 [node name="Main" type="Node2D" unique_id=1243698190]
 script = ExtResource("1_r0du0")
