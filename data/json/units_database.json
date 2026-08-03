@@ -9,7 +9,7 @@
 		"movement_range": 3,
 		"cost": 3,
 		"default_team": 0,
-		"texture_path": "res://Knight_Token.tres"
+		"texture_path": "res://data/resources/Knight_Token.tres"
 	},
 	"Goblin": {
 		"unit_name": "Goblin",
@@ -21,7 +21,7 @@
 		"movement_range": 4,
 		"cost": 2,
 		"default_team": 1,
-		"texture_path": "res://Goblin_Token.tres" 
+		"texture_path": "res://data/resources/Goblin_Token.tres"
 	},
 	"Archer": {
 		"unit_name": "Archer",
@@ -33,7 +33,7 @@
 		"movement_range": 2,
 		"cost": 3,
 		"default_team": 0,
-		"texture_path": "res://Archer_Token.tres" 
+		"texture_path": "res://data/resources/Archer_Token.tres"
 	},
 	"Mage": {
 		"unit_name": "Mage",
@@ -45,6 +45,6 @@
 		"movement_range": 2,
 		"cost": 4,
 		"default_team": 1,
-		"texture_path": "res://Mage_Token.tres"
+		"texture_path": "res://data/resources/Mage_Token.tres"
 	}
 }

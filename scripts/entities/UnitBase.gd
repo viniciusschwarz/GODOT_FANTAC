@@ -19,7 +19,7 @@ var current_hp: int
 var grid_position: Vector2
 var unit_id: String
 
-var ProjectileScene = preload("res://Projectile.tscn")
+var ProjectileScene = preload("res://scenes/entities/Projectile.tscn")
 
 # @onready grabs these visual nodes the moment the scene is loaded
 @onready var sprite = $Sprite2D

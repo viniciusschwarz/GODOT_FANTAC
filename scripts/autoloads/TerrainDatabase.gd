@@ -6,7 +6,7 @@ func _ready():
 	load_database()
 
 func load_database():
-	var file_path = "res://terrain_database.json"
+	var file_path = "res://data/json/terrain_database.json"
 
 	if not FileAccess.file_exists(file_path):
 		push_error("TerrainDatabase: Cannot find " + file_path)
