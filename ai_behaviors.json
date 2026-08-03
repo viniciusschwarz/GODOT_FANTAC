@@ -1,0 +1,23 @@
+{
+	"ATTACK_NEAREST": {
+		"stat_modifiers": {
+			"attack_power": 0,
+			"base_defense": 0,
+			"movement_range": 0
+		}
+	},
+	"DEFEND_POSITION": {
+		"stat_modifiers": {
+			"attack_power": -1,
+			"base_defense": 2,
+			"movement_range": -99
+		}
+	},
+	"HUNT_WEAKEST": {
+		"stat_modifiers": {
+			"attack_power": 1,
+			"base_defense": -1,
+			"movement_range": 1
+		}
+	}
+}

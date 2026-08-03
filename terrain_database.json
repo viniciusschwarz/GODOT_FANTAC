@@ -1,0 +1,20 @@
+{
+	"Grass": {
+		"type": "GRASS",
+		"walkable": true,
+		"cost": 1.0,
+		"color": "336633"
+	},
+	"Water": {
+		"type": "WATER",
+		"walkable": true,
+		"cost": 2.0,
+		"color": "3366FF"
+	},
+	"Mountain": {
+		"type": "MOUNTAIN",
+		"walkable": false,
+		"cost": 0.0,
+		"color": "4C4C4C"
+	}
+}
