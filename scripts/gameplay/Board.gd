@@ -6,13 +6,13 @@ extends Node2D
 var terrain_map = {}
 
 func _ready():
-	generate_basic_board()
-	print("Board initialized with size: ", board_size)
-	# NEW: Register the size with the Hub!
-	GameHub.register_board_size(board_size)
+	pass # Initialization moved to generate_new_board
 
-func generate_basic_board():
+func generate_new_board(new_size: Vector2):
+	board_size = new_size
+	GameHub.clear_board_state()
 	terrain_map = MapGenerator.generate_map(board_size)
+	GameHub.register_board_size(board_size)
 
 	for grid_pos in terrain_map:
 		GameHub.register_terrain_cell(grid_pos, terrain_map[grid_pos])

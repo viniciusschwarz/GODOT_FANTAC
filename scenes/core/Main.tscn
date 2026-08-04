@@ -16,22 +16,205 @@ position = Vector2(300, 20)
 
 [node name="TurnManager" parent="." unique_id=1268339290 instance=ExtResource("3_fos0i")]
 
+[node name="Camera2D" type="Camera2D" parent="." unique_id=987654321]
+position = Vector2(576, 324)
+
 [node name="UI" type="CanvasLayer" parent="." unique_id=969223877]
 
-[node name="Button" type="Button" parent="UI" unique_id=822721706]
-anchors_preset = 7
-anchor_left = 0.5
-anchor_top = 1.0
-anchor_right = 0.5
+[node name="MainMenuPanel" type="Panel" parent="UI" unique_id=123456789]
+anchors_preset = 15
+anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -120.0
-offset_top = -90.0
-offset_right = 120.0
-offset_bottom = -40.0
 grow_horizontal = 2
-grow_vertical = 0
+grow_vertical = 2
+
+[node name="Label" type="Label" parent="UI/MainMenuPanel" unique_id=123456780]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -100.0
+offset_right = 200.0
+offset_bottom = -50.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 48
+text = "Auto-Battler"
+horizontal_alignment = 1
+
+[node name="StartGameButton" type="Button" parent="UI/MainMenuPanel" unique_id=123456781]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -100.0
+offset_top = 20.0
+offset_right = 100.0
+offset_bottom = 70.0
+grow_horizontal = 2
+grow_vertical = 2
 theme_override_font_sizes/font_size = 24
+text = "Start Game"
+
+
+[node name="MapGenPanel" type="Panel" parent="UI" unique_id=234567890]
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -250.0
+offset_top = -150.0
+offset_right = 250.0
+offset_bottom = 150.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UI/MapGenPanel" unique_id=234567891]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 15
+
+[node name="Label" type="Label" parent="UI/MapGenPanel/VBoxContainer" unique_id=234567892]
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Map Generation"
+horizontal_alignment = 1
+
+[node name="HBoxContainer" type="HBoxContainer" parent="UI/MapGenPanel/VBoxContainer" unique_id=234567893]
+layout_mode = 2
+alignment = 1
+
+[node name="WidthLabel" type="Label" parent="UI/MapGenPanel/VBoxContainer/HBoxContainer" unique_id=234567894]
+layout_mode = 2
+text = "Width: "
+
+[node name="WidthInput" type="SpinBox" parent="UI/MapGenPanel/VBoxContainer/HBoxContainer" unique_id=234567895]
+layout_mode = 2
+min_value = 8.0
+max_value = 64.0
+value = 16.0
+
+[node name="HeightLabel" type="Label" parent="UI/MapGenPanel/VBoxContainer/HBoxContainer" unique_id=234567896]
+layout_mode = 2
+text = "  Height: "
+
+[node name="HeightInput" type="SpinBox" parent="UI/MapGenPanel/VBoxContainer/HBoxContainer" unique_id=234567897]
+layout_mode = 2
+min_value = 8.0
+max_value = 64.0
+value = 16.0
+
+[node name="RollButton" type="Button" parent="UI/MapGenPanel/VBoxContainer" unique_id=234567898]
+layout_mode = 2
+text = "Roll Map"
+
+[node name="ConfirmMapButton" type="Button" parent="UI/MapGenPanel/VBoxContainer" unique_id=234567899]
+layout_mode = 2
+text = "Confirm Map"
+
+
+[node name="UnitAllocationPanel" type="Panel" parent="UI" unique_id=345678901]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="TopBar" type="Panel" parent="UI/UnitAllocationPanel" unique_id=345678902]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 50.0
+grow_horizontal = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="UI/UnitAllocationPanel/TopBar" unique_id=345678903]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_right = -10.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 15
+
+[node name="TeamTabs" type="TabBar" parent="UI/UnitAllocationPanel/TopBar/HBoxContainer" unique_id=345678904]
+layout_mode = 2
+size_flags_horizontal = 3
+tab_count = 2
+tab_0/title = "Player 1 (Team 0)"
+tab_1/title = "Player 2 (Team 1)"
+
+[node name="PointsLabel" type="Label" parent="UI/UnitAllocationPanel/TopBar/HBoxContainer" unique_id=345678905]
+layout_mode = 2
+text = "Points:"
+
+[node name="PointsInput" type="LineEdit" parent="UI/UnitAllocationPanel/TopBar/HBoxContainer" unique_id=345678906]
+layout_mode = 2
+text = "15"
+alignment = 1
+
+[node name="ModeTabs" type="TabBar" parent="UI/UnitAllocationPanel/TopBar/HBoxContainer" unique_id=345678907]
+layout_mode = 2
+size_flags_horizontal = 3
+tab_count = 2
+tab_0/title = "Placement Mode"
+tab_1/title = "Setup Mode"
+
+[node name="FocusDropdown" type="OptionButton" parent="UI/UnitAllocationPanel/TopBar/HBoxContainer" unique_id=345678908]
+layout_mode = 2
+
+[node name="StartBattleButton" type="Button" parent="UI/UnitAllocationPanel/TopBar/HBoxContainer" unique_id=345678909]
+layout_mode = 2
 text = "Start Battle"
+
+
+[node name="RosterPanel" type="Panel" parent="UI/UnitAllocationPanel" unique_id=456789012]
+layout_mode = 1
+anchors_preset = 9
+anchor_bottom = 1.0
+offset_top = 50.0
+offset_right = 200.0
+grow_vertical = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="UI/UnitAllocationPanel/RosterPanel" unique_id=456789013]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="UnitButtonContainer" type="VBoxContainer" parent="UI/UnitAllocationPanel/RosterPanel/ScrollContainer" unique_id=456789014]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 5
+
+[node name="UnitNameLabel" type="Label" parent="UI/UnitAllocationPanel" unique_id=456789015]
+visible = false
+layout_mode = 0
+
 
 [node name="GameOverPanel" type="Panel" parent="UI" unique_id=324200729]
 visible = false
@@ -77,70 +260,3 @@ grow_horizontal = 2
 grow_vertical = 0
 theme_override_font_sizes/font_size = 20
 text = "Restart Game"
-
-[node name="SetupPanel" type="Panel" parent="UI" unique_id=1489667112]
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -270.0
-offset_top = 20.0
-offset_right = -20.0
-offset_bottom = 130.0
-grow_horizontal = 0
-
-[node name="VBoxContainer" type="VBoxContainer" parent="UI/SetupPanel" unique_id=1224836133]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 15.0
-offset_top = 15.0
-offset_right = -15.0
-offset_bottom = -15.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/separation = 10
-
-[node name="UnitNameLabel" type="Label" parent="UI/SetupPanel/VBoxContainer" unique_id=166242784]
-layout_mode = 2
-theme_override_font_sizes/font_size = 18
-text = "Select a Unit"
-horizontal_alignment = 1
-
-[node name="FocusDropdown" type="OptionButton" parent="UI/SetupPanel/VBoxContainer" unique_id=1123177850]
-layout_mode = 2
-theme_override_font_sizes/font_size = 16
-
-[node name="PlacementPanel" type="Panel" parent="UI" unique_id=1179775389]
-offset_left = 20.0
-offset_top = 20.0
-offset_right = 220.0
-offset_bottom = 350.0
-
-[node name="VBoxContainer" type="VBoxContainer" parent="UI/PlacementPanel" unique_id=201502647]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 10.0
-offset_top = 10.0
-offset_right = -10.0
-offset_bottom = -10.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/separation = 10
-
-[node name="PointsLabel" type="Label" parent="UI/PlacementPanel/VBoxContainer" unique_id=96896232]
-layout_mode = 2
-text = "Points: 15"
-horizontal_alignment = 1
-
-[node name="ScrollContainer" type="ScrollContainer" parent="UI/PlacementPanel/VBoxContainer" unique_id=1541583121]
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="UnitButtonContainer" type="VBoxContainer" parent="UI/PlacementPanel/VBoxContainer/ScrollContainer" unique_id=53327975]
-layout_mode = 2
-size_flags_horizontal = 3
-
-[connection signal="item_selected" from="UI/SetupPanel/VBoxContainer/FocusDropdown" to="." method="_on_focus_dropdown_item_selected"]

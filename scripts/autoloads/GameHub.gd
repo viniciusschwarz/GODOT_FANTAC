@@ -4,12 +4,14 @@ extends Node
 # 1. ENUMS (Game States)
 # ==========================================
 enum GameState {
-	SETUP,
+	MAIN_MENU,
+	MAP_GENERATION,
+	UNIT_ALLOCATION,
 	BATTLE,
 	RESOLUTION
 }
 
-var current_state = GameState.SETUP
+var current_state = GameState.MAIN_MENU
 
 # ==========================================
 # 2. SIGNALS (The Event Bus)
@@ -90,6 +92,13 @@ func move_unit_path(unit_id, old_position: Vector2, path_array: Array):
 func register_board_size(size: Vector2):
 	board_size = size
 	Pathfinder.setup_grid(size)		
+
+
+func clear_board_state():
+	active_units.clear()
+	grid_positions.clear()
+	terrain_cells.clear()
+	board_size = Vector2.ZERO
 
 # ==========================================
 # 6. WIN DETECTION LOGIC
