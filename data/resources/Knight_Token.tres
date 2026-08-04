@@ -1,7 +1,7 @@
 [gd_resource type="AtlasTexture" format=3 uid="uid://cs1a8e36cjgrw"]
 
-[ext_resource type="Texture2D" uid="uid://cncv1sqapjpsf" path="res://assets/graphics/sprites/unit_tokens_test-Photoroom.png" id="1_s0q4h"]
+[ext_resource type="Texture2D" uid="uid://bycfvanmbpxyo" path="res://assets/graphics/sprites/Gemini_Generated_Image_caaxdcaaxdcaaxdc-Photoroom.png" id="1_1q848"]
 
 [resource]
-atlas = ExtResource("1_s0q4h")
-region = Rect2(651.802, 71.119, 160, 160)
+atlas = ExtResource("1_1q848")
+region = Rect2(1580.309, 43.319, 420, 480)
