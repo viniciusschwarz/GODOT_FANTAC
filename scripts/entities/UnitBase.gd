@@ -197,7 +197,7 @@ func _get_kiting_path(target_pos: Vector2, target_distance: int) -> Array[Vector
 				var dist_from_target = get_grid_distance(candidate, target_pos)
 
 				# We want to increase our distance, but not exceed attack range
-				if dist_from_target > max_dist_achieved and dist_from_target <= target_distance:
+				if dist_from_target > max_dist_achieved and dist_from_target <= target_distance and dist_from_target > current_dist:
 					# Verify we can actually path there
 					var test_path = Pathfinder.get_walkable_path(grid_position, candidate, move_range, 0)
 					if not test_path.is_empty() and test_path[-1] == candidate:

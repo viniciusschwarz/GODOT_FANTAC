@@ -18,17 +18,17 @@ func setup_grid(board_size: Vector2):
 # ==========================================
 func get_walkable_path(start_pos: Vector2, target_pos: Vector2, max_steps: int, attack_range: int = 1) -> Array[Vector2]:
 	_update_obstacles(start_pos, target_pos, false)
-	
+
 	# FIXED: We now use round() before converting to integers to perfectly match the GameHub!
 	var start_i = Vector2i(round(start_pos.x), round(start_pos.y))
 	var target_i = Vector2i(round(target_pos.x), round(target_pos.y))
-	
+
 	# Check if target is solid (blocked by something other than a unit).
 	# If target is solid, get_id_path might return empty.
 	# But in our game, targets are usually units, which we marked as non-solid in _update_obstacles.
 	var id_path = astar.get_id_path(start_i, target_i)
 	var final_path: Array[Vector2] = []
-	
+
 	# If no path, try finding a path to a neighboring tile of the target
 	if id_path.is_empty() and start_i != target_i:
 		var best_neighbor = _find_closest_walkable_neighbor(target_i, start_i, attack_range)
@@ -37,31 +37,29 @@ func get_walkable_path(start_pos: Vector2, target_pos: Vector2, max_steps: int, 
 
 	# If STILL empty, it means the path is completely blocked by units (since terrain wouldn't change).
 	# We temporarily ignore units to find a path that moves towards the target as much as possible.
-	var is_path_partial = false
 	if id_path.is_empty() and start_i != target_i:
 		_update_obstacles(start_pos, target_pos, true)
 		id_path = astar.get_id_path(start_i, target_i)
 		_update_obstacles(start_pos, target_pos, false) # Restore for future calls
-		is_path_partial = true
 
 	if id_path.size() > 1:
 		for i in range(1, min(id_path.size(), max_steps + 1)):
 			var step = Vector2(id_path[i].x, id_path[i].y)
-			
+
 			# Stop if the step is occupied (and it's not the target tile)
 			if not GameHub.is_cell_empty(step) and step != target_pos:
 				break
-				
+
 			# Only break for target tile if our intent was to attack it. If we are pathing to an empty tile (kiting), it's fine.
 			# We can check if GameHub.is_cell_empty(target_pos) to know if we are kiting vs attacking.
 			if step == target_pos and not GameHub.is_cell_empty(target_pos):
 				break
 
 			final_path.append(step)
-			
+
 			# Stop prematurely if this step is within attack range of the target,
 			# BUT only if we are actually attacking (target is occupied). If kiting, we want to go exactly to the target tile.
-			if not GameHub.is_cell_empty(target_pos) and _get_grid_distance(step, target_pos) <= attack_range and not is_path_partial:
+			if not GameHub.is_cell_empty(target_pos) and _get_grid_distance(step, target_pos) <= attack_range:
 				break
 
 	return final_path
@@ -107,7 +105,7 @@ func _update_obstacles(start_pos: Vector2, target_pos: Vector2, ignore_units: bo
 			var cell = Vector2(x, y)
 			var is_solid = false
 			var weight_scale = 1.0
-			
+
 			if GameHub.terrain_cells.has(cell):
 				var terrain_key = GameHub.terrain_cells[cell]
 				var terrain_stats = TerrainDatabase.get_terrain_stats(terrain_key)
@@ -115,11 +113,11 @@ func _update_obstacles(start_pos: Vector2, target_pos: Vector2, ignore_units: bo
 					is_solid = true
 				else:
 					weight_scale = terrain_stats.get("cost", 1.0)
-				
+
 			# FIXED: We now compare against the safe_target and safe_start!
 			elif not ignore_units and GameHub.grid_positions.has(cell) and cell != safe_target and cell != safe_start:
 				is_solid = true
-				
+
 			var cell_i = Vector2i(int(x), int(y))
 			astar.set_point_solid(cell_i, is_solid)
 			astar.set_point_weight_scale(cell_i, weight_scale)
