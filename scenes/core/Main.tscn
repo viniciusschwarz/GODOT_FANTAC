@@ -258,3 +258,50 @@ grow_horizontal = 2
 grow_vertical = 0
 theme_override_font_sizes/font_size = 20
 text = "Restart Game"
+
+[node name="LiveRosterPanel" type="Panel" parent="UI" unique_id=250302017]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -280.0
+offset_top = 60.0
+offset_right = -20.0
+offset_bottom = 360.0
+grow_horizontal = 0
+
+[node name="ScrollContainer" type="ScrollContainer" parent="UI/LiveRosterPanel" unique_id=686340864]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 2
+horizontal_scroll_mode = 0
+
+[node name="TeamColumns" type="HBoxContainer" parent="UI/LiveRosterPanel/ScrollContainer" unique_id=1239618283]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 20
+
+[node name="Team0List" type="VBoxContainer" parent="UI/LiveRosterPanel/ScrollContainer/TeamColumns" unique_id=783991596]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Header0" type="Label" parent="UI/LiveRosterPanel/ScrollContainer/TeamColumns/Team0List" unique_id=1073747364]
+layout_mode = 2
+text = "Player"
+horizontal_alignment = 1
+
+[node name="Team1List" type="VBoxContainer" parent="UI/LiveRosterPanel/ScrollContainer/TeamColumns" unique_id=92364099]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Header1" type="Label" parent="UI/LiveRosterPanel/ScrollContainer/TeamColumns/Team1List" unique_id=1625638296]
+layout_mode = 2
+text = "Enemy"
+horizontal_alignment = 1

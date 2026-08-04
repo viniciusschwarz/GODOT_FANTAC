@@ -37,6 +37,12 @@ extends Node2D
 @onready var winner_label = $UI/GameOverPanel/WinnerLabel
 @onready var restart_button = $UI/GameOverPanel/RestartButton
 
+# Live Roster Panels
+@onready var live_roster_panel = $UI/LiveRosterPanel
+# FIX: Added ScrollContainer to the node paths
+@onready var team_0_list = $UI/LiveRosterPanel/ScrollContainer/TeamColumns/Team0List
+@onready var team_1_list = $UI/LiveRosterPanel/ScrollContainer/TeamColumns/Team1List
+
 # ==========================================
 # 3. CAMERA CONTROLS
 # ==========================================
@@ -82,6 +88,7 @@ func _ready():
 	GameHub.unit_moved_path.connect(_on_unit_moved_path)
 	GameHub.unit_took_damage.connect(_on_unit_took_damage)
 	GameHub.game_over.connect(_on_game_over)
+	GameHub.unit_died.connect(_on_unit_died_update_roster)
 	
 	setup_dropdown_options()
 	generate_placement_buttons()
@@ -109,12 +116,19 @@ func generate_placement_buttons():
 # ==========================================
 # 6. UI TRANSITIONS
 # ==========================================
+# ==========================================
+# 6. UI TRANSITIONS
+# ==========================================
 func _transition_to_main_menu():
 	GameHub.change_game_state(GameHub.GameState.MAIN_MENU)
 	main_menu_panel.show()
 	map_gen_panel.hide()
 	unit_allocation_panel.hide()
 	game_over_panel.hide()
+	
+	# FIX: Hide the roster on the main menu
+	live_roster_panel.hide() 
+	
 	camera.position = Vector2(576, 324)
 
 func _on_start_game_pressed():
@@ -126,6 +140,9 @@ func _transition_to_map_gen():
 	map_gen_panel.show()
 	unit_allocation_panel.hide()
 	
+	# FIX: Hide the roster during map generation
+	live_roster_panel.hide() 
+	
 	# Generate initial map based on default spinbox values
 	_on_roll_map_pressed()
 
@@ -133,6 +150,9 @@ func _transition_to_unit_allocation():
 	GameHub.change_game_state(GameHub.GameState.UNIT_ALLOCATION)
 	map_gen_panel.hide()
 	unit_allocation_panel.show()
+	
+	# FIX: Show the roster once we start allocating units
+	live_roster_panel.show() 
 	
 	_update_allocation_ui()
 
@@ -258,6 +278,7 @@ func _handle_placement_click(grid_pos: Vector2):
 			
 			# FIX: Use our new clean removal method instead of unit.die()
 			GameHub.unregister_unit(unit_id) 
+			_update_roster_ui() # NEW: Update Roster when removing a unit
 		return
 
 	# If cell is empty, try to place
@@ -299,6 +320,8 @@ func spawn_unit(grid_pos: Vector2, unit_key: String, team_id: int):
 	new_unit.global_position = board.to_global(local_pixel_pos)
 	
 	GameHub.register_unit(new_unit)
+	
+	_update_roster_ui() # NEW: Update Roster when adding a unit
 
 func _on_unit_moved_path(unit_id: String, path_array: Array):
 	var unit = GameHub.active_units[unit_id]
@@ -319,6 +342,9 @@ func _on_unit_took_damage(unit_id: String, amount: int):
 	
 	damage_text.global_position = unit.global_position + Vector2(0, -30)
 	damage_text.set_damage_value(amount)
+	
+	# FIX: Rebuild the roster UI so it fetches the newly reduced HP values
+	_update_roster_ui()
 
 # ==========================================
 # 11. GAME FLOW LOGIC (Battle / Resolution)
@@ -338,3 +364,31 @@ func _on_game_over(winning_team: String):
 func _on_restart_button_pressed():
 	GameHub.clear_board_state()
 	get_tree().reload_current_scene()
+
+# ==========================================
+# 12. LIVE ROSTER UI
+# ==========================================
+func _on_unit_died_update_roster(unit_id: String):
+	_update_roster_ui()
+	
+func _update_roster_ui():
+	# 1. Clear the old lists (we skip the first child, which is our Header Label)
+	for i in range(1, team_0_list.get_child_count()):
+		team_0_list.get_child(i).queue_free()
+		
+	for i in range(1, team_1_list.get_child_count()):
+		team_1_list.get_child(i).queue_free()
+
+	# 2. Rebuild the lists dynamically from our central GameHub brain
+	for unit_id in GameHub.active_units:
+		var unit = GameHub.active_units[unit_id]
+		var roster_label = Label.new()
+		
+		# Format the text to show the unit's name and current health
+		roster_label.text = str(unit.stats["unit_name"]) + " (HP: " + str(unit.current_hp) + ")"
+		
+		# 3. Add the label to the correct team's column
+		if unit.team == 0:
+			team_0_list.add_child(roster_label)
+		elif unit.team == 1:
+			team_1_list.add_child(roster_label)
