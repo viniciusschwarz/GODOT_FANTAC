@@ -100,17 +100,32 @@ func clear_board_state():
 	terrain_cells.clear()
 	board_size = Vector2.ZERO
 
+# We use this to cleanly remove a unit during Setup/Placement 
+# without triggering battle events or death animations.
+func unregister_unit(unit_id: String):
+	if active_units.has(unit_id):
+		var unit = active_units[unit_id]
+		# Remove from our central data tracking
+		grid_positions.erase(unit.grid_position.round())
+		active_units.erase(unit_id)
+		
+		# Safely delete the node from the game world
+		unit.queue_free() 
+		print("Hub: Unregistered and removed unit ", unit_id)
+
 # ==========================================
 # 6. WIN DETECTION LOGIC
 # ==========================================
 func _on_unit_died(unit_id: String):
 	if active_units.has(unit_id):
 		var dead_unit = active_units[unit_id]
-		# FIXED: Ensure we erase using the rounded position
 		grid_positions.erase(dead_unit.grid_position.round())
 		active_units.erase(unit_id)
-		print("Hub: Removed " + unit_id + " from active data.")
-		check_win_condition()
+		print("Hub: Removed " + unit_id + " from active data due to death.")
+		
+		# FIX: Only check for a winner if the game is currently in the BATTLE state!
+		if current_state == GameState.BATTLE:
+			check_win_condition()
 
 func check_win_condition():
 	var player_alive = false
@@ -131,7 +146,7 @@ func check_win_condition():
 		game_over.emit("ENEMY")
 	elif not player_alive and not enemy_alive:
 		change_game_state(GameState.RESOLUTION)
-		game_over.emit("DRAW") 
+		game_over.emit("DRAW")
 
 # ==========================================
 # 7. AI HELPER

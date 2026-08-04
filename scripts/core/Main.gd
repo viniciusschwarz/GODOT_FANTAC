@@ -249,11 +249,15 @@ func _handle_placement_click(grid_pos: Vector2):
 	if not GameHub.is_cell_empty(grid_pos):
 		var unit_id = GameHub.grid_positions[grid_pos.round()]
 		var unit = GameHub.active_units[unit_id]
+		
 		if unit.team == active_team:
+			# Refund the points
 			var refund = int(unit.stats["cost"])
 			team_points[active_team] += refund
 			_update_allocation_ui()
-			unit.die() # Removes from GameHub and queue_free
+			
+			# FIX: Use our new clean removal method instead of unit.die()
+			GameHub.unregister_unit(unit_id) 
 		return
 
 	# If cell is empty, try to place
