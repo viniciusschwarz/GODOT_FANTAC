@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="BTSelector" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ai/framework/bt_selector.gd" id="1_1a2b3"]
+
+[resource]
+script = ExtResource("1_1a2b3")
+children = Array[Resource("res://scripts/ai/framework/bt_node.gd")]([])
