@@ -1,20 +1,20 @@
 {
   "iron_sword": {
-    "name": "Iron Sword",
-    "damage": 15,
-    "range": 1,
-    "type": "melee"
+	"name": "Iron Sword",
+	"damage": 15,
+	"range": 1,
+	"type": "melee"
   },
   "short_bow": {
-    "name": "Short Bow",
-    "damage": 10,
-    "range": 4,
-    "type": "ranged"
+	"name": "Short Bow",
+	"damage": 10,
+	"range": 4,
+	"type": "ranged"
   },
   "wooden_staff": {
-    "name": "Wooden Staff",
-    "damage": 8,
-    "range": 2,
-    "type": "magic"
+	"name": "Wooden Staff",
+	"damage": 8,
+	"range": 2,
+	"type": "magic"
   }
 }

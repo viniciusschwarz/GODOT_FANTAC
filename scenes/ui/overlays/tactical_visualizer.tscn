@@ -1,4 +1,4 @@
-[gd_scene load_steps=2 format=3 uid="uid://ddtvis99abc123"]
+[gd_scene format=3 uid="uid://bhu0vrgg1vfmg"]
 
 [ext_resource type="Script" path="res://scripts/ui/overlays/tactical_visualizer.gd" id="1_tv"]
 

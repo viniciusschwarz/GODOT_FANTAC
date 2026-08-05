@@ -1,10 +1,10 @@
 {
   "physics": {
-    "gravity": 9.8,
-    "friction": 0.5
+	"gravity": 9.8,
+	"friction": 0.5
   },
   "weather": {
-    "rain_movement_penalty": 0.2,
-    "snow_movement_penalty": 0.4
+	"rain_movement_penalty": 0.2,
+	"snow_movement_penalty": 0.4
   }
 }
