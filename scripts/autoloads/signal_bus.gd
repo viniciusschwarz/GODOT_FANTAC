@@ -4,6 +4,9 @@ extends Node
 
 signal boot_completed
 
+# --- System Events ---
+signal game_quit_requested
+
 # --- Combat / WEGO Phase Engine ---
 signal wego_phase_started(phase_name: String)
 signal combat_started

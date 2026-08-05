@@ -24,6 +24,7 @@ func _create_default_settings() -> void:
 	_config.set_value("Display", "resolution_w", 1920)
 	_config.set_value("Display", "resolution_h", 1080)
 	_config.set_value("Display", "vsync", true)
+	_config.set_value("Display", "fps_limit", 0)
 
 	# Audio (Volumes in Db, 0.0 is default/max)
 	_config.set_value("Audio", "master_volume", 0.0)
@@ -37,16 +38,20 @@ func _create_default_settings() -> void:
 
 ## Applies current settings to the engine (e.g. changing window mode)
 func _apply_settings() -> void:
-	# Apply Display Settings
-	var w_mode = _config.get_value("Display", "window_mode", DisplayServer.WINDOW_MODE_WINDOWED)
-	DisplayServer.window_set_mode(w_mode)
+	# Apply Display Settings via WindowManager
+	# Note: If WindowManager isn't ready yet, it will apply these in its own _ready() anyway,
+	# but we do it here for when settings are changed dynamically.
+	if get_tree().root.has_node("WindowManager"):
+		var w_mode = _config.get_value("Display", "window_mode", DisplayServer.WINDOW_MODE_WINDOWED)
+		WindowManager.set_fullscreen(w_mode == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN or w_mode == DisplayServer.WINDOW_MODE_FULLSCREEN)
 
-	# VSync
-	var vsync = _config.get_value("Display", "vsync", true)
-	if vsync:
-		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_ENABLED)
-	else:
-		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
+		# VSync
+		var vsync = _config.get_value("Display", "vsync", true)
+		WindowManager.set_vsync(vsync)
+
+		# FPS Limit
+		var fps_limit = _config.get_value("Display", "fps_limit", 0)
+		WindowManager.set_fps_limit(fps_limit)
 
 	# Note: Applying audio requires converting DB and routing to AudioServer buses.
 	# Input map rebinding logic would also go here.
