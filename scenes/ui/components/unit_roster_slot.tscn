@@ -1,0 +1,22 @@
+[gd_scene load_steps=2 format=3 uid="uid://c5s0k8yxxx555"]
+
+[ext_resource type="Script" path="res://scenes/ui/components/unit_roster_slot.gd" id="1_urs001"]
+
+[node name="UnitRosterSlot" type="PanelContainer"]
+custom_minimum_size = Vector2(0, 50)
+anchors_preset = 10
+anchor_right = 1.0
+grow_horizontal = 2
+script = ExtResource("1_urs001")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="."]
+layout_mode = 2
+
+[node name="IconRect" type="ColorRect" parent="HBoxContainer"]
+custom_minimum_size = Vector2(40, 40)
+layout_mode = 2
+color = Color(0.3, 0.3, 0.3, 1)
+
+[node name="NameLabel" type="Label" parent="HBoxContainer"]
+layout_mode = 2
+text = "Unit Name"
