@@ -1,0 +1,23 @@
+{
+  "knight": {
+    "name": "Knight",
+    "max_hp": 120,
+    "speed": 4,
+    "default_weapon": "iron_sword",
+    "ai_preset": "frontline_defender"
+  },
+  "archer": {
+    "name": "Archer",
+    "max_hp": 80,
+    "speed": 5,
+    "default_weapon": "short_bow",
+    "ai_preset": "ranged_attacker"
+  },
+  "mage": {
+    "name": "Mage",
+    "max_hp": 70,
+    "speed": 3,
+    "default_weapon": "wooden_staff",
+    "ai_preset": "support_caster"
+  }
+}

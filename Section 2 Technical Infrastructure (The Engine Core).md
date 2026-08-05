@@ -33,28 +33,28 @@ To keep our architecture clean and modular, all technical infrastructure compone
 
 ### System 1: Data Management System (`DataManager`)
 
-* **File Path:** `res://Autoloads/DataManager.gd`
-* **Storage Location:** `res://Data/` (JSON files and `.tres` Resources)
+* **File Path:** `res://scripts/autoloads/data_manager.gd`
+* **Storage Location:** `res://data/` (Consolidated JSON files and `.tres` Resources)
 
 #### Purpose
 
-The `DataManager` is responsible for reading external data files—such as unit base stats, weapon properties, AI behavior parameters, and terrain rules—and storing them in memory as accessible dictionaries or custom resources.
+The `DataManager` is responsible for reading external data files—such as units, weapons, and rules—and storing them in memory as accessible dictionaries or custom resources. Instead of one file per item, data is grouped into consolidated JSON files (e.g., `units.json` contains all units).
 
 #### Key Functions & Responsibilities
 
-* **JSON Parser & Validator:** Loads raw `.json` files from `res://Data/` at game launch, verifying that all required keys exist before registering them.
+* **JSON Parser & Validator:** Loads raw `.json` files from `res://data/` at game launch, verifying that all required keys exist before registering them.
 * **Resource Caching:** Preloads `CustomResource` templates for quick instantiation during combat (e.g., creating a unit from a `UnitData` resource).
 * **Data Access API:** Exposes simple read-only queries like `DataManager.get_unit_data("knight")` or `DataManager.get_weapon_data("iron_sword")`.
 
 #### Why This Design?
 
-By separating game data from script logic, you can rebalance unit health, weapon damage, or weather effects simply by editing a JSON file without opening Godot or recompiling scripts.
+By separating game data from script logic, you can rebalance unit health, weapon damage, or weather effects simply by editing a JSON file without opening Godot or recompiling scripts. Consolidating into fewer files like `units.json` makes data management more scalable and easier to load in bulk.
 
 ---
 
 ### System 2: Save & Load System (`SaveManager`)
 
-* **File Path:** `res://Autoloads/SaveManager.gd`
+* **File Path:** `res://scripts/autoloads/save_manager.gd`
 * **Storage Location:** `user://saves/` (e.g., `user://saves/save_slot_1.json`)
 
 #### Purpose
@@ -97,8 +97,8 @@ Handles serializing and deserializing the state of the player's campaign—inclu
 
 ### System 3: Audio Engine & Mixer (`AudioManager`)
 
-* **File Path:** `res://Autoloads/AudioManager.gd`
-* **Audio Bus Layout:** `res://Assets/Audio/default_bus_layout.tres`
+* **File Path:** `res://scripts/autoloads/audio_manager.gd`
+* **Audio Bus Layout:** `res://assets/audio/default_bus_layout.tres`
 
 #### Purpose
 
@@ -123,7 +123,7 @@ To prevent performance hitches during intense battles with hundreds of simultane
 
 ### System 4: Settings & Configuration System (`SettingsManager`)
 
-* **File Path:** `res://Autoloads/SettingsManager.gd`
+* **File Path:** `res://scripts/autoloads/settings_manager.gd`
 * **Storage Location:** `user://settings.cfg`
 
 #### Purpose
@@ -140,35 +140,31 @@ Stores user preferences independently of gameplay saves using Godot's built-in `
 
 ## 3. Directory & File Structure for Infrastructure
 
-Below is the file layout dedicated to Section 2 in your Godot project:
+Below is the file layout dedicated to Section 2 in your Godot project, using snake_case conventions and consolidated data files:
 
 ```text
 res://
-├── Autoloads/
-│   ├── DataManager.gd          # JSON parsing and data access API
-│   ├── SaveManager.gd          # Save file serialization & user:// I/O
-│   ├── AudioManager.gd         # Audio stream player pooling & bus control
-│   └── SettingsManager.gd      # ConfigFile parser for user preferences
+├── scripts/
+│   ├── autoloads/
+│   │   ├── data_manager.gd         # JSON parsing and data access API
+│   │   ├── save_manager.gd         # Save file serialization & user:// I/O
+│   │   ├── audio_manager.gd        # Audio stream player pooling & bus control
+│   │   └── settings_manager.gd     # ConfigFile parser for user preferences
+│   └── resources/
+│       ├── unit_data.gd            # Custom Resource for unit data
+│       └── weapon_data.gd          # Custom Resource for weapon data
 │
-├── Data/                       # Raw game data files
-│   ├── Units/
-│   │   ├── knight.json
-│   │   ├── archer.json
-│   │   └── mage.json
-│   ├── Weapons/
-│   │   ├── iron_sword.json
-│   │   └── short_bow.json
-│   └── Rules/
-│       ├── weather_rules.json
-│       └── physics_rules.json
+├── data/                           # Raw game data files
+│   ├── units.json                  # All unit data
+│   ├── weapons.json                # All weapon data
+│   └── rules.json                  # Physics, weather, and other rules
 │
-└── Assets/
-    └── Audio/
+└── assets/
+    └── audio/
         ├── default_bus_layout.tres
-        ├── Music/
-        ├── SFX/
-        └── Ambience/
-
+        ├── music/
+        ├── sfx/
+        └── ambience/
 ```
 
 ---

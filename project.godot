@@ -21,6 +21,8 @@ GameState="*res://scripts/autoloads/game_state.gd"
 SceneManager="*res://scripts/autoloads/scene_manager.gd"
 SettingsManager="*res://scripts/autoloads/settings_manager.gd"
 SaveManager="*res://scripts/autoloads/save_manager.gd"
+DataManager="*res://scripts/autoloads/data_manager.gd"
+AudioManager="*res://scripts/autoloads/audio_manager.gd"
 
 [display]
 
