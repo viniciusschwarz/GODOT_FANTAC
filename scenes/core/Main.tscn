@@ -11,6 +11,9 @@ script = ExtResource("1_r0du0")
 unit_template = ExtResource("2_fos0i")
 floating_text_template = ExtResource("3_3dxm6")
 
+[node name="CanvasModulate" type="CanvasModulate" parent="." unique_id=987654322]
+color = Color(1, 1, 1, 1)
+
 [node name="Board" parent="." unique_id=1948460986 instance=ExtResource("2_cm0pq")]
 position = Vector2(300, 20)
 
@@ -117,6 +120,18 @@ layout_mode = 2
 min_value = 8.0
 max_value = 64.0
 value = 16.0
+
+[node name="MapTypeDropdown" type="OptionButton" parent="UI/MapGenPanel/VBoxContainer" unique_id=1474763827]
+layout_mode = 2
+item_count = 2
+popup/item_0/text = "Standard"
+popup/item_0/id = 0
+popup/item_1/text = "Village"
+popup/item_1/id = 1
+
+[node name="DayNightToggle" type="CheckButton" parent="UI/MapGenPanel/VBoxContainer" unique_id=548296436]
+layout_mode = 2
+text = "Night Mode"
 
 [node name="RollButton" type="Button" parent="UI/MapGenPanel/VBoxContainer" unique_id=234567898]
 layout_mode = 2

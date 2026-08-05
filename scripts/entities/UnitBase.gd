@@ -56,12 +56,19 @@ func setup_health_bar():
 func get_dynamic_stat(stat_name: String) -> int:
 	var base_val = int(stats.get(stat_name, 0))
 	var focus_name = Focus.keys()[current_focus]
+	var current_val = base_val
 
 	var behavior_stats = AIDatabase.get_behavior_stats(focus_name)
 	if behavior_stats.has("stat_modifiers") and behavior_stats["stat_modifiers"].has(stat_name):
-		return base_val + int(behavior_stats["stat_modifiers"][stat_name])
+		current_val += int(behavior_stats["stat_modifiers"][stat_name])
 
-	return base_val
+	# Apply night time penalty
+	if stat_name == "attack_power" and stats.get("attack_type", "melee") == "ranged":
+		if GameHub.is_night:
+			current_val -= 1
+			current_val = max(1, current_val) # Prevent zero or negative attack
+
+	return current_val
 
 func get_grid_distance(pos1: Vector2, pos2: Vector2) -> int:
 	var dist_x = abs(pos1.x - pos2.x)
