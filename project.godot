@@ -16,12 +16,6 @@ config/icon="res://assets/graphics/sprites/icon.svg"
 
 [autoload]
 
-GameHub="*uid://dvh2di0dqvg67"
-Pathfinder="*uid://b5pyoeb1ie35f"
-UnitDatabase="*uid://c6x3tkdbegytn"
-TerrainDatabase="*res://scripts/autoloads/TerrainDatabase.gd"
-AIDatabase="*res://scripts/autoloads/AIDatabase.gd"
-MapGenerator="*res://scripts/gameplay/MapGenerator.gd"
 SignalBus="*res://scripts/autoloads/signal_bus.gd"
 GameState="*res://scripts/autoloads/game_state.gd"
 SceneManager="*res://scripts/autoloads/scene_manager.gd"
