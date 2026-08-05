@@ -1,7 +1,0 @@
-[gd_resource type="AtlasTexture" format=3 uid="uid://ctehbs3ikq0c5"]
-
-[ext_resource type="Texture2D" uid="uid://bycfvanmbpxyo" path="res://assets/graphics/sprites/Gemini_Generated_Image_caaxdcaaxdcaaxdc-Photoroom.png" id="1_qxd1d"]
-
-[resource]
-atlas = ExtResource("1_qxd1d")
-region = Rect2(1087.61, 57.572, 420, 480)
