@@ -9,6 +9,7 @@ extends CharacterBody2D
 @onready var movement_component: MovementComponent = $MovementComponent
 @onready var targeting_component: TargetingComponent = $TargetingComponent
 @onready var ai_component: AIComponent = $AIComponent
+@onready var animation_component: AnimationComponent = $AnimationComponent
 
 var team_id: int = 0
 var facing_vector: Vector2 = Vector2.DOWN
@@ -44,4 +45,5 @@ func _on_phase_started(phase_name: String) -> void:
 func set_facing(direction: Vector2) -> void:
 	if direction != Vector2.ZERO:
 		facing_vector = direction.normalized()
-		# Update sprite flip or animation here later
+		if animation_component:
+			animation_component.update_facing(facing_vector)

@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3 uid="uid://ddtvis99abc123"]
+
+[ext_resource type="Script" path="res://scripts/ui/overlays/tactical_visualizer.gd" id="1_tv"]
+
+[node name="TacticalVisualizer" type="CanvasLayer"]
+layer = 100
+script = ExtResource("1_tv")

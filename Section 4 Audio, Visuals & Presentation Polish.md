@@ -1,6 +1,6 @@
 Welcome to **Section 4: Audio, Visuals & Presentation Polish ("Juice")** of our Master Architectural Blueprint!
 
-As your Godot Programming Partner, I am excited to talk about this section. In game development, "Juice" refers to the visual and audio feedback that makes your game feel alive, heavy, and satisfying—things like screen shake, floating damage numbers, sword clash sounds, and hit flashes.
+As your Godot Programming Partner, I am excited to talk about this section. In game development, "Juice" refers to the visual and audio feedback that makes your game feel alive, heavy, and satisfying—things like floating damage numbers, sword clash sounds, and hit flashes.
 
 Because we are building a strictly **modular and decoupled** game, our visual and audio effects will **never** contain game logic. Instead, they will act as "listeners." When the `CombatManager` calculates damage, it simply shouts to the `SignalBus`. Our visual systems will hear that shout and spawn the effects automatically!
 
@@ -37,7 +37,6 @@ Provides immediate, satisfying visual responses to combat events without touchin
 **Key Features:**
 
 * **Floating Combat Text:** When `SignalBus.unit_health_changed` is emitted, this system spawns a small, colored number over the unit that floats up and fades out (e.g., Red for damage, White for blocked/armor, Green for healing).
-* **Hit-Stop & Screen Shake:** For critical hits or heavy cavalry charges (like a blunt mace impact), the game time pauses for a fraction of a second (Hit-Stop) and shakes the camera, giving the attack immense physical weight.
 * **Hit Flashes:** A simple shader attached to the unit's sprite that flashes solid white for `0.1` seconds when they take damage.
 
 #### System 2: Animation State Controllers
