@@ -22,6 +22,11 @@ UnitDatabase="*uid://c6x3tkdbegytn"
 TerrainDatabase="*res://scripts/autoloads/TerrainDatabase.gd"
 AIDatabase="*res://scripts/autoloads/AIDatabase.gd"
 MapGenerator="*res://scripts/gameplay/MapGenerator.gd"
+SignalBus="*res://scripts/autoloads/signal_bus.gd"
+GameState="*res://scripts/autoloads/game_state.gd"
+SceneManager="*res://scripts/autoloads/scene_manager.gd"
+SettingsManager="*res://scripts/autoloads/settings_manager.gd"
+SaveManager="*res://scripts/autoloads/save_manager.gd"
 
 [display]
 
@@ -35,4 +40,4 @@ window/stretch/aspect="expand"
 [rendering]
 
 rendering_device/driver.windows="d3d12"
-run/main_scene="res://scenes/core/Main.tscn"
+run/main_scene="res://scenes/ui/screens/boot_screen.tscn"
