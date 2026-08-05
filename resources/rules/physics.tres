@@ -1,0 +1,5 @@
+[gd_resource type="Resource" format=3 uid="uid://bd3tihguxu3fa"]
+
+[resource]
+metadata/gravity = 9.8
+metadata/friction = 0.5

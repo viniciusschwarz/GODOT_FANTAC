@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="UnitData" load_steps=3 format=3 uid="uid://bd3tihguxu3f6"]
+
+[ext_resource type="Script" path="res://scripts/data/models/unit_data.gd" id="1_2p2kg"]
+[ext_resource type="Resource" uid="uid://bd3tihguxu3f3" path="res://resources/weapons/iron_sword.tres" id="2_3p3kh"]
+
+[resource]
+script = ExtResource("1_2p2kg")
+unit_name = "Knight"
+max_health = 120
+base_movement_speed = 4.0
+base_morale = 100
+weapon = ExtResource("2_3p3kh")
