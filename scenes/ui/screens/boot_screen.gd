@@ -2,7 +2,6 @@ extends Control
 
 func _ready():
 	print("BootScreen: Initializing...")
-	SettingsManager.load_and_apply_settings()
 	SignalBus.boot_completed.emit()
 
 	# Simulate a tiny delay for the logo fade (MVP)

@@ -18,3 +18,11 @@
    - With the old JSON parsing scripts gone, the JSON data files were removed.
    - **Fix:** Authored valid Godot 4 `.tres` files for Weapons (`iron_sword.tres`, `short_bow.tres`, `wooden_staff.tres`), Units (`knight.tres`, `archer.tres`, `mage.tres`), and Rules (`physics.tres`, `weather.tres`) under the `resources/` folder.
    - Rewrote `scripts/autoloads/data_manager.gd` to parse `.tres` resource files from their respective directories instead of loading missing `.json` files.
+
+5. **Boot Screen Initialization Error:**
+   - The game crashed on startup due to a missing file `res://assets/graphics/sprites/icon.svg`.
+   - **Fix:** Created a placeholder `icon.svg` in `assets/graphics/sprites/` to satisfy the project configuration.
+
+6. **Invalid Function Call in `boot_screen.gd`:**
+   - `scenes/ui/screens/boot_screen.gd` attempted to call `SettingsManager.load_and_apply_settings()`, which doesn't exist on the `SettingsManager` Autoload (it automatically loads and applies settings in `_ready`).
+   - **Fix:** Removed the invalid function call `SettingsManager.load_and_apply_settings()` from `boot_screen.gd`.
