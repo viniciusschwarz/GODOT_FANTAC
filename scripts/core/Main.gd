@@ -11,6 +11,7 @@ extends Node2D
 # ==========================================
 @onready var board = $Board
 @onready var camera = $Camera2D
+@onready var canvas_modulate = $CanvasModulate
 @onready var turn_manager = $TurnManager
 
 # GUI Panels
@@ -23,6 +24,8 @@ extends Node2D
 @onready var height_input = $UI/MapGenPanel/VBoxContainer/HBoxContainer/HeightInput
 @onready var roll_map_button = $UI/MapGenPanel/VBoxContainer/RollButton
 @onready var confirm_map_button = $UI/MapGenPanel/VBoxContainer/ConfirmMapButton
+@onready var map_type_dropdown = $UI/MapGenPanel/VBoxContainer/MapTypeDropdown
+@onready var day_night_toggle = $UI/MapGenPanel/VBoxContainer/DayNightToggle
 
 @onready var unit_allocation_panel = $UI/UnitAllocationPanel
 @onready var team_tabs = $UI/UnitAllocationPanel/TopBar/HBoxContainer/TeamTabs
@@ -68,11 +71,13 @@ var current_allocation_mode = AllocationMode.PLACEMENT
 # ==========================================
 func _ready():
 	# UI Connections - Main Menu
+	GameHub.night_mode_changed.connect(_on_global_night_mode_changed)
 	start_game_button.pressed.connect(_on_start_game_pressed)
 	
 	# UI Connections - Map Gen
 	roll_map_button.pressed.connect(_on_roll_map_pressed)
 	confirm_map_button.pressed.connect(_on_confirm_map_pressed)
+	day_night_toggle.toggled.connect(_on_day_night_toggled)
 	
 	# UI Connections - Unit Allocation
 	team_tabs.tab_changed.connect(_on_team_tab_changed)
@@ -162,10 +167,15 @@ func _transition_to_unit_allocation():
 func _on_roll_map_pressed():
 	var w = int(width_input.value)
 	var h = int(height_input.value)
-	board.generate_new_board(Vector2(w, h))
+	var map_type = map_type_dropdown.get_item_text(map_type_dropdown.selected)
+	board.generate_new_board(Vector2(w, h), map_type)
 
 func _on_confirm_map_pressed():
 	_transition_to_unit_allocation()
+
+
+func _on_day_night_toggled(is_night: bool):
+	GameHub.set_night_mode(is_night)
 
 # ==========================================
 # 8. UNIT ALLOCATION LOGIC
@@ -392,3 +402,9 @@ func _update_roster_ui():
 			team_0_list.add_child(roster_label)
 		elif unit.team == 1:
 			team_1_list.add_child(roster_label)
+
+func _on_global_night_mode_changed(is_night: bool):
+	if is_night:
+		canvas_modulate.color = Color(0.2, 0.2, 0.35, 1.0) # Night blueish color
+	else:
+		canvas_modulate.color = Color(1.0, 1.0, 1.0, 1.0) # Day color

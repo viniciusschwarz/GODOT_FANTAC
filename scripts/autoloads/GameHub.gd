@@ -18,6 +18,7 @@ var current_state = GameState.MAIN_MENU
 # ==========================================
 signal state_changed(new_state)
 signal turn_started(unit_id)
+signal night_mode_changed(is_night)
 signal unit_moved_path(unit_id, path_array) 
 signal unit_took_damage(unit_id, amount)
 signal unit_died(unit_id)
@@ -32,6 +33,7 @@ var active_units = {}
 var grid_positions = {}
 var terrain_cells = {} 
 var board_size: Vector2 = Vector2.ZERO
+var is_night: bool = false
 
 # ==========================================
 # 4. INITIALIZATION
@@ -195,3 +197,6 @@ func get_weakest_enemy(my_team_id: int) -> Node2D:
 				weakest_enemy = other_unit
 
 	return weakest_enemy
+func set_night_mode(night: bool):
+	is_night = night
+	night_mode_changed.emit(night)
