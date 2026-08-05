@@ -16,7 +16,7 @@ func initialize(health: int) -> void:
 	max_health = health
 	current_health = health
 	is_dead = false
-	SignalBus.unit_health_changed.emit(unit_owner, current_health, max_health)
+	SignalBus.unit_health_changed.emit(unit_owner, current_health, max_health, 0)
 
 ## Applies damage, considering armor mitigation (handled externally by CombatManager).
 func take_damage(amount: int) -> void:
@@ -26,7 +26,7 @@ func take_damage(amount: int) -> void:
 	current_health -= amount
 	current_health = max(0, current_health)
 
-	SignalBus.unit_health_changed.emit(unit_owner, current_health, max_health)
+	SignalBus.unit_health_changed.emit(unit_owner, current_health, max_health, -amount)
 
 	if current_health <= 0:
 		die()
