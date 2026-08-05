@@ -24,6 +24,11 @@ SaveManager="*res://scripts/autoloads/save_manager.gd"
 DataManager="*res://scripts/autoloads/data_manager.gd"
 AudioManager="*res://scripts/autoloads/audio_manager.gd"
 
+PhaseManager="*res://scripts/managers/phase_manager.gd"
+GridManager="*res://scripts/managers/grid_manager.gd"
+CombatManager="*res://scripts/managers/combat_manager.gd"
+AIManager="*res://scripts/managers/ai_manager.gd"
+
 [display]
 
 window/stretch/mode="canvas_items"
