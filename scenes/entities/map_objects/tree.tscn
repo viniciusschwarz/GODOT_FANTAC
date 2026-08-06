@@ -1,0 +1,32 @@
+[gd_scene load_steps=5 format=3 uid="uid://s3js0dk30s034"]
+
+[ext_resource type="Script" path="res://scripts/entities/map_objects/map_object.gd" id="1_map_object"]
+[ext_resource type="Script" path="res://scripts/data/models/map_object_data.gd" id="2_map_object_data"]
+
+[sub_resource type="Resource" id="Resource_tree_data"]
+script = ExtResource("2_map_object_data")
+object_name = "Tree"
+blocks_pathing = true
+los_block_height = 1
+movement_cost = 2.0
+cover_bonus = 0.5
+
+[node name="Tree" type="Node2D"]
+script = ExtResource("1_map_object")
+data = SubResource("Resource_tree_data")
+
+[node name="ColorRect" type="ColorRect" parent="."]
+offset_left = -16.0
+offset_top = -48.0
+offset_right = 16.0
+offset_bottom = 16.0
+color = Color(0.1, 0.6, 0.1, 1)
+
+[node name="Label" type="Label" parent="."]
+offset_left = -16.0
+offset_top = -24.0
+offset_right = 16.0
+offset_bottom = 2.0
+text = "T"
+horizontal_alignment = 1
+vertical_alignment = 1
