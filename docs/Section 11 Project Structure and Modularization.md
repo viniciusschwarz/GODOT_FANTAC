@@ -41,3 +41,7 @@ We will work step-by-step. Do not assume how a system works until you review all
 5. **Autoload and Paths:** Use Autoloads (e.g., `SignalBus.emit_signal(...)`) directly by their names rather than hardcoded `/root/...` paths.
 6. **Component Initialization:** Eliminate `get_parent()` completely in components. Components must receive their owner reference via their `initialize()` method.
 7. **Component Communication:** Components must never access each other directly (e.g., `unit.get_node("HealthComponent")`). They must communicate exclusively via signals to ensure zero coupling.
+8. **UI & Scene Coupling:** Remove all tight coupling to specific nodes or roots (like `get_tree().root.get_node("Battlefield")`). Use managers (e.g., `DeploymentManager`) to handle instancing/spawning and `SignalBus` to pass requests.
+9. **Visualizers & Debugging:** Visualizers (e.g., `tactical_visualizer.gd`) must not query managers directly. Managers should broadcast their debug states via `SignalBus` when requested.
+10. **Input Handling:** Global inputs (e.g., camera panning/zooming, map clicks, Z-level toggles) should be managed centrally by an `InputManager` and broadcast via `SignalBus` to listeners, rather than being handled individually in scripts.
+11. **VFX Implementations:** Ensure placeholder scripts for visual effects (e.g., `floating_text.gd`) are provided with basic functionality (animations/tweens and auto-freeing) rather than left completely empty.
