@@ -108,7 +108,8 @@ func get_effective_distance(pos_a: Vector3i, pos_b: Vector3i) -> float:
 	var effective_z = delta_z * FLOOR_HEIGHT_SCALE
 	return sqrt((delta_x * delta_x) + (delta_y * delta_y) + (effective_z * effective_z))
 
-func get_path(start: Vector2i, end: Vector2i) -> Array[Vector2i]:
+## Returns a path (array of `Vector2i`) between two grid positions using A*.
+func get_grid_path(start: Vector2i, end: Vector2i) -> Array[Vector2i]:
 	if not astar or not tile_data.has(start) or not tile_data.has(end):
 		return []
 
