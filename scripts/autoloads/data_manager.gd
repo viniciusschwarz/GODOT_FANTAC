@@ -23,17 +23,17 @@ func _load_all_data() -> void:
 	_load_missions()
 	print("DataManager: All data loaded successfully.")
 
-func _load_directory_resources(dir_path: String) -> Array:
-	var resources = []
+func _load_directory_resources(dir_path: String) -> Array[Dictionary]:
+	var resources: Array[Dictionary] = []
 	if DirAccess.dir_exists_absolute(dir_path):
-		var dir = DirAccess.open(dir_path)
+		var dir: DirAccess = DirAccess.open(dir_path)
 		if dir:
 			dir.list_dir_begin()
-			var file_name = dir.get_next()
+			var file_name: String = dir.get_next()
 			while file_name != "":
 				if not dir.current_is_dir() and (file_name.ends_with(".tres") or file_name.ends_with(".tres.remap")):
-					var actual_file_name = file_name.trim_suffix(".remap")
-					var res = load(dir_path + actual_file_name)
+					var actual_file_name: String = file_name.trim_suffix(".remap")
+					var res: Resource = load(dir_path + actual_file_name)
 					if res:
 						resources.append({ "id": actual_file_name.trim_suffix(".tres"), "res": res })
 				file_name = dir.get_next()
@@ -41,21 +41,21 @@ func _load_directory_resources(dir_path: String) -> Array:
 
 ## Loads and caches unit data resources
 func _load_units() -> void:
-	var resources = _load_directory_resources(UNITS_DIR)
+	var resources: Array[Dictionary] = _load_directory_resources(UNITS_DIR)
 	for item in resources:
 		if item.res is UnitData:
 			_units_cache[item.id] = item.res
 
 ## Loads and caches weapon data resources
 func _load_weapons() -> void:
-	var resources = _load_directory_resources(WEAPONS_DIR)
+	var resources: Array[Dictionary] = _load_directory_resources(WEAPONS_DIR)
 	for item in resources:
 		if item.res is WeaponData:
 			_weapons_cache[item.id] = item.res
 
 ## Loads and caches rule data
 func _load_rules() -> void:
-	var resources = _load_directory_resources(RULES_DIR)
+	var resources: Array[Dictionary] = _load_directory_resources(RULES_DIR)
 	for item in resources:
 		_rules_data[item.id] = item.res
 
@@ -74,11 +74,11 @@ func get_weapon_data(id: String) -> WeaponData:
 	return null
 
 ## Returns a specific rule category (e.g., "physics", "weather"). Returns null if not found.
-func get_rules(category: String):
+func get_rules(category: String) -> Variant:
 	if _rules_data.has(category):
 		# We return the resource directly or we can convert metadata to a dict
-		var res = _rules_data[category]
-		var dict = {}
+		var res: Resource = _rules_data[category]
+		var dict: Dictionary = {}
 		for prop in res.get_meta_list():
 			dict[prop] = res.get_meta(prop)
 		if dict.size() > 0:
@@ -90,7 +90,7 @@ func get_rules(category: String):
 
 ## Loads and caches mission data
 func _load_missions() -> void:
-	var resources = _load_directory_resources(MISSIONS_DIR)
+	var resources: Array[Dictionary] = _load_directory_resources(MISSIONS_DIR)
 	for item in resources:
 		if item.res is MissionData:
 			_missions_cache[item.id] = item.res

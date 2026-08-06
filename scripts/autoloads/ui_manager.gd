@@ -46,16 +46,18 @@ func _open_modal(scene_pack: PackedScene) -> void:
 	# Close any existing modals before opening a new one
 	_close_all_modals()
 
-	var instance = scene_pack.instantiate()
-	if instance is WindowBase:
+	var instance: Node = scene_pack.instantiate()
+	if instance.has_signal("tree_exited"):
 		# If the window closes itself, it will emit tree_exited, which we can use to hide blocker
-		instance.tree_exited.connect(func(): _check_modals())
+		instance.tree_exited.connect(func() -> void: _check_modals())
 	modal_layer.add_child(instance)
 
 	background_blocker.visible = true
 	# Ensure the blocker stays behind the new modal
 	background_blocker.move_to_front()
-	instance.move_to_front()
+
+	if instance is Control:
+		instance.move_to_front()
 
 func _close_all_modals() -> void:
 	for child in modal_layer.get_children():
@@ -65,7 +67,7 @@ func _close_all_modals() -> void:
 
 func _check_modals() -> void:
 	# Check if any windows are left to determine blocker visibility
-	var count = 0
+	var count: int = 0
 	for child in modal_layer.get_children():
 		if child != background_blocker and not child.is_queued_for_deletion():
 			count += 1

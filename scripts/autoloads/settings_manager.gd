@@ -2,7 +2,7 @@ extends Node
 ## SettingsManager (Autoload)
 ## Manages user preferences (Display, Audio, Controls) using ConfigFile.
 
-const SETTINGS_FILE = "user://settings.cfg"
+const SETTINGS_FILE: String = "user://settings.cfg"
 var _config: ConfigFile = ConfigFile.new()
 
 func _ready() -> void:
@@ -11,7 +11,7 @@ func _ready() -> void:
 
 ## Loads settings from disk. Creates defaults if file doesn't exist.
 func _load_settings() -> void:
-	var err = _config.load(SETTINGS_FILE)
+	var err: Error = _config.load(SETTINGS_FILE)
 	if err != OK:
 		print("SettingsManager: No settings file found. Creating defaults.")
 		_create_default_settings()
@@ -42,15 +42,15 @@ func _apply_settings() -> void:
 	# Note: If WindowManager isn't ready yet, it will apply these in its own _ready() anyway,
 	# but we do it here for when settings are changed dynamically.
 	if get_tree().root.has_node("WindowManager"):
-		var w_mode = _config.get_value("Display", "window_mode", DisplayServer.WINDOW_MODE_WINDOWED)
+		var w_mode: int = _config.get_value("Display", "window_mode", DisplayServer.WINDOW_MODE_WINDOWED)
 		WindowManager.set_fullscreen(w_mode == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN or w_mode == DisplayServer.WINDOW_MODE_FULLSCREEN)
 
 		# VSync
-		var vsync = _config.get_value("Display", "vsync", true)
+		var vsync: bool = _config.get_value("Display", "vsync", true)
 		WindowManager.set_vsync(vsync)
 
 		# FPS Limit
-		var fps_limit = _config.get_value("Display", "fps_limit", 0)
+		var fps_limit: int = _config.get_value("Display", "fps_limit", 0)
 		WindowManager.set_fps_limit(fps_limit)
 
 	# Note: Applying audio requires converting DB and routing to AudioServer buses.
@@ -59,7 +59,7 @@ func _apply_settings() -> void:
 
 ## Saves current configuration back to disk.
 func save_settings() -> void:
-	var err = _config.save(SETTINGS_FILE)
+	var err: Error = _config.save(SETTINGS_FILE)
 	if err != OK:
 		push_error("SettingsManager: Failed to save settings to " + SETTINGS_FILE)
 
