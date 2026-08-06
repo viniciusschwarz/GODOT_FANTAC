@@ -119,3 +119,82 @@ This document tracks the module responsibilities and the refactoring steps appli
 
 ---
 *End of Phase 1 Execution*
+## Phase 2: Managers & AI Framework
+
+### `scripts/managers/ai_manager.gd`
+- **Core Responsibility**: Global AI evaluation processor coordinating the Planning Phase. Manages enemy deployment by spawning units in zones with respect to AI roles and triggers Behavior Tree evaluation for active units.
+- **Functions List**:
+  - `_ready()`: Connects `wego_phase_started` and `enemy_deployment_requested` signals.
+  - `register_unit(unit: Node)`: Adds unit to AI processing list.
+  - `unregister_unit(unit: Node)`: Removes unit from list.
+  - `_on_enemy_deployment_requested(...)`: Expands roster, sorts by tactical role, instantiates enemy unit scenes, scores available deployment tiles, places units, and registers them.
+  - `_on_phase_started(...)`: Validates planning phase and initiates AI processing.
+  - `process_planning_phase()`: Loops through active units executing their AI component Behavior Trees. Afterwards starts execution via `PhaseManager`.
+- **Refactor Notes**:
+  - Replaced Godot 3 signal string connects with Godot 4 `Signal.connect` syntax.
+  - Removed tight coupling to absolute UI root (`/root/Battlefield/Units`). Instead, implemented fallback logic checking `get_tree().current_scene.get_node("Units")`.
+  - Removed tight coupling assumption of `PhaseManager` existing at root (`get_node("/root/PhaseManager")`) and replaced it with direct Autoload access (`PhaseManager`).
+  - Added strict static typing to loop variables and arguments (e.g., `unit_data: UnitData`, `score: float`).
+
+### `scripts/managers/combat_manager.gd`
+- **Core Responsibility**: A pure logic/math service that calculates physical interaction results between units like damage values and knockback impacts. Orchestrates the initial deployment signal using `GameState`.
+- **Functions List**:
+  - `_ready()`: Connects `wego_phase_started`.
+  - `_on_phase_started(...)`: On deployment, fetches the `enemy_roster` from `GameState.current_mission` and emit `enemy_deployment_requested`.
+  - `calculate_damage(...)`: Analyzes attacker/defender elevations, weapon damage types, facing directions, and armor data to return final hit damage.
+  - `calculate_impact(...)`: Uses weapon knockback force and direction to compute a resulting displacement vector.
+- **Refactor Notes**:
+  - Updated signal connect syntax to Godot 4 standard.
+  - Added strict static typing across internal formula calculations (e.g., `var damage_modifier: float`, `var base_dmg: int`, `var final_damage: int`).
+
+### `scripts/managers/environment_manager.gd`
+- **Core Responsibility**: Orchestrates procedural map generation pipeline including base terrains, paths, structures, and scatter placements. Also handles rendering Z-layers, lighting (day/night), and weather overlays.
+- **Functions List**:
+  - `_ready()`: Bootstraps weather particle systems, canvas modulations, noise parameters, and signal connections.
+  - `generate_map(...)`: Entry point. Triggers GridManager init, followed by generation steps.
+  - `step1_terrain_base()`: Loops grid using Perlin noise to assign z-heights, move penalties, and spawn tile rectangles.
+  - `step2_roads()`: (Placeholder logic) Overrides middle rows to road properties.
+  - `step3_structures()`: Selects random coordinates, flattens ground, configures map object blocking data, and instantiates structures.
+  - `step4_scatter_and_deploy_zones()`: Places scatter items (trees, rocks) based on noise and highlights deployment tiles at the top/bottom edges.
+  - `get_enemy_deployment_zones()`: Returns array of valid positions for enemies to spawn.
+  - `_get_or_create_layer(...)`: Helper to build z-indexed `Node2D` groups for sorting Map visuals.
+  - UI/Vis Helpers: `_on_camera_z_level_changed`, `_spawn_tile_visual`, `_highlight_deploy_zone`, `transition_to_night/day`, `start/stop_weather`.
+- **Refactor Notes**:
+  - Removed dynamic `load("res://...")` calls inside the procedural map generation steps.
+  - Extracted hardcoded object scenes into `@export var structure_scene: PackedScene` fields, preloading defaults to ensure they are statically resolved and editable in Inspector.
+  - Explicitly typed all procedural calculation variables (`z_height: int`, `move_penalty: float`, `cell_pos: Vector2i`, etc.).
+
+### `scripts/managers/grid_manager.gd`
+- **Core Responsibility**: Central system managing AStar grid logic, tile statistics, multi-floor Z-level elevations, pathfinding computations, and line-of-sight algorithms.
+- **Functions List**:
+  - `initialize_grid(...)`: Resets grid configurations and AStar references.
+  - `set_tile_data(...)`: Injects specific configuration onto a coordinate, tracking z-heights, movement weights, and static blocking.
+  - `add_map_object(...)`: Integrates environmental objects (structures, trees) by updating movement costs and cover values on standard tiles.
+  - `finalize_grid()` & `_connect_grid_neighbors()`: Links adjacent tiles in AStar, forbidding connections if the Z-level difference is greater than 1.
+  - Conversion Helpers: `get_grid_position2d`, `get_grid_position` (3D), `get_world_position`.
+  - `get_effective_distance(...)`: Calculates 3D distance considering vertical height scaling constraints.
+  - `get_grid_path(...)`: Core A* request for pathfinding array.
+  - `check_line_of_sight(...)`: Raycasts algorithm checking elevation/static blocks.
+- **Refactor Notes**:
+  - Applied strict static typing across mathematical and iterative blocks.
+  - Updated AStar ID retrieval and loops to handle Godot 4 `PackedInt64Array` types cleanly.
+  - Converted loose implicit assignments into explicit types (`var delta_x: int = pos_b.x - pos_a.x`, `var max_sight_height: int`).
+
+### `scripts/managers/phase_manager.gd`
+- **Core Responsibility**: Controls the WEGO (Simultaneous turn-based) flow engine, handling phase cycling (Deployment -> Planning -> Execution -> Resolution). Controls time scaling.
+- **Functions List**:
+  - Phase states tracking (`current_phase`, `turn_counter`, `units_executing`).
+  - `start_combat()`: Initializes counter and drops into deployment.
+  - Phase Transitioners: `start_deployment_phase`, `end_deployment_phase`, `start_planning_phase`, `start_execution_phase`, `start_resolution_phase`.
+  - `_on_unit_action_finished(...)`: Tracker subtracting from pending active units to determine when EXECUTION is complete.
+- **Refactor Notes**:
+  - Rewrote Godot 3 signal subscription format to `SignalBus.unit_action_finished.connect(...)`.
+  - Verified logic typing and enum usages, no tight node paths needed replacing.
+
+### `scripts/ai/framework/`
+- **Modules**: `bt_action.gd`, `bt_node.gd`, `bt_selector.gd`, `bt_sequence.gd`
+- **Core Responsibility**: Modular Behavior Tree engine for AI unit decisions.
+- **Functions List**:
+  - `tick(unit, blackboard)`: Polymorphic tree execution logic. Selectors branch on SUCCESS, Sequences branch on FAILURE.
+- **Refactor Notes**:
+  - Refactored `bt_selector.gd` and `bt_sequence.gd` loop structures. Changed loose `for child in children:` to strictly typed `for child: BTNode in children:`.

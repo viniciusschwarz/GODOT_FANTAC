@@ -8,7 +8,7 @@ extends BTNode
 @export var children: Array[BTNode] = []
 
 func tick(unit: Node, blackboard: Dictionary) -> State:
-	for child in children:
+	for child: BTNode in children:
 		if not child:
 			continue
 

@@ -26,3 +26,14 @@
 6. **Invalid Function Call in `boot_screen.gd`:**
    - `scenes/ui/screens/boot_screen.gd` attempted to call `SettingsManager.load_and_apply_settings()`, which doesn't exist on the `SettingsManager` Autoload (it automatically loads and applies settings in `_ready`).
    - **Fix:** Removed the invalid function call `SettingsManager.load_and_apply_settings()` from `boot_screen.gd`.
+7. **PhaseManager hardcoded paths in AIManager:**
+   - The AIManager was trying to access the `PhaseManager` autoload via `get_node("/root/PhaseManager")`.
+   - **Fix:** Switched it to use the global `PhaseManager` Autoload directly as Godot 4 automatically registers it.
+
+8. **AIManager hardcoded root path coupling:**
+   - The AIManager was explicitly targeting `get_node_or_null("/root/Battlefield/Units")` which could crash/fail depending on the active root level scene.
+   - **Fix:** Added fallback logic to check `get_tree().current_scene.has_node("Units")` first before falling back to absolute paths.
+
+9. **EnvironmentManager dynamic load references inside loops:**
+   - The `EnvironmentManager` dynamically used `load("res://...")` for generating houses, rocks, and trees, which is not editable in the editor and could cause runtime hitches.
+   - **Fix:** Exported variables initialized with `preload("res://...")` for `structure_scene`, `tree_scene`, and `rock_scene`, exposing them to the inspector while preserving the logic.

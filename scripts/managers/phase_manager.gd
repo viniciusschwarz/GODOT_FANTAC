@@ -14,7 +14,7 @@ var turn_counter: int = 1
 var units_executing: int = 0
 
 func _ready() -> void:
-	SignalBus.connect("unit_action_finished", _on_unit_action_finished)
+	SignalBus.unit_action_finished.connect(_on_unit_action_finished)
 
 func start_combat() -> void:
 	turn_counter = 1

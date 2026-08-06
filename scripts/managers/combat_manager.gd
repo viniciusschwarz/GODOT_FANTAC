@@ -2,11 +2,11 @@ extends Node
 ## Pure logic/math service that calculates physical interaction results between units.
 
 func _ready() -> void:
-	SignalBus.connect("wego_phase_started", _on_phase_started)
+	SignalBus.wego_phase_started.connect(_on_phase_started)
 
 func _on_phase_started(phase_name: String) -> void:
 	if phase_name == "deployment":
-		var roster = []
+		var roster: Array = []
 		if GameState.current_mission and GameState.current_mission is MissionData:
 			roster = GameState.current_mission.enemy_roster
 		else:
@@ -20,9 +20,9 @@ func calculate_damage(attacker: Node, defender: Node, weapon: WeaponData, armor:
 	if not weapon:
 		return 0
 
-	var base_dmg = weapon.base_damage
-	var damage_modifier = 1.0
-	var final_damage = base_dmg
+	var base_dmg: int = weapon.base_damage
+	var damage_modifier: float = 1.0
+	var final_damage: int = base_dmg
 
 	# Elevation Bonus
 	if attacker_elevation > defender_elevation:
@@ -38,7 +38,7 @@ func calculate_damage(attacker: Node, defender: Node, weapon: WeaponData, armor:
 					damage_modifier -= 0.5
 			WeaponData.DamageType.PIERCING:
 				if armor.armor_type == ArmorData.ArmorType.SHIELD:
-					var angle = attack_vector.angle_to(defender_facing)
+					var angle: float = attack_vector.angle_to(defender_facing)
 					if abs(angle) > PI / 2:
 						if randf() <= armor.block_chance:
 							return 0
@@ -47,7 +47,7 @@ func calculate_damage(attacker: Node, defender: Node, weapon: WeaponData, armor:
 
 		final_damage = int(base_dmg * damage_modifier)
 
-		var reduction = max(0, armor.damage_reduction - weapon.armor_penetration)
+		var reduction: int = max(0, armor.damage_reduction - weapon.armor_penetration)
 		final_damage = max(1, final_damage - reduction)
 
 	return final_damage
