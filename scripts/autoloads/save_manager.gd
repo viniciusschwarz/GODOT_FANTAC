@@ -82,6 +82,10 @@ func get_available_saves() -> Array[String]:
 			file_name = dir.get_next()
 	return saves
 
+## Returns true when at least one save file exists.
+func has_save_file() -> bool:
+	return get_available_saves().size() > 0
+
 ## Deletes a specific save file.
 func delete_save(slot_name: String) -> bool:
 	var save_path = SAVE_DIR + slot_name + ".json"
