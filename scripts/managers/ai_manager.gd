@@ -4,8 +4,8 @@ extends Node
 var active_units: Array[Node] = []
 
 func _ready() -> void:
-	SignalBus.connect("wego_phase_started", _on_phase_started)
-	SignalBus.connect("enemy_deployment_requested", _on_enemy_deployment_requested)
+	SignalBus.wego_phase_started.connect(_on_phase_started)
+	SignalBus.enemy_deployment_requested.connect(_on_enemy_deployment_requested)
 
 ## Registers a unit to be processed during the Planning Phase.
 func register_unit(unit: Node) -> void:
@@ -28,7 +28,7 @@ func _on_enemy_deployment_requested(enemy_roster: Array, deployment_zones: Array
 	var units_to_deploy: Array[UnitData] = []
 	for entry in enemy_roster:
 		if entry.has("unit_data") and entry.has("count"):
-			var unit_data = null
+			var unit_data: UnitData = null
 			if typeof(entry["unit_data"]) == TYPE_STRING:
 				unit_data = load(entry["unit_data"]) as UnitData
 			else:
@@ -57,11 +57,16 @@ func _on_enemy_deployment_requested(enemy_roster: Array, deployment_zones: Array
 		print("AIManager: Failed to load unit scene.")
 		return
 
-	var entities_node = get_node_or_null("/root/Battlefield/Units")
+	var entities_node: Node = null
+	var current_scene = get_tree().current_scene
+	if current_scene and current_scene.has_node("Units"):
+		entities_node = current_scene.get_node("Units")
+	else:
+		entities_node = get_node_or_null("/root/Battlefield/Units")
+
 	if not entities_node:
-		print("AIManager: Could not find /root/Battlefield/Units node for spawning.")
-		# Fallback to current scene root
-		entities_node = get_tree().current_scene
+		print("AIManager: Could not find Units node for spawning.")
+		entities_node = current_scene
 
 	var available_tiles = deployment_zones.duplicate()
 
@@ -78,7 +83,7 @@ func _on_enemy_deployment_requested(enemy_roster: Array, deployment_zones: Array
 		for i in range(available_tiles.size()):
 			var pos = available_tiles[i]
 			var tile = GridManager.get_tile_data(pos)
-			var score = 0.0
+			var score: float = 0.0
 
 			if unit_data.role == UnitData.Role.RANGED:
 				if tile["z_height"] > 0:
@@ -130,5 +135,5 @@ func process_planning_phase() -> void:
 
 	# Once all units have planned, tell PhaseManager to execute.
 	# Assuming PhaseManager is registered as an Autoload named 'PhaseManager'
-	if has_node("/root/PhaseManager"):
-		get_node("/root/PhaseManager").start_execution_phase(active_units.size())
+	if PhaseManager:
+		PhaseManager.start_execution_phase(active_units.size())
