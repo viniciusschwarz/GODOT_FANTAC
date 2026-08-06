@@ -24,7 +24,83 @@ grow_horizontal = 2
 text = "WAR DESK"
 horizontal_alignment = 1
 
-[node name="HBoxContainer" type="HBoxContainer" parent="."]
+[node name="HBoxContainerMain" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -400.0
+offset_top = -200.0
+offset_right = 400.0
+offset_bottom = 200.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 20
+
+[node name="MissionListPanel" type="PanelContainer" parent="HBoxContainerMain"]
+custom_minimum_size = Vector2(300, 0)
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainerMain/MissionListPanel"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="HBoxContainerMain/MissionListPanel/VBoxContainer"]
+layout_mode = 2
+text = "Available Missions"
+horizontal_alignment = 1
+
+[node name="ScrollContainer" type="ScrollContainer" parent="HBoxContainerMain/MissionListPanel/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="MissionList" type="VBoxContainer" parent="HBoxContainerMain/MissionListPanel/VBoxContainer/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="MissionDetailsPanel" type="PanelContainer" parent="HBoxContainerMain"]
+custom_minimum_size = Vector2(400, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainerMain/MissionDetailsPanel"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="MissionNameLabel" type="Label" parent="HBoxContainerMain/MissionDetailsPanel/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Select a Mission"
+horizontal_alignment = 1
+
+[node name="MissionDescLabel" type="Label" parent="HBoxContainerMain/MissionDetailsPanel/VBoxContainer"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+text = "Mission description will appear here."
+autowrap_mode = 3
+
+[node name="DifficultyLabel" type="Label" parent="HBoxContainerMain/MissionDetailsPanel/VBoxContainer"]
+layout_mode = 2
+text = "Difficulty: "
+
+[node name="EnvironmentLabel" type="Label" parent="HBoxContainerMain/MissionDetailsPanel/VBoxContainer"]
+layout_mode = 2
+text = "Environment: "
+
+[node name="EnemyCompLabel" type="Label" parent="HBoxContainerMain/MissionDetailsPanel/VBoxContainer"]
+layout_mode = 2
+text = "Enemy Composition:"
+autowrap_mode = 3
+
+[node name="AcceptButton" type="Button" parent="HBoxContainerMain/MissionDetailsPanel/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 10
+disabled = true
+text = "Accept Assignment"
+
+[node name="HBoxContainerBottom" type="HBoxContainer" parent="."]
 layout_mode = 1
 anchors_preset = 7
 anchor_left = 0.5
@@ -38,15 +114,12 @@ offset_bottom = -20.0
 grow_horizontal = 2
 grow_vertical = 0
 alignment = 1
+theme_override_constants/separation = 20
 
-[node name="BarracksButton" type="Button" parent="HBoxContainer"]
+[node name="BarracksButton" type="Button" parent="HBoxContainerBottom"]
 layout_mode = 2
 text = "Barracks"
 
-[node name="AcceptButton" type="Button" parent="HBoxContainer"]
-layout_mode = 2
-text = "Accept Assignment"
-
-[node name="SaveExitButton" type="Button" parent="HBoxContainer"]
+[node name="SaveExitButton" type="Button" parent="HBoxContainerBottom"]
 layout_mode = 2
 text = "Save & Exit"

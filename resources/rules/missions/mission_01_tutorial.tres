@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="MissionData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data/models/mission_data.gd" id="1_m01"]
+
+[resource]
+script = ExtResource("1_m01")
+mission_id = "mission_01_tutorial"
+mission_name = "Defend the Crossroads"
+description = "A small band of goblins is attacking the crossroads. Defend it at all costs."
+difficulty_rating = 1
+map_size = Vector2i(32, 32)
+enemy_roster = [{
+"count": 3.0,
+"unit_id": "goblin_melee"
+}, {
+"count": 1.0,
+"unit_id": "goblin_archer"
+}]
+win_condition = "Rout_Enemy"
