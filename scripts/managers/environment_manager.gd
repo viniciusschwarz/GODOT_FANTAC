@@ -17,6 +17,7 @@ var tilemap: TileMapLayer
 var grid_size: Vector2i = Vector2i(32, 32)
 var noise: FastNoiseLite
 var deployable_tiles: Array[Vector2i] = []
+var enemy_deployable_tiles: Array[Vector2i] = []
 var map_layers: Dictionary = {}
 
 func get_map_bounds() -> Rect2:
@@ -52,6 +53,7 @@ func generate_map(target_tilemap: TileMapLayer, size: Vector2i = Vector2i(32, 32
 	tilemap = target_tilemap
 	grid_size = size
 	deployable_tiles.clear()
+	enemy_deployable_tiles.clear()
 
 	GridManager.initialize_grid(grid_size)
 
@@ -160,6 +162,13 @@ func step4_scatter_and_deploy_zones() -> void:
 				deployable_tiles.append(pos)
 				_highlight_deploy_zone(pos)
 
+			if y < 5 and not GridManager.get_tile_data(pos)["solid"]:
+				enemy_deployable_tiles.append(pos)
+				_highlight_enemy_deploy_zone(pos)
+
+func get_enemy_deployment_zones() -> Array[Vector2i]:
+	return enemy_deployable_tiles
+
 func _get_or_create_layer(z_height: int) -> Node2D:
 	if map_layers.has(z_height):
 		return map_layers[z_height]
@@ -205,6 +214,17 @@ func _highlight_deploy_zone(grid_pos: Vector2i) -> void:
 	var z = GridManager.get_tile_data(grid_pos)["z_height"]
 	rect.position.y -= z * 16.0
 	rect.color = Color(0, 0, 1, 0.2)
+
+	if tilemap:
+		tilemap.add_child(rect)
+
+func _highlight_enemy_deploy_zone(grid_pos: Vector2i) -> void:
+	var rect = ColorRect.new()
+	rect.size = Vector2(GridManager.TILE_SIZE, GridManager.TILE_SIZE)
+	rect.position = GridManager.get_world_position(grid_pos) - Vector2(GridManager.TILE_SIZE/2, GridManager.TILE_SIZE/2)
+	var z = GridManager.get_tile_data(grid_pos)["z_height"]
+	rect.position.y -= z * 16.0
+	rect.color = Color(1, 0, 0, 0.2) # Red for enemy
 
 	if tilemap:
 		tilemap.add_child(rect)

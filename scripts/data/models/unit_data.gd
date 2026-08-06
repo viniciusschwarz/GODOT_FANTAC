@@ -2,7 +2,14 @@ class_name UnitData
 extends Resource
 ## Defines the core stats and equipment for a specific unit type.
 
+enum Role {
+	MELEE,
+	RANGED,
+	SUPPORT
+}
+
 @export var unit_name: String = "Unnamed Unit"
+@export var role: Role = Role.MELEE
 
 @export_group("Base Stats")
 @export var max_health: int = 100
