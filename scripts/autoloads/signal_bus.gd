@@ -12,6 +12,7 @@ signal ui_navigation_requested(panel_name: String)
 
 # --- Viewport / Camera Events ---
 signal camera_z_level_changed(active_z: int)
+signal environment_bounds_changed(bounds: Rect2)
 
 # --- Combat / WEGO Phase Engine ---
 signal wego_phase_started(phase_name: String)
@@ -26,3 +27,16 @@ signal unit_cover_bonus_changed(unit: Node, cover_bonus: float)
 
 # Enemy deployment
 signal enemy_deployment_requested(enemy_roster: Array, deployment_zones: Array[Vector2i])
+
+# --- Input Events ---
+signal camera_pan_input(direction: Vector2)
+signal camera_zoom_input(zoom_change: float)
+signal camera_z_level_input(z_level_change: int)
+signal map_clicked(mouse_pos: Vector2)
+
+# --- Deployment Events ---
+signal spawn_unit_requested(unit_type: String, grid_pos: Vector2i)
+signal unit_spawned(unit: Node)
+
+# --- Debug/Visualizer Events ---
+signal ai_debug_data_broadcasted(active_units: Array)

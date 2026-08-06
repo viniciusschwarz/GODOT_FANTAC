@@ -32,6 +32,8 @@ AIManager="*res://scripts/managers/ai_manager.gd"
 FXManager="*res://scripts/autoloads/fx_manager.gd"
 EnvironmentManager="*res://scripts/managers/environment_manager.gd"
 TacticalVisualizer="*res://scenes/ui/overlays/tactical_visualizer.tscn"
+InputManager="*res://scripts/managers/input_manager.gd"
+DeploymentManager="*res://scripts/managers/deployment_manager.gd"
 
 [display]
 

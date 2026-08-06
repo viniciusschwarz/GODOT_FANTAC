@@ -120,6 +120,11 @@ func _on_enemy_deployment_requested(enemy_roster: Array, deployment_zones: Array
 			# Though register_unit can be called here or in Unit's _ready
 			register_unit(unit_inst)
 
+func _process(_delta: float) -> void:
+	# Broadcast debug data every frame for visualizers
+	if active_units.size() > 0:
+		SignalBus.ai_debug_data_broadcasted.emit(active_units)
+
 func _on_phase_started(phase_name: String) -> void:
 	if phase_name == "planning":
 		process_planning_phase()

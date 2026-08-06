@@ -281,3 +281,75 @@ This document tracks the module responsibilities and the refactoring steps appli
   - `_ready()`: Ensures default `MapObjectData` parameters apply offset heights to UI elements mimicking cover/Z-level perspectives.
 - **Refactor Notes:**
   - Scanned for strict typing and decoupling needs. Verified logic meets parameters as no node coupling exists and typing applies correctly to properties (`data: MapObjectData`, `color_rect: ColorRect`).
+## Phase 4: Environment, UI & VFX Scripts
+
+### `scripts/managers/input_manager.gd` (New)
+- **Core Responsibility**: Centralizes global input processing (WASD camera panning, mouse wheel zooming, Z-level keys, map clicks) and translates them into semantic signals broadcast via `SignalBus`.
+- **Functions List**:
+  - `_process(delta: float)`: Polls WASD input for camera panning.
+  - `_input(event: InputEvent)`: Delegates event logic to handlers.
+  - `_handle_camera_pan()`: Emits `camera_pan_input`.
+  - `_handle_camera_zoom(event)`: Detects scroll wheel and emits `camera_zoom_input`.
+  - `_handle_z_level(event)`: Detects PageUp/Down and emits `camera_z_level_input`.
+  - `_handle_mouse_clicks(event)`: Emits `map_clicked` upon left-click for world interactions.
+- **Refactor Notes**:
+  - Created to eliminate direct input querying in disparate scripts (like `TacticalCamera2D` and `DeploymentUI`), enforcing a centralized event-driven input architecture.
+
+### `scripts/managers/deployment_manager.gd` (New)
+- **Core Responsibility**: Manages the logic of spawning units during the deployment phase, cleanly separating visual UI interactions from actual scene modification.
+- **Functions List**:
+  - `_ready()`: Connects to `spawn_unit_requested` signal.
+  - `_on_spawn_unit_requested(...)`: Validates deployment phase, verifies deployable tiles via `EnvironmentManager`, instantiates the unit, configures its initial position/Z-height, appends it to the `Battlefield/Units` container, and broadcasts `unit_spawned`.
+- **Refactor Notes**:
+  - Abstracted unit instantiation away from `DeploymentUI`. Prevents UI from tightly coupling with `get_tree().root.get_node("Battlefield")`.
+
+### `scripts/map/battlefield.gd`
+- **Core Responsibility**: Bootstraps the tactical combat map environment, triggering tilemap generation and officially starting the combat phase logic.
+- **Functions List**:
+  - `_ready()`: Initiates map generation, broadcasts calculated bounds via `SignalBus`, and calls `PhaseManager.start_combat()`.
+- **Refactor Notes**:
+  - Removed tight coupling to `$TacticalCamera2D`. Now emits an `environment_bounds_changed` signal so the camera configures its own limits independently.
+
+### `scripts/map/tactical_camera.gd`
+- **Core Responsibility**: Controls the visual viewport, managing pan, continuous zoom, boundary limits, and broadcasting Z-level view changes for level rendering.
+- **Functions List**:
+  - `_ready()`: Subscribes to input signals (`pan`, `zoom`, `z_level`, `bounds`).
+  - `_process(delta: float)`: Applies smoothed vectors to position and zoom.
+  - `_on_environment_bounds_changed(...)`: Updates clamping limits based on generated environment sizes.
+  - Handlers (`_on_pan_input`, `_on_zoom_input`, `_on_z_level_input`): Translate incoming signals into target vectors.
+  - `_apply_movement(...)` / `_apply_zoom(...)`: Core math applying smoothed interpolation.
+- **Refactor Notes**:
+  - Eliminated raw `_input` handling and `Input.is_key_pressed` queries, entirely replacing them with listeners to `SignalBus`. Removed dependency on `battlefield.gd` explicitly setting its limits.
+
+### `scripts/ui/deployment_ui.gd`
+- **Core Responsibility**: User interface for selecting and confirming troop placements during the WEGO deployment phase.
+- **Functions List**:
+  - `_ready()`: Wires up UI button listeners and `SignalBus.map_clicked`.
+  - `_on_unit_selected(...)`: Caches selected string.
+  - `_on_map_clicked(...)`: Converts viewport mouse positions into global coordinates, translates them into grid coordinates, and emits `spawn_unit_requested`.
+  - `_on_confirm_pressed()`: Triggers deployment phase end.
+- **Refactor Notes**:
+  - Deleted raw input handling and `get_global_mouse_position()` querying through hardcoded camera references.
+  - Replaced tight coupling to `get_tree().root.Battlefield.Units` with a pure signal broadcast handled by `DeploymentManager`.
+
+### `scripts/ui/overlays/tactical_visualizer.gd`
+- **Core Responsibility**: Standalone UI overlay (toggled via debug key) responsible for visualizing AI intent lines and queue states during combat processing.
+- **Functions List**:
+  - `_ready()`: Hides overlay and connects to `ai_debug_data_broadcasted`.
+  - `_input(event)`: Listens for debug key F3 to toggle visibility.
+  - `toggle_visualizer()`: Flips visibility and clears lines/labels if hidden.
+  - `_on_ai_debug_data_broadcasted(active_units: Array)`: Dynamically renders labels and line primitives based on `AIComponent` states.
+  - `clear_visuals()`: safely purges drawn nodes.
+- **Refactor Notes**:
+  - Stripped `_process` and direct querying of `/root/AIManager`. Now behaves passively, entirely driven by `ai_debug_data_broadcasted` signals to avoid coupling visualizers to core system managers.
+
+### `scripts/managers/ai_manager.gd` (Updated for Phase 4)
+- **Refactor Notes**:
+  - Added a `_process` function specifically to broadcast its `active_units` array via `SignalBus.ai_debug_data_broadcasted` every frame, fulfilling the decoupled data needs of debug overlays like `TacticalVisualizer`.
+
+### `scripts/visual_effects/floating_text.gd`
+- **Core Responsibility**: Instantiable visual effect representing transient data (damage, healing, states) dynamically drawn over units.
+- **Functions List**:
+  - `_ready()`: Instantiates parallel tweens to animate the position vertically, fade opacity to zero, and automatically queue itself for deletion.
+- **Refactor Notes**:
+  - Implemented missing logic for the placeholder script, ensuring basic functionality without adding complexity or coupling to unit logic.
