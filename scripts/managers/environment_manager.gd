@@ -17,8 +17,13 @@ var tilemap: TileMapLayer
 var grid_size: Vector2i = Vector2i(32, 32)
 var noise: FastNoiseLite
 var deployable_tiles: Array[Vector2i] = []
+var map_layers: Dictionary = {}
+
+func get_map_bounds() -> Rect2:
+	return Rect2(0, 0, grid_size.x * GridManager.TILE_SIZE, grid_size.y * GridManager.TILE_SIZE)
 
 func _ready() -> void:
+	SignalBus.camera_z_level_changed.connect(_on_camera_z_level_changed)
 	canvas_modulate = CanvasModulate.new()
 	canvas_modulate.color = day_color
 	add_child(canvas_modulate)
@@ -118,7 +123,8 @@ func step3_structures() -> void:
 
 		# Append to TileMap so they render properly above terrain
 		if tilemap:
-			tilemap.add_child(inst)
+			var layer = _get_or_create_layer(0)
+			layer.add_child(inst)
 
 func step4_scatter_and_deploy_zones() -> void:
 	print("Step 4: Scatter Objects & Obstacles")
@@ -139,18 +145,45 @@ func step4_scatter_and_deploy_zones() -> void:
 				var tree = tree_scene.instantiate()
 				tree.position = GridManager.get_world_position(pos)
 				if tilemap:
-					tilemap.add_child(tree)
+					var layer = _get_or_create_layer(td["z_height"])
+					layer.add_child(tree)
 				GridManager.add_map_object(pos, tree.data)
 			elif n < -0.4 and rock_scene:
 				var rock = rock_scene.instantiate()
 				rock.position = GridManager.get_world_position(pos)
 				if tilemap:
-					tilemap.add_child(rock)
+					var layer = _get_or_create_layer(td["z_height"])
+					layer.add_child(rock)
 				GridManager.add_map_object(pos, rock.data)
 
 			if y >= grid_size.y - 5 and not GridManager.get_tile_data(pos)["solid"]:
 				deployable_tiles.append(pos)
 				_highlight_deploy_zone(pos)
+
+func _get_or_create_layer(z_height: int) -> Node2D:
+	if map_layers.has(z_height):
+		return map_layers[z_height]
+
+	var layer = Node2D.new()
+	layer.name = "ZLayer_" + str(z_height)
+	# Use Godot's built-in z_index for sorting
+	layer.z_index = z_height
+	if tilemap:
+		tilemap.add_child(layer)
+	map_layers[z_height] = layer
+	return layer
+
+func _on_camera_z_level_changed(active_z: int) -> void:
+	for z in map_layers.keys():
+		var layer = map_layers[z]
+		if z == active_z:
+			layer.modulate.a = 1.0
+			layer.visible = true
+		elif z < active_z:
+			layer.modulate.a = 0.5
+			layer.visible = true
+		else:
+			layer.visible = false
 
 func _spawn_tile_visual(grid_pos: Vector2i, color: Color, z_height: int) -> void:
 	var rect = ColorRect.new()
@@ -162,7 +195,8 @@ func _spawn_tile_visual(grid_pos: Vector2i, color: Color, z_height: int) -> void
 	rect.color = Color(color.r * darken, color.g * darken, color.b * darken, 1.0)
 
 	if tilemap:
-		tilemap.add_child(rect)
+		var layer = _get_or_create_layer(z_height)
+		layer.add_child(rect)
 
 func _highlight_deploy_zone(grid_pos: Vector2i) -> void:
 	var rect = ColorRect.new()
