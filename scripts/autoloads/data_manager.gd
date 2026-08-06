@@ -5,10 +5,12 @@ extends Node
 const UNITS_DIR = "res://resources/units/"
 const WEAPONS_DIR = "res://resources/weapons/"
 const RULES_DIR = "res://resources/rules/"
+const MISSIONS_DIR = "res://resources/rules/missions/"
 
 var _units_cache: Dictionary = {}
 var _weapons_cache: Dictionary = {}
 var _rules_data: Dictionary = {}
+var _missions_cache: Dictionary = {}
 
 func _ready() -> void:
 	_load_all_data()
@@ -18,6 +20,7 @@ func _load_all_data() -> void:
 	_load_units()
 	_load_weapons()
 	_load_rules()
+	_load_missions()
 	print("DataManager: All data loaded successfully.")
 
 func _load_directory_resources(dir_path: String) -> Array:
@@ -83,3 +86,22 @@ func get_rules(category: String):
 		return res
 	push_warning("DataManager: Rule category not found: " + category)
 	return null
+
+
+## Loads and caches mission data
+func _load_missions() -> void:
+	var resources = _load_directory_resources(MISSIONS_DIR)
+	for item in resources:
+		if item.res is MissionData:
+			_missions_cache[item.id] = item.res
+
+## Returns a MissionData resource by ID. Returns null if not found.
+func get_mission(id: String) -> MissionData:
+	if _missions_cache.has(id):
+		return _missions_cache[id]
+	push_warning("DataManager: Mission data not found for id: " + id)
+	return null
+
+## Returns all loaded MissionData resources
+func get_all_missions() -> Array:
+	return _missions_cache.values()
