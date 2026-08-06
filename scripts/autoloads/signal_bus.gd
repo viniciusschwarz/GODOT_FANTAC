@@ -19,3 +19,6 @@ signal combat_ended
 signal unit_health_changed(unit: Node, current_health: int, max_health: int, amount: int)
 signal unit_died(unit: Node)
 signal unit_action_finished(unit: Node)
+
+# Enemy deployment
+signal enemy_deployment_requested(enemy_roster: Array, deployment_zones: Array[Vector2i])

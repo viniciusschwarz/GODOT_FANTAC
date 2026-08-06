@@ -1,6 +1,20 @@
 extends Node
 ## Pure logic/math service that calculates physical interaction results between units.
 
+func _ready() -> void:
+	SignalBus.connect("wego_phase_started", _on_phase_started)
+
+func _on_phase_started(phase_name: String) -> void:
+	if phase_name == "deployment":
+		var roster = []
+		if GameState.current_mission and GameState.current_mission is MissionData:
+			roster = GameState.current_mission.enemy_roster
+		else:
+			print("CombatManager: No current mission found, using empty roster for deployment.")
+
+		var enemy_zones = EnvironmentManager.get_enemy_deployment_zones()
+		SignalBus.enemy_deployment_requested.emit(roster, enemy_zones)
+
 ## Calculates damage based on weapon type, armor type, elevation, and facing.
 func calculate_damage(attacker: Node, defender: Node, weapon: WeaponData, armor: ArmorData, attacker_elevation: int, defender_elevation: int, attack_vector: Vector2, defender_facing: Vector2) -> int:
 	if not weapon:
