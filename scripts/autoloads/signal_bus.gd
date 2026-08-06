@@ -7,6 +7,9 @@ signal boot_completed
 # --- System Events ---
 signal game_quit_requested
 
+# --- Viewport / Camera Events ---
+signal camera_z_level_changed(active_z: int)
+
 # --- Combat / WEGO Phase Engine ---
 signal wego_phase_started(phase_name: String)
 signal combat_started
