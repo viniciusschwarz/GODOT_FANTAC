@@ -29,6 +29,10 @@ We will work step-by-step. Do not assume how a system works until you review all
 - Phase 2: Managers & AI Framework (`scripts/managers/`, `scripts/ai/`)
 - Phase 3: Entities & Components (`scripts/entities/`)
 - Phase 4: Map, UI, and VFX (`scripts/map/`, `scripts/ui/`, `scripts/visual_effects/`)
+- Phase 5: Map & Camera Scenes (`scenes/map/`)
+- Phase 6: Entity & Component Scenes (`scenes/entities/`)
+- Phase 7: UI & VFX Scenes (`scenes/ui/`, `scenes/visual_effects/`)
+  
 ## User Guidelines from Previous Inquiries
 1. **Bugs and Missing Code:** While investigating, keep a close eye for bugs or missing code and work to fix it according to the instructions in this section.
 2. **Expanding Architecture:** We can create new managers if really needed, but refactoring existing ones should take precedence.
