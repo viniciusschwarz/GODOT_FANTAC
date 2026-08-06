@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="UnitData" load_steps=3 format=3 uid="uid://e45tjhguxu3f6"]
+[gd_resource type="Resource" script_class="UnitData" format=3 uid="uid://baqxxfjmen7of"]
 
 [ext_resource type="Script" path="res://scripts/data/models/unit_data.gd" id="1_ua"]
 [ext_resource type="Resource" uid="uid://bd3tihguxu3f3" path="res://resources/weapons/short_bow.tres" id="2_ua"]
