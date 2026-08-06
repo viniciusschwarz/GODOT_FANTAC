@@ -13,6 +13,7 @@ extends CharacterBody2D
 
 var team_id: int = 0
 var facing_vector: Vector2 = Vector2.DOWN
+var current_elevation: int = 0
 
 func _ready() -> void:
 	if data:
@@ -28,11 +29,15 @@ func initialize(unit_data: UnitData, team: int = 0) -> void:
 
 	# Initialize components
 	if health_component:
-		health_component.initialize(data.max_health)
+		health_component.initialize(self, data.max_health)
 	if movement_component:
-		movement_component.initialize(data.base_movement_speed)
+		movement_component.initialize(self, data.base_movement_speed)
 	if ai_component and data.behavior_tree_preset:
-		ai_component.initialize(data.behavior_tree_preset)
+		ai_component.initialize(self, data.behavior_tree_preset)
+	if animation_component:
+		animation_component.initialize(self)
+	if targeting_component:
+		targeting_component.initialize(self)
 
 func _on_phase_started(phase_name: String) -> void:
 	if phase_name == "execution":

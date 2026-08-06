@@ -198,3 +198,86 @@ This document tracks the module responsibilities and the refactoring steps appli
   - `tick(unit, blackboard)`: Polymorphic tree execution logic. Selectors branch on SUCCESS, Sequences branch on FAILURE.
 - **Refactor Notes**:
   - Refactored `bt_selector.gd` and `bt_sequence.gd` loop structures. Changed loose `for child in children:` to strictly typed `for child: BTNode in children:`.
+
+---
+*End of Phase 2 Execution*
+## Phase 3: Entities & Components
+
+### `scripts/entities/unit/unit.gd`
+- **Core Responsibility:** Lightweight, team-agnostic root container node that visually and mechanically represents a unit in combat, deferring logic to its components.
+- **Functions List:**
+  - `_ready()`: Wires up WEGO execution phase listener and calls initialization.
+  - `initialize(unit_data: UnitData, team: int = 0)`: Configures core stats, assigns ID/Name, and loops through components injecting a reference to itself.
+  - `_on_phase_started(phase_name: String)`: Triggers AI component queuing when `execution` phase is triggered.
+  - `set_facing(direction: Vector2)`: Stores unit facing and visually updates via `AnimationComponent`.
+- **Refactor Notes:**
+  - Added strict variable typing `current_elevation: int = 0`.
+  - Refactored `initialize` to act as a proper Component Hub, passing `self` explicitly to each component (`health_component.initialize(self, data.max_health)`) to entirely eliminate tight coupling and the usage of `get_parent()`.
+
+### `scripts/entities/unit/components/health_component.gd`
+- **Core Responsibility:** Tracks current/max health and processes incoming damage along with calculating structural damage mitigation based on dynamically tracked cover.
+- **Functions List:**
+  - `_ready()`: Connects to `SignalBus.unit_cover_bonus_changed`.
+  - `initialize(unit: Node, health: int)`: Receives owner reference and resets health states, emitting UI updates.
+  - `_on_unit_cover_bonus_changed(unit: Node, cover_bonus: float)`: Dedicated listener replacing tight component polling. Updates local mitigation stats when `MovementComponent` detects terrain changes.
+  - `take_damage(amount: int)`: Calculates mitigated damage against active cover bonus. Emits UI events and checks for death.
+  - `die()`: Sets dead flag and signals completion, handling AI unregistration.
+- **Refactor Notes:**
+  - Removed `get_parent()` usage; owner is injected via `initialize(unit: Node, health: int)`.
+  - Removed direct access/coupling of Autoloads via `has_node("/root/AIManager")`; instead references the global Autoload class `AIManager` natively.
+  - Adopted `SignalBus` to decouple communication of terrain cover bonuses.
+
+### `scripts/entities/unit/components/movement_component.gd`
+- **Core Responsibility:** Handles AStar path execution, movement speed math, physics knockback implementations, and calculating tile transition status variables.
+- **Functions List:**
+  - `_ready()`: Empty initialization (replaced tight coupling).
+  - `initialize(unit: Node, speed: float)`: Injects CharacterBody2D owner and establishes initial speeds.
+  - `_physics_process(delta: float)`: Executes pathfinding nodes iteratively, adjusting velocity based on grid terrain penalties.
+  - `set_path(new_path: Array[Vector2])`: Overwrites queue arrays.
+  - `_update_terrain_state()`: Reads underlying `GridManager` TileData, directly updating its owner's `current_elevation` variable and broadcasting cover stats.
+  - `apply_impulse(impulse_vector: Vector2)`: Instantly adjusts and applies knockback velocity.
+- **Refactor Notes:**
+  - Eradicated completely the anti-pattern `get_parent() is CharacterBody2D`. Owner is now correctly injected.
+  - Eradicated completely the horizontal direct coupling to `HealthComponent` (`unit_owner.get_node("HealthComponent").current_cover_bonus = ...`). Component now uses `SignalBus.unit_cover_bonus_changed.emit(unit_owner, ...)` for complete isolation.
+
+### `scripts/entities/unit/components/ai_component.gd`
+- **Core Responsibility:** Holds the unit's active Behavior Tree (`BTNode`) instance and transforms AI execution decisions into executable command queues for WEGO phasing.
+- **Functions List:**
+  - `_ready()`: Emptied (stripped `get_parent()`).
+  - `initialize(unit: Node, bt_preset: Resource)`: Assigns owner, tree resources, and directly registers to `AIManager`.
+  - `evaluate_behavior()`: Core logic updating the blackboard and executing `tick` cycles against the behavior tree.
+  - `queue_action(action_name: String, params: Dictionary)`: Stashes a behavior intended for the execution phase.
+  - `execute_queued_action()`: Simulated delegation logic that eventually emits signal completion.
+- **Refactor Notes:**
+  - Refactored `initialize` to accept the `unit: Node` argument.
+  - Removed explicit string path references (`/root/AIManager`) in favor of direct standard global Autoload resolution (`AIManager.register_unit(unit_owner)`).
+
+### `scripts/entities/unit/components/animation_component.gd`
+- **Core Responsibility:** Manages visual states like sprite flip directions, animations, and shader effects (e.g., hit flash parameters).
+- **Functions List:**
+  - `_ready()`: Wires up strictly to global health/death signals.
+  - `initialize(unit: Node)`: Caches injected owner.
+  - `_process(delta: float)` / `_process_hit_flash(delta: float)`: Counts down timers to revert shader properties.
+  - `play_animation(anim_name: String)`: Skeleton mapping frame cycles.
+  - `update_facing(facing_vector: Vector2)`: Adjusts sprite horizontal flips based on calculated velocity.
+  - Event Handlers: `_on_unit_health_changed`, `_on_unit_died`. Triggers hit flashes.
+- **Refactor Notes:**
+  - Removed `get_parent()` usage, introducing a new `initialize(unit: Node)` method to abide by uniform Component patterns established.
+
+### `scripts/entities/unit/components/targeting_component.gd`
+- **Core Responsibility:** Performs structural line-of-sight verification and handles calculating target distances while cross-referencing multi-floor Z-levels.
+- **Functions List:**
+  - `_ready()`: Emptied.
+  - `initialize(unit: Node)`: Assigns reference owner.
+  - `get_nearest_target(max_range: float, elevation: int) -> Node`: Query framework skeleton logic.
+  - `has_line_of_sight(target: Node) -> bool`: Coordinates GridManager requests matching start and target coordinates + specific elevation values.
+- **Refactor Notes:**
+  - Stripped `get_parent()` instantiation via explicit DI through `initialize`.
+  - Eradicated cross-component coupling querying `MovementComponent` directly for elevations. Now cleanly polls the `current_elevation` integer explicitly injected onto the hub `unit_owner` level.
+
+### `scripts/entities/map_objects/map_object.gd`
+- **Core Responsibility:** Serves as the concrete Node2D representations of static terrain details (trees, rocks, destructibles) modifying the Grid dynamically during generation.
+- **Functions List:**
+  - `_ready()`: Ensures default `MapObjectData` parameters apply offset heights to UI elements mimicking cover/Z-level perspectives.
+- **Refactor Notes:**
+  - Scanned for strict typing and decoupling needs. Verified logic meets parameters as no node coupling exists and typing applies correctly to properties (`data: MapObjectData`, `color_rect: ColorRect`).

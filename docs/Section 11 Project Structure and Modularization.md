@@ -38,3 +38,6 @@ We will work step-by-step. Do not assume how a system works until you review all
 2. **Expanding Architecture:** We can create new managers if really needed, but refactoring existing ones should take precedence.
 3. **Typing and Syntax:** Find the best practices as an expert.
 4. **Log Formatting:** Order modules in the `Architecture_And_Refactor_Log.md` by logical flow.
+5. **Autoload and Paths:** Use Autoloads (e.g., `SignalBus.emit_signal(...)`) directly by their names rather than hardcoded `/root/...` paths.
+6. **Component Initialization:** Eliminate `get_parent()` completely in components. Components must receive their owner reference via their `initialize()` method.
+7. **Component Communication:** Components must never access each other directly (e.g., `unit.get_node("HealthComponent")`). They must communicate exclusively via signals to ensure zero coupling.

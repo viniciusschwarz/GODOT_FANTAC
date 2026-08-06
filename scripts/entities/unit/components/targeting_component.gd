@@ -5,7 +5,10 @@ extends Node2D
 var unit_owner: Node
 
 func _ready() -> void:
-	unit_owner = get_parent()
+	pass
+
+func initialize(unit: Node) -> void:
+	unit_owner = unit
 
 ## Finds the nearest valid enemy within a given range.
 func get_nearest_target(max_range: float, elevation: int) -> Node:
@@ -21,12 +24,12 @@ func has_line_of_sight(target: Node) -> bool:
 	var target_pos = target.global_position
 
 	var start_elevation = 0
-	if unit_owner.has_node("MovementComponent"):
-		start_elevation = unit_owner.get_node("MovementComponent").current_z_elevation
+	if "current_elevation" in unit_owner:
+		start_elevation = unit_owner.current_elevation
 
 	var target_elevation = 0
-	if target.has_node("MovementComponent"):
-		target_elevation = target.get_node("MovementComponent").current_z_elevation
+	if "current_elevation" in target:
+		target_elevation = target.current_elevation
 
 	var start_grid = GridManager.get_grid_position(start_pos, start_elevation)
 	var target_grid = GridManager.get_grid_position(target_pos, target_elevation)
