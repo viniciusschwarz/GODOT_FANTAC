@@ -2,37 +2,33 @@ class_name TargetingComponent
 extends Node2D
 ## Performs line-of-sight checks and target detection across Z-levels.
 
-@onready var los_raycast: RayCast2D = $RayCast2D if has_node("RayCast2D") else null
-
 var unit_owner: Node
 
 func _ready() -> void:
 	unit_owner = get_parent()
 
-	if not los_raycast:
-		# Create a placeholder raycast if not assigned in editor
-		los_raycast = RayCast2D.new()
-		add_child(los_raycast)
-		los_raycast.enabled = false # Enable only when checking
-
 ## Finds the nearest valid enemy within a given range.
 func get_nearest_target(max_range: float, elevation: int) -> Node:
-	# Placeholder logic.
-	# Real logic would query AIManager or a spatial hash for enemies.
-	# Use GridManager to calculate effective distance with Z-levels.
+	# Placeholder for AIManager querying
 	return null
 
-## Checks if there is clear line of sight to the target.
+## Checks if there is clear line of sight to the target, considering Z-levels and obstacles
 func has_line_of_sight(target: Node) -> bool:
-	if not target or not is_instance_valid(target):
+	if not target or not is_instance_valid(target) or not unit_owner:
 		return false
 
-	if los_raycast:
-		los_raycast.target_position = target.global_position - global_position
-		los_raycast.force_raycast_update()
+	var start_pos = unit_owner.global_position
+	var target_pos = target.global_position
 
-		if los_raycast.is_colliding():
-			var collider = los_raycast.get_collider()
-			return collider == target
+	var start_elevation = 0
+	if unit_owner.has_node("MovementComponent"):
+		start_elevation = unit_owner.get_node("MovementComponent").current_z_elevation
 
-	return true
+	var target_elevation = 0
+	if target.has_node("MovementComponent"):
+		target_elevation = target.get_node("MovementComponent").current_z_elevation
+
+	var start_grid = GridManager.get_grid_position(start_pos, start_elevation)
+	var target_grid = GridManager.get_grid_position(target_pos, target_elevation)
+
+	return GridManager.check_line_of_sight(start_grid, target_grid)

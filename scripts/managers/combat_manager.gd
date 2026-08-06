@@ -13,27 +13,26 @@ func calculate_damage(attacker: Node, defender: Node, weapon: WeaponData, armor:
 	# Elevation Bonus
 	if attacker_elevation > defender_elevation:
 		damage_modifier += 0.2 # 20% bonus from high ground
+	elif attacker_elevation < defender_elevation:
+		damage_modifier -= 0.1 # 10% penalty for attacking uphill
 
 	# Armor vs Damage Type Logic (Simplified)
 	if armor:
 		match weapon.damage_type:
 			WeaponData.DamageType.SLASHING:
 				if armor.armor_type == ArmorData.ArmorType.HEAVY:
-					damage_modifier -= 0.5 # Slashing is weak against plate
+					damage_modifier -= 0.5
 			WeaponData.DamageType.PIERCING:
 				if armor.armor_type == ArmorData.ArmorType.SHIELD:
-					# Check facing for shield block
 					var angle = attack_vector.angle_to(defender_facing)
-					if abs(angle) > PI / 2: # Attacking from the front arc
+					if abs(angle) > PI / 2:
 						if randf() <= armor.block_chance:
-							return 0 # Attack blocked
+							return 0
 			WeaponData.DamageType.BLUNT:
-				# Blunt bypasses some armor damage reduction
 				pass
 
 		final_damage = int(base_dmg * damage_modifier)
 
-		# Apply flat armor reduction, minimum 1 damage if attack hits
 		var reduction = max(0, armor.damage_reduction - weapon.armor_penetration)
 		final_damage = max(1, final_damage - reduction)
 
