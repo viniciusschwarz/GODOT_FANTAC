@@ -7,6 +7,9 @@ signal boot_completed
 # --- System Events ---
 signal game_quit_requested
 
+# --- UI Events ---
+signal ui_navigation_requested(panel_name: String)
+
 # --- Viewport / Camera Events ---
 signal camera_z_level_changed(active_z: int)
 

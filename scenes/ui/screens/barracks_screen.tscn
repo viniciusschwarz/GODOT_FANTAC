@@ -1,40 +1,22 @@
-[gd_scene load_steps=2 format=3 uid="uid://i5s0k8yxxxb02"]
+[gd_scene load_steps=3 format=3 uid="uid://i5s0k8yxxxb02"]
 
-[ext_resource type="Script" path="res://scenes/ui/screens/barracks_screen.gd" id="1_ba001"]
+[ext_resource type="PackedScene" uid="uid://c6l660f58k25l1" path="res://scenes/ui/components/window_base.tscn" id="1_wb"]
+[ext_resource type="Script" path="res://scenes/ui/screens/barracks_screen.gd" id="2_bs001"]
 
-[node name="BarracksScreen" type="Control"]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-script = ExtResource("1_ba001")
+[node name="BarracksScreen" instance=ExtResource("1_wb")]
+script = ExtResource("2_bs001")
 
-[node name="HeaderLabel" type="Label" parent="."]
-layout_mode = 1
-anchors_preset = 5
-anchor_left = 0.5
-anchor_right = 0.5
-offset_left = -200.0
-offset_top = 20.0
-offset_right = 200.0
-offset_bottom = 50.0
-grow_horizontal = 2
-text = "BARRACKS"
-horizontal_alignment = 1
+[node name="TitleLabel" parent="BackgroundPanel/VBoxContainer/Header" index="0"]
+text = "Roster"
 
-[node name="ReturnButton" type="Button" parent="."]
-layout_mode = 1
-anchors_preset = 7
-anchor_left = 0.5
-anchor_top = 1.0
-anchor_right = 0.5
-anchor_bottom = 1.0
-offset_left = -100.0
-offset_top = -60.0
-offset_right = 100.0
-offset_bottom = -20.0
-grow_horizontal = 2
-grow_vertical = 0
-text = "Return to War Desk"
+[node name="ContentContainer" type="VBoxContainer" parent="BackgroundPanel/VBoxContainer/Body" index="0"]
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="BackgroundPanel/VBoxContainer/Body/ContentContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="RosterList" type="VBoxContainer" parent="BackgroundPanel/VBoxContainer/Body/ContentContainer/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
