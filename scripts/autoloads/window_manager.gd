@@ -12,9 +12,9 @@ func _ready() -> void:
 	# Note: SettingsManager loads its settings in its _ready(), which we assume
 	# has run or is accessible. However, SettingsManager also calls _apply_settings()
 	# on its own, which we will refactor to use WindowManager.
-	var w_mode = SettingsManager.get_setting("Display", "window_mode", DisplayServer.WINDOW_MODE_WINDOWED)
-	var vsync = SettingsManager.get_setting("Display", "vsync", true)
-	var fps_limit = SettingsManager.get_setting("Display", "fps_limit", 0)
+	var w_mode: int = SettingsManager.get_setting("Display", "window_mode", DisplayServer.WINDOW_MODE_WINDOWED)
+	var vsync: bool = SettingsManager.get_setting("Display", "vsync", true)
+	var fps_limit: int = SettingsManager.get_setting("Display", "fps_limit", 0)
 
 	set_fullscreen(w_mode == DisplayServer.WINDOW_MODE_EXCLUSIVE_FULLSCREEN or w_mode == DisplayServer.WINDOW_MODE_FULLSCREEN)
 	set_vsync(vsync)

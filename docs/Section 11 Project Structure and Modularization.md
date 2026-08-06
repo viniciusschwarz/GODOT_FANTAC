@@ -21,6 +21,10 @@ As you review and refactor, you must write a structured markdown document named 
 
 EXECUTION PLAN
 We will work step-by-step. Do not assume how a system works until you review all the files for a phase.
+- **IMPORTANT**: Handle only **one phase per task/session**. Do not attempt to process all phases at once. Wait for further prompts to proceed to subsequent phases.
+- The `Architecture_And_Refactor_Log.md` document must be created/updated inside the `docs/` folder.
+- You are free to refactor as needed, remove obsolete scripts, create helper classes, and ensure no legacy code is left behind.
+- Perform logical validation during your refactoring to guarantee that all features, gameplay mechanics, and functions are preserved.
 - Phase 1: Autoloads & Data Models (`scripts/autoloads/`, `scripts/data/`)
 - Phase 2: Managers & AI Framework (`scripts/managers/`, `scripts/ai/`)
 - Phase 3: Entities & Components (`scripts/entities/`)

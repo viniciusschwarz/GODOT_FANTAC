@@ -32,7 +32,7 @@ func _initialize_players() -> void:
 
 	# Initialize SFX Pool
 	for i in range(pool_size):
-		var player = AudioStreamPlayer2D.new()
+		var player: AudioStreamPlayer2D = AudioStreamPlayer2D.new()
 		player.bus = "SFX"
 		add_child(player)
 		_sfx_pool.append(player)
