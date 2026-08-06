@@ -16,8 +16,7 @@ func _on_continue():
 	SceneManager.goto_scene("res://scenes/ui/screens/war_desk_screen.tscn")
 
 func _on_settings():
-	var settings = preload("res://scenes/ui/overlays/settings_screen.tscn").instantiate()
-	add_child(settings)
+	SignalBus.ui_navigation_requested.emit("Settings")
 
 func _on_quit():
-	get_tree().quit()
+	get_tree().root.propagate_notification(NOTIFICATION_WM_CLOSE_REQUEST)

@@ -1,7 +1,7 @@
-extends Control
+extends WindowBase
 
-func _ready():
-	$ReturnButton.pressed.connect(_on_return)
+func _ready() -> void:
 
-func _on_return():
-	SceneManager.goto_scene("res://scenes/ui/screens/war_desk_screen.tscn")
+	# The DataManager and logic would populate this in a real scenario
+	# Example pseudo-code from design doc:
+	# SignalBus.emit_signal("request_player_roster_data")

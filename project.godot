@@ -17,6 +17,7 @@ config/icon="res://assets/graphics/sprites/icon.svg"
 [autoload]
 
 SignalBus="*res://scripts/autoloads/signal_bus.gd"
+UIManager="*res://scripts/autoloads/ui_manager.gd"
 WindowManager="*res://scripts/autoloads/window_manager.gd"
 GameState="*res://scripts/autoloads/game_state.gd"
 SceneManager="*res://scripts/autoloads/scene_manager.gd"
