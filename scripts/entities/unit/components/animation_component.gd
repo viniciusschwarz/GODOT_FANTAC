@@ -12,10 +12,12 @@ var current_state: String = "Idle"
 var unit_owner: Node
 
 func _ready() -> void:
-	unit_owner = get_parent()
 	if SignalBus:
 		SignalBus.unit_health_changed.connect(_on_unit_health_changed)
 		SignalBus.unit_died.connect(_on_unit_died)
+
+func initialize(unit: Node) -> void:
+	unit_owner = unit
 
 func _process(delta: float) -> void:
 	_process_hit_flash(delta)

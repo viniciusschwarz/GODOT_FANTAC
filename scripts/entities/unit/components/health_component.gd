@@ -11,13 +11,18 @@ var current_cover_bonus: float = 0.0
 var unit_owner: Node
 
 func _ready() -> void:
-	unit_owner = get_parent()
+	SignalBus.unit_cover_bonus_changed.connect(_on_unit_cover_bonus_changed)
 
-func initialize(health: int) -> void:
+func initialize(unit: Node, health: int) -> void:
+	unit_owner = unit
 	max_health = health
 	current_health = health
 	is_dead = false
 	SignalBus.unit_health_changed.emit(unit_owner, current_health, max_health, 0)
+
+func _on_unit_cover_bonus_changed(unit: Node, cover_bonus: float) -> void:
+	if unit == unit_owner:
+		current_cover_bonus = cover_bonus
 
 func take_damage(amount: int) -> void:
 	if is_dead:
@@ -38,5 +43,7 @@ func take_damage(amount: int) -> void:
 func die() -> void:
 	is_dead = true
 	SignalBus.unit_died.emit(unit_owner)
-	if has_node("/root/AIManager"):
-		get_node("/root/AIManager").unregister_unit(unit_owner)
+	# The AIManager (or whatever handles units) will listen to the unit_died signal instead,
+	# but as a fallback/for now, if AIManager autoload is present we can call it.
+	if AIManager:
+		AIManager.unregister_unit(unit_owner)

@@ -10,16 +10,15 @@ var is_moving: bool = false
 var path: Array[Vector2] = []
 
 # Dynamic Terrain States
-var current_z_elevation: int = 0
 var current_move_penalty: float = 1.0
 
 func _ready() -> void:
-	if get_parent() is CharacterBody2D:
-		unit_owner = get_parent()
-	else:
-		push_warning("MovementComponent parent must be a CharacterBody2D")
+	pass
 
-func initialize(speed: float) -> void:
+func initialize(unit: Node, speed: float) -> void:
+	unit_owner = unit as CharacterBody2D
+	if not unit_owner:
+		push_warning("MovementComponent unit_owner must be a CharacterBody2D")
 	base_speed = speed
 	current_speed = speed
 	_update_terrain_state()
@@ -59,12 +58,11 @@ func _update_terrain_state() -> void:
 	var grid_pos = GridManager.get_grid_position2d(unit_owner.global_position)
 	var tile_data = GridManager.get_tile_data(grid_pos)
 
-	current_z_elevation = tile_data["z_height"]
+	unit_owner.current_elevation = tile_data["z_height"]
 	current_move_penalty = tile_data["move_penalty"]
 
-	# Pass cover bonus to health component if it exists
-	if unit_owner.has_node("HealthComponent"):
-		unit_owner.get_node("HealthComponent").current_cover_bonus = tile_data["cover_bonus"]
+	# Signal the new cover bonus via the SignalBus
+	SignalBus.unit_cover_bonus_changed.emit(unit_owner, tile_data["cover_bonus"])
 
 func apply_impulse(impulse_vector: Vector2) -> void:
 	if unit_owner:

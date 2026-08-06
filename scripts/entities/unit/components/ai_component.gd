@@ -11,18 +11,19 @@ var blackboard: Dictionary = {}
 var queued_action: Dictionary = {}
 
 func _ready() -> void:
-	unit_owner = get_parent()
+	pass
 
 ## Initializes the component with a specific behavior preset.
-func initialize(bt_preset: Resource) -> void:
+func initialize(unit: Node, bt_preset: Resource) -> void:
+	unit_owner = unit
 	if bt_preset is BTNode:
 		behavior_tree = bt_preset
 	else:
 		push_warning("Invalid Behavior Tree preset provided to AIComponent.")
 
 	# Register with AIManager to be evaluated during planning
-	if has_node("/root/AIManager"):
-		get_node("/root/AIManager").register_unit(unit_owner)
+	if AIManager:
+		AIManager.register_unit(unit_owner)
 
 ## Called by AIManager during the Planning Phase.
 func evaluate_behavior() -> void:
