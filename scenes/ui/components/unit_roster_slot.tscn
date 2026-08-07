@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://c5s0k8yxxx555"]
 
-[ext_resource type="Script" path="res://scenes/ui/components/unit_roster_slot.gd" id="1_urs001"]
+[ext_resource type="Script" path="res://scripts/ui/components/unit_roster_slot.gd" id="1_urs001"]
 
 [node name="UnitRosterSlot" type="PanelContainer"]
 custom_minimum_size = Vector2(0, 50)

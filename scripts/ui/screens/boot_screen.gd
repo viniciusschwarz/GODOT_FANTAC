@@ -1,7 +1,8 @@
 extends Control
 
-func _ready():
+func _ready() -> void:
 	print("BootScreen: Initializing...")
+
 	SignalBus.boot_completed.emit()
 
 	# Simulate a tiny delay for the logo fade (MVP)

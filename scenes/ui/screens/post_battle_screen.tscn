@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://l5s0k8yxxxe05"]
 
-[ext_resource type="Script" path="res://scenes/ui/screens/post_battle_screen.gd" id="1_pb001"]
+[ext_resource type="Script" path="res://scripts/ui/screens/post_battle_screen.gd" id="1_pb001"]
 
 [node name="PostBattleScreen" type="Control"]
 layout_mode = 3
