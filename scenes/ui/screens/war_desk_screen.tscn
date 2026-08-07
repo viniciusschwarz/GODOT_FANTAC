@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://h5s0k8yxxxa01"]
 
-[ext_resource type="Script" path="res://scenes/ui/screens/war_desk_screen.gd" id="1_wd001"]
+[ext_resource type="Script" path="res://scripts/ui/screens/war_desk_screen.gd" id="1_wd001"]
 [ext_resource type="PackedScene" uid="uid://c6l660f58k25l2" path="res://scenes/ui/components/left_panel.tscn" id="2_lp001"]
 
 [node name="WarDeskScreen" type="Control"]

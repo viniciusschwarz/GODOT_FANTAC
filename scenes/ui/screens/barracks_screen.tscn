@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3 uid="uid://i5s0k8yxxxb02"]
 
 [ext_resource type="PackedScene" uid="uid://c6l660f58k25l1" path="res://scenes/ui/components/window_base.tscn" id="1_wb"]
-[ext_resource type="Script" path="res://scenes/ui/screens/barracks_screen.gd" id="2_bs001"]
+[ext_resource type="Script" path="res://scripts/ui/screens/barracks_screen.gd" id="2_bs001"]
 
 [node name="BarracksScreen" instance=ExtResource("1_wb")]
 script = ExtResource("2_bs001")

@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://j5s0k8yxxxc03"]
 
-[ext_resource type="Script" path="res://scenes/ui/screens/deployment_screen.gd" id="1_de001"]
+[ext_resource type="Script" path="res://scripts/ui/screens/deployment_screen.gd" id="1_de001"]
 
 [node name="DeploymentScreen" type="Control"]
 layout_mode = 3

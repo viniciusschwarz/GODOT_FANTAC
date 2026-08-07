@@ -353,3 +353,65 @@ This document tracks the module responsibilities and the refactoring steps appli
   - `_ready()`: Instantiates parallel tweens to animate the position vertically, fade opacity to zero, and automatically queue itself for deletion.
 - **Refactor Notes**:
   - Implemented missing logic for the placeholder script, ensuring basic functionality without adding complexity or coupling to unit logic.
+
+## Phase 5: Map & Camera Scenes (`scenes/map/`)
+
+### `scripts/map/battlefield.gd`
+- **Core Responsibility:** Bootstraps the tactical combat map environment, triggering tilemap generation and officially starting the combat phase logic.
+- **Functions List:**
+  - `_ready()`: Initiates map generation, broadcasts calculated bounds via `SignalBus`, and calls `PhaseManager.start_combat()`.
+- **Refactor Notes:**
+  - Verified logic. It properly avoids tight coupling to the camera and uses `SignalBus` to decouple bounds configuration. The file paths in the `battlefield.tscn` were correctly referencing `scenes/ui/screens/deployment_ui.tscn` and `scenes/map/tactical_camera.tscn`.
+
+### `scripts/map/tactical_camera.gd`
+- **Core Responsibility:** Controls the visual viewport, managing pan, continuous zoom, boundary limits, and broadcasting Z-level view changes for level rendering.
+- **Functions List:**
+  - `_ready()`: Subscribes to input signals (`pan`, `zoom`, `z_level`, `bounds`).
+  - `_process(delta: float)`: Applies smoothed vectors to position and zoom.
+  - `_on_environment_bounds_changed(...)`: Updates clamping limits based on generated environment sizes.
+  - Handlers (`_on_pan_input`, `_on_zoom_input`, `_on_z_level_input`): Translate incoming signals into target vectors.
+  - `_apply_movement(...)` / `_apply_zoom(...)`: Core math applying smoothed interpolation.
+- **Refactor Notes:**
+  - Verified logic. Uses explicit typing and strictly listens to central `SignalBus` events rather than polling inputs directly.
+
+## Phase 6: Entity & Component Scenes (`scenes/entities/`)
+
+### `scripts/entities/unit/unit.gd`
+- **Core Responsibility:** Lightweight, team-agnostic root container node representing combatants. Loads appearance, stats, and behavior dynamically from `UnitData`.
+- **Functions List:**
+  - `_ready()`: Wires the execution phase via `SignalBus`.
+  - `initialize(unit_data, team)`: Injects data and recursively initializes all dependent components without `get_parent()` coupling.
+  - `_on_phase_started(phase_name)`: Triggers AI component queues during the execution phase.
+  - `set_facing(direction)`: Relays directional logic to the `AnimationComponent`.
+- **Refactor Notes:**
+  - Verified logic. Strongly typed and passes dependency injection down correctly.
+
+### Components (`scripts/entities/unit/components/`)
+- **Core Responsibility:** Provide isolated logic for health (`health_component.gd`), movement and pathing (`movement_component.gd`), targeting (`targeting_component.gd`), AI commands (`ai_component.gd`), and animation logic (`animation_component.gd`).
+- **Refactor Notes:**
+  - Validated all components for strict typing and isolation. None rely on `get_parent()`. All rely on their `initialize(unit: Node)` functions. They exclusively communicate across the framework using `SignalBus` events like `unit_health_changed` and `unit_cover_bonus_changed`.
+
+### `scripts/entities/map_objects/map_object.gd`
+- **Core Responsibility:** Serves as the concrete Node2D representation for static terrain elements like rocks and trees.
+- **Functions List:**
+  - `_ready()`: Instantiates visual offsets based on `MapObjectData` definitions.
+- **Refactor Notes:**
+  - Validated typing and logic. Safely retrieves its UI nodes via `has_node()` checks.
+
+## Phase 7: UI & VFX Scenes (`scenes/ui/`, `scenes/visual_effects/`)
+
+### `scripts/ui/screens/`
+- **Core Responsibility:** Central scripts for major screen flows like `boot_screen.gd`, `main_menu_screen.gd`, `war_desk_screen.gd`, `deployment_screen.gd`, `battle_screen.gd`, `post_battle_screen.gd`.
+- **Functions List:**
+  - `_ready()` / event handlers: Configure local UI routing and handle button clicks.
+- **Refactor Notes:**
+  - Refactored physical file paths. All UI `.gd` scripts were extracted from `scenes/ui/` into a dedicated `scripts/ui/` matching directory.
+  - Eliminated hardcoded `preload()` string paths in scripts like `battle_screen.gd` and `pause_menu.gd` by exposing them via `@export var packed_scene` to prevent hard-coupling to `scenes/ui/` folders.
+  - Updated standard routing like `SceneManager.goto_scene("res://scenes/...tscn")` to remain functional. Strict typing (e.g., `-> void`) added to lifecycle methods.
+
+### `scripts/visual_effects/floating_text.gd`
+- **Core Responsibility:** Basic floating text effect that animates upward, fades out, and frees itself using Tweens.
+- **Functions List:**
+  - `_ready()`: Configures and plays the property tweens for the float and fade effect.
+- **Refactor Notes:**
+  - Validated that the visual effect does not contain any game logic, relies strictly on Godot 4's Tween system, and auto-cleans up memory. Typing is fully strict.

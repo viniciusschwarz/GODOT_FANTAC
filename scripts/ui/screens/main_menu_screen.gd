@@ -1,6 +1,6 @@
 extends Control
 
-func _ready():
+func _ready() -> void:
 	$VBoxContainer/NewCampaignButton.pressed.connect(_on_new_campaign)
 	$VBoxContainer/ContinueButton.pressed.connect(_on_continue)
 	$VBoxContainer/SettingsButton.pressed.connect(_on_settings)
@@ -8,15 +8,15 @@ func _ready():
 
 	$VBoxContainer/ContinueButton.disabled = not SaveManager.has_save_file()
 
-func _on_new_campaign():
+func _on_new_campaign() -> void:
 	GameState.clear_state()
 	SceneManager.goto_scene("res://scenes/ui/screens/war_desk_screen.tscn")
 
-func _on_continue():
+func _on_continue() -> void:
 	SceneManager.goto_scene("res://scenes/ui/screens/war_desk_screen.tscn")
 
-func _on_settings():
+func _on_settings() -> void:
 	SignalBus.ui_navigation_requested.emit("Settings")
 
-func _on_quit():
+func _on_quit() -> void:
 	get_tree().root.propagate_notification(NOTIFICATION_WM_CLOSE_REQUEST)
