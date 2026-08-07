@@ -1,5 +1,0 @@
-[gd_resource type="Resource" format=3 uid="uid://bd3tihguxu3fb"]
-
-[resource]
-metadata/rain_movement_penalty = 0.2
-metadata/snow_movement_penalty = 0.4

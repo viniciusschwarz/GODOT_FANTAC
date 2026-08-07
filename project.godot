@@ -14,27 +14,6 @@ config/name="Fantac"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://assets/graphics/sprites/icon.svg"
 
-[autoload]
-
-SignalBus="*res://scripts/autoloads/signal_bus.gd"
-UIManager="*res://scripts/autoloads/ui_manager.gd"
-WindowManager="*res://scripts/autoloads/window_manager.gd"
-GameState="*res://scripts/autoloads/game_state.gd"
-SceneManager="*res://scripts/autoloads/scene_manager.gd"
-SettingsManager="*res://scripts/autoloads/settings_manager.gd"
-SaveManager="*res://scripts/autoloads/save_manager.gd"
-DataManager="*res://scripts/autoloads/data_manager.gd"
-AudioManager="*res://scripts/autoloads/audio_manager.gd"
-PhaseManager="*res://scripts/managers/phase_manager.gd"
-GridManager="*res://scripts/managers/grid_manager.gd"
-CombatManager="*res://scripts/managers/combat_manager.gd"
-AIManager="*res://scripts/managers/ai_manager.gd"
-FXManager="*res://scripts/autoloads/fx_manager.gd"
-EnvironmentManager="*res://scripts/managers/environment_manager.gd"
-TacticalVisualizer="*res://scenes/ui/overlays/tactical_visualizer.tscn"
-InputManager="*res://scripts/managers/input_manager.gd"
-DeploymentManager="*res://scripts/managers/deployment_manager.gd"
-
 [display]
 
 window/stretch/mode="canvas_items"

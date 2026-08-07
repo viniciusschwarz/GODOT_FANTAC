@@ -1,6 +1,0 @@
-[gd_scene format=3 uid="uid://dp6m63g1g3j7l"]
-
-[ext_resource type="Script" path="res://scripts/map/tactical_camera.gd" id="1_tac_cam"]
-
-[node name="TacticalCamera2D" type="Camera2D"]
-script = ExtResource("1_tac_cam")
