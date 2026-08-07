@@ -3,9 +3,26 @@ extends Node
 
 var current_scene: Node = null
 
+const SCENE_MAP: Dictionary = {
+	"boot": "res://scenes/ui/screens/boot_screen.tscn",
+	"main_menu": "res://scenes/ui/screens/main_menu_screen.tscn",
+	"war_desk": "res://scenes/ui/screens/war_desk_screen.tscn",
+	"barracks": "res://scenes/ui/screens/barracks_screen.tscn",
+	"deployment": "res://scenes/ui/screens/deployment_screen.tscn",
+	"battle": "res://scenes/ui/screens/battle_screen.tscn",
+	"post_battle": "res://scenes/ui/screens/post_battle_screen.tscn",
+}
+
 func _ready() -> void:
 	# Grab the current scene at startup
 	current_scene = get_tree().current_scene
+	SignalBus.change_scene_requested.connect(_on_change_scene_requested)
+
+func _on_change_scene_requested(scene_id: String) -> void:
+	if SCENE_MAP.has(scene_id):
+		goto_scene(SCENE_MAP[scene_id])
+	else:
+		printerr("SceneManager: Unknown scene_id requested: ", scene_id)
 
 func goto_scene(path: String) -> void:
 	print("SceneManager: Transitioning to ", path)

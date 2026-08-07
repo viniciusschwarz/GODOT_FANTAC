@@ -1,0 +1,12 @@
+[gd_scene load_steps=2 format=3 uid="uid://cxxp5qxxxxxxx"]
+
+[ext_resource type="Script" path="res://scripts/ui/components/mission_list_item.gd" id="1_a0b1c"]
+
+[node name="MissionListItem" type="Button"]
+custom_minimum_size = Vector2(0, 40)
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 40.0
+grow_horizontal = 2
+text = "Mission Name"
+script = ExtResource("1_a0b1c")

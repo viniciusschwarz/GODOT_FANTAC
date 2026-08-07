@@ -9,9 +9,10 @@ extends Control
 @onready var accept_button = $HBoxContainer/MainContent/HBoxContainerMain/MissionDetailsPanel/VBoxContainer/AcceptButton
 
 var selected_mission: MissionData = null
+const MISSION_LIST_ITEM = preload("res://scenes/ui/components/mission_list_item.tscn")
 
 func _ready():
-	SaveManager.save_game("auto_save", {})
+	SaveManager.save_game("auto_save", GameState.serialize_state())
 	accept_button.pressed.connect(_on_accept)
 	_populate_mission_list()
 
@@ -29,10 +30,10 @@ func _populate_mission_list():
 
 	for mission in missions:
 		if mission is MissionData:
-			var btn = Button.new()
-			btn.text = mission.mission_name
-			btn.pressed.connect(func(): _on_mission_selected(mission))
-			mission_list_container.add_child(btn)
+			var item = MISSION_LIST_ITEM.instantiate()
+			mission_list_container.add_child(item)
+			item.setup(mission)
+			item.mission_selected.connect(_on_mission_selected)
 
 func _on_mission_selected(mission: MissionData):
 	selected_mission = mission
@@ -58,6 +59,5 @@ func _on_mission_selected(mission: MissionData):
 
 func _on_accept():
 	if selected_mission:
-		GameState.current_mission = selected_mission
-		SceneManager.goto_scene("res://scenes/ui/screens/deployment_screen.tscn")
+		SignalBus.mission_accepted.emit(selected_mission)
 

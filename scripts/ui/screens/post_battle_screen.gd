@@ -5,4 +5,4 @@ func _ready():
 
 func _on_return():
 	# Process GameState.last_battle_results here
-	SceneManager.goto_scene("res://scenes/ui/screens/war_desk_screen.tscn")
+	SignalBus.change_scene_requested.emit("war_desk")
