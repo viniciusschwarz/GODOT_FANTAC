@@ -8,8 +8,7 @@ const SCENE_MAP: Dictionary = {
 	"main_menu": "res://scenes/ui/screens/main_menu_screen.tscn",
 	"war_desk": "res://scenes/ui/screens/war_desk_screen.tscn",
 	"barracks": "res://scenes/ui/screens/barracks_screen.tscn",
-	"deployment": "res://scenes/ui/screens/deployment_screen.tscn",
-	"battle": "res://scenes/ui/screens/battle_screen.tscn",
+	"deployment": "res://scenes/map/battlefield.tscn",
 	"post_battle": "res://scenes/ui/screens/post_battle_screen.tscn",
 }
 
