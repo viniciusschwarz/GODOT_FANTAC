@@ -48,4 +48,4 @@ func _on_continue_campaign() -> void:
 
 func _on_mission_accepted(mission: MissionData) -> void:
 	current_mission = mission
-	SignalBus.change_scene_requested.emit("deployment")
+	SignalBus.change_scene_requested.emit("battle")
