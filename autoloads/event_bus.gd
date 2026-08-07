@@ -11,6 +11,7 @@ extends Node
 signal unit_spawned(unit_node: Node)
 signal unit_took_damage(unit_id: StringName, amount: int, current_health: int)
 signal unit_died(unit_id: StringName)
+signal combat_ended(winning_team: StringName)
 
 # ==========================================
 # WEGO TURN STATE SIGNALS
