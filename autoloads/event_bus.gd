@@ -27,3 +27,9 @@ signal execution_tick(delta: float)
 signal ui_tactics_node_dropped(payload: Dictionary, target_info: Dictionary)
 ## Fired when the player selects a unit in the world
 signal ui_unit_selected(unit_id: StringName)
+
+# ==========================================
+# CAMERA & RENDERING SIGNALS
+# ==========================================
+## Fired when the camera changes its focal Z-level for 2.5D visual slicing.
+signal camera_z_level_changed(new_z_level: int)
