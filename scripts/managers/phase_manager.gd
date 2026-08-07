@@ -4,6 +4,7 @@ extends Node
 enum Phase {
 	IDLE,
 	DEPLOYMENT,
+	BEHAVIOR_SETUP,
 	PLANNING,
 	EXECUTION,
 	RESOLUTION
@@ -29,6 +30,16 @@ func start_deployment_phase() -> void:
 	SignalBus.wego_phase_started.emit("deployment")
 
 func end_deployment_phase() -> void:
+	start_behavior_setup_phase()
+
+func start_behavior_setup_phase() -> void:
+	current_phase = Phase.BEHAVIOR_SETUP
+	Engine.time_scale = 0.0 # Pause game time
+
+	print("PhaseManager: Started BEHAVIOR SETUP Phase.")
+	SignalBus.wego_phase_started.emit("behavior_setup")
+
+func end_behavior_setup_phase() -> void:
 	# Ensure game time resumes for the subsequent phases
 	# Depending on original logic, planning phase might pause again.
 	Engine.time_scale = 1.0

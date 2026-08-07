@@ -27,9 +27,9 @@ func _on_map_clicked(mouse_pos: Vector2) -> void:
 
 	var grid_pos: Vector2i = GridManager.get_grid_position2d(global_mouse_pos)
 
-	SignalBus.spawn_unit_requested.emit(selected_unit_type, grid_pos)
+	SignalBus.player_deployment_requested.emit(selected_unit_type, grid_pos)
 
 func _on_confirm_pressed() -> void:
 	print("Deployment UI: Confirming Deployment")
-	PhaseManager.end_deployment_phase()
+	SignalBus.player_deployment_confirmed.emit()
 	visible = false

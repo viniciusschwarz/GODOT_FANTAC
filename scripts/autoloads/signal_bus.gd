@@ -41,8 +41,14 @@ signal camera_z_level_input(z_level_change: int)
 signal map_clicked(mouse_pos: Vector2)
 
 # --- Deployment Events ---
+signal player_deployment_requested(unit_type: String, grid_pos: Vector2i)
+signal player_deployment_confirmed
 signal spawn_unit_requested(unit_type: String, grid_pos: Vector2i)
 signal unit_spawned(unit: Node)
+
+# --- AI Setup Events ---
+signal player_behavior_setup_requested(unit: Node, preset: String)
+signal player_behavior_setup_completed
 
 # --- Debug/Visualizer Events ---
 signal ai_debug_data_broadcasted(active_units: Array)

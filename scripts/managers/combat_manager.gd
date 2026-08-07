@@ -12,7 +12,7 @@ func _on_phase_started(phase_name: String) -> void:
 		else:
 			print("CombatManager: No current mission found, using empty roster for deployment.")
 
-		var enemy_zones = EnvironmentManager.get_enemy_deployment_zones()
+		var enemy_zones = MapGenerator.get_enemy_deployment_zones()
 		SignalBus.enemy_deployment_requested.emit(roster, enemy_zones)
 
 ## Calculates damage based on weapon type, armor type, elevation, and facing.

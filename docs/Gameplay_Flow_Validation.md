@@ -21,3 +21,22 @@ This document tracks the validation and refactoring of the end-to-end gameplay l
   - `SignalBus.continue_campaign_requested`
   - `SignalBus.mission_accepted(mission: MissionData)`
 - **Variables Passed:** `MissionData` is passed through the `mission_accepted` signal. State transitions interact with `GameState.current_mission` and `GameState.player_roster`.
+## Phase 2: Pre-Battle Setup
+**Flow Step:** Map Generation -> Player Deployment -> AI Behavior Setup
+
+**Current Status:** Playable
+
+**Architectural Fixes:**
+- **Map Generation:** Created a dedicated `MapGenerator` autoload (`scripts/managers/map_generator.gd`) to handle all procedural map generation and deployment zone logic, removing these responsibilities from `EnvironmentManager`.
+- **Player Deployment:** Removed `deployment_screen.tscn`/`gd`. Created `PlayerDeploymentManager` autoload (`scripts/managers/player_deployment_manager.gd`) to handle player deployment logic. The UI (`DeploymentUI`) now strictly emits signals (`player_deployment_requested`, `player_deployment_confirmed`).
+- **AI Behavior Setup:** Removed setup logic from `barracks_screen.gd`. Created `PlayerBehaviorSetupManager` autoload (`scripts/managers/player_behavior_setup_manager.gd`) to handle the assignment of unit behaviors without tight coupling.
+- **Phase Flow:** Updated `PhaseManager` to include a new `BEHAVIOR_SETUP` phase. The flow is now: Map Generation (`battlefield.gd` -> `MapGenerator`) -> Deployment Phase -> Behavior Setup Phase -> Planning Phase.
+- **Scene Transition:** Updated `GameState` to transition directly to `battle_screen.tscn` when a mission is accepted.
+
+**Required Signals/Variables:**
+- **Signals:**
+  - `SignalBus.player_deployment_requested(unit_type: String, grid_pos: Vector2i)`
+  - `SignalBus.player_deployment_confirmed`
+  - `SignalBus.player_behavior_setup_requested(unit: Node, preset: String)`
+  - `SignalBus.player_behavior_setup_completed`
+- **Variables Passed:** `unit_type` and `grid_pos` for deployment. `unit` and `preset` for behavior setup.
