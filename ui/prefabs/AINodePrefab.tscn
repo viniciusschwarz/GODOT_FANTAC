@@ -1,0 +1,14 @@
+[gd_scene load_steps=2 format=3 uid="uid://ui_prefab_001"]
+
+[ext_resource type="Script" path="res://ui/prefabs/ai_node_prefab.gd" id="1_prefab"]
+
+[node name="AINodePrefab" type="PanelContainer"]
+custom_minimum_size = Vector2(150, 40)
+mouse_filter = 0
+script = ExtResource("1_prefab")
+
+[node name="Label" type="Label" parent="."]
+layout_mode = 2
+text = "Empty Node"
+horizontal_alignment = 1
+vertical_alignment = 1
