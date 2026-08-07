@@ -11,8 +11,14 @@ config_version=5
 [application]
 
 config/name="Fantac"
+run/main_scene="res://scenes/Main.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://assets/graphics/sprites/icon.svg"
+
+[autoload]
+
+EventBus="*uid://cm2bglwi2yy6q"
+MapData="*uid://bjtegs1ojs1wc"
 
 [display]
 
