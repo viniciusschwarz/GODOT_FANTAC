@@ -10,6 +10,12 @@ signal game_quit_requested
 # --- UI Events ---
 signal ui_navigation_requested(panel_name: String)
 
+# --- Flow & Scene Transition Events ---
+signal change_scene_requested(scene_id: String)
+signal new_campaign_requested
+signal continue_campaign_requested
+signal mission_accepted(mission: MissionData)
+
 # --- Viewport / Camera Events ---
 signal camera_z_level_changed(active_z: int)
 signal environment_bounds_changed(bounds: Rect2)

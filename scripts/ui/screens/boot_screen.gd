@@ -7,4 +7,4 @@ func _ready() -> void:
 
 	# Simulate a tiny delay for the logo fade (MVP)
 	await get_tree().create_timer(1.0).timeout
-	SceneManager.goto_scene("res://scenes/ui/screens/main_menu_screen.tscn")
+	SignalBus.change_scene_requested.emit("main_menu")

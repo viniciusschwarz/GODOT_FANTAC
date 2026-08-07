@@ -9,11 +9,10 @@ func _ready() -> void:
 	$VBoxContainer/ContinueButton.disabled = not SaveManager.has_save_file()
 
 func _on_new_campaign() -> void:
-	GameState.clear_state()
-	SceneManager.goto_scene("res://scenes/ui/screens/war_desk_screen.tscn")
+	SignalBus.new_campaign_requested.emit()
 
 func _on_continue() -> void:
-	SceneManager.goto_scene("res://scenes/ui/screens/war_desk_screen.tscn")
+	SignalBus.continue_campaign_requested.emit()
 
 func _on_settings() -> void:
 	SignalBus.ui_navigation_requested.emit("Settings")
