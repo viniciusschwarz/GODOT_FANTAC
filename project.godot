@@ -28,3 +28,7 @@ window/stretch/aspect="expand"
 
 rendering_device/driver.windows="d3d12"
 run/main_scene="res://scenes/ui/screens/boot_screen.tscn"
+
+[autoload]
+
+EventBus="*res://autoloads/event_bus.gd"
