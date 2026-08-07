@@ -31,5 +31,5 @@ func _on_map_clicked(mouse_pos: Vector2) -> void:
 
 func _on_confirm_pressed() -> void:
 	print("Deployment UI: Confirming Deployment")
-	PhaseManager.end_deployment_phase()
+	SignalBus.player_deployment_finished.emit()
 	visible = false

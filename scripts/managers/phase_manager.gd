@@ -15,6 +15,9 @@ var units_executing: int = 0
 
 func _ready() -> void:
 	SignalBus.unit_action_finished.connect(_on_unit_action_finished)
+	SignalBus.enemy_deployment_finished.connect(_on_enemy_deployment_finished)
+	SignalBus.all_units_planned.connect(_on_all_units_planned)
+	SignalBus.combat_ended.connect(_on_combat_ended)
 
 func start_combat() -> void:
 	turn_counter = 1
@@ -28,9 +31,11 @@ func start_deployment_phase() -> void:
 	print("PhaseManager: Started DEPLOYMENT Phase.")
 	SignalBus.wego_phase_started.emit("deployment")
 
+func _on_enemy_deployment_finished() -> void:
+	if current_phase == Phase.DEPLOYMENT:
+		end_deployment_phase()
+
 func end_deployment_phase() -> void:
-	# Ensure game time resumes for the subsequent phases
-	# Depending on original logic, planning phase might pause again.
 	Engine.time_scale = 1.0
 	start_planning_phase()
 
@@ -41,6 +46,13 @@ func start_planning_phase() -> void:
 	print("--- Turn ", turn_counter, " ---")
 	print("PhaseManager: Started PLANNING Phase.")
 	SignalBus.wego_phase_started.emit("planning")
+
+func _on_all_units_planned() -> void:
+	if current_phase == Phase.PLANNING:
+		# Use AIManager active_units count since it manages all AI components
+		# Fallback if AIManager isn't perfectly accessible:
+		var total_units = AIManager.active_units.size() if AIManager else 0
+		start_execution_phase(total_units)
 
 func start_execution_phase(total_units: int) -> void:
 	current_phase = Phase.EXECUTION
@@ -70,3 +82,7 @@ func start_resolution_phase() -> void:
 func end_turn() -> void:
 	turn_counter += 1
 	start_planning_phase()
+
+func _on_combat_ended(result: String) -> void:
+	current_phase = Phase.IDLE
+	Engine.time_scale = 1.0

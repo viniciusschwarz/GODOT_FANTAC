@@ -23,7 +23,7 @@ signal environment_bounds_changed(bounds: Rect2)
 # --- Combat / WEGO Phase Engine ---
 signal wego_phase_started(phase_name: String)
 signal combat_started
-signal combat_ended
+signal combat_ended(result: String)
 
 # --- Unit Entity Events ---
 signal unit_health_changed(unit: Node, current_health: int, max_health: int, amount: int)
@@ -40,7 +40,12 @@ signal camera_zoom_input(zoom_change: float)
 signal camera_z_level_input(z_level_change: int)
 signal map_clicked(mouse_pos: Vector2)
 
+
 # --- Deployment Events ---
+signal player_deployment_finished
+signal enemy_deployment_finished
+signal all_units_planned
+
 signal spawn_unit_requested(unit_type: String, grid_pos: Vector2i)
 signal unit_spawned(unit: Node)
 

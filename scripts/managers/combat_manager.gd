@@ -1,19 +1,44 @@
 extends Node
 ## Pure logic/math service that calculates physical interaction results between units.
 
+
 func _ready() -> void:
 	SignalBus.wego_phase_started.connect(_on_phase_started)
+	SignalBus.unit_died.connect(_on_unit_died)
+
+func _on_unit_died(unit: Node) -> void:
+	# Check win/loss condition
+	# Count active units for each team. We can iterate over AIManager.active_units
+	var player_units_alive = 0
+	var enemy_units_alive = 0
+
+	if AIManager:
+		for u in AIManager.active_units:
+			# Skip the unit that just died since it might still be in the array
+			if u == unit:
+				continue
+
+			if u.get("team_id") != null:
+				if u.team_id == 0:
+					player_units_alive += 1
+				elif u.team_id == 1:
+					enemy_units_alive += 1
+
+	if player_units_alive == 0 and enemy_units_alive > 0:
+		_end_combat("defeat")
+	elif enemy_units_alive == 0 and player_units_alive > 0:
+		_end_combat("victory")
+	elif player_units_alive == 0 and enemy_units_alive == 0:
+		_end_combat("draw")
+
+func _end_combat(result: String) -> void:
+	print("CombatManager: Combat ended with result: ", result)
+	GameState.last_battle_results = {"result": result}
+	SignalBus.combat_ended.emit(result)
+
 
 func _on_phase_started(phase_name: String) -> void:
-	if phase_name == "deployment":
-		var roster: Array = []
-		if GameState.current_mission and GameState.current_mission is MissionData:
-			roster = GameState.current_mission.enemy_roster
-		else:
-			print("CombatManager: No current mission found, using empty roster for deployment.")
-
-		var enemy_zones = EnvironmentManager.get_enemy_deployment_zones()
-		SignalBus.enemy_deployment_requested.emit(roster, enemy_zones)
+	pass
 
 ## Calculates damage based on weapon type, armor type, elevation, and facing.
 func calculate_damage(attacker: Node, defender: Node, weapon: WeaponData, armor: ArmorData, attacker_elevation: int, defender_elevation: int, attack_vector: Vector2, defender_facing: Vector2) -> int:

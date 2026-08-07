@@ -118,7 +118,13 @@ func _on_enemy_deployment_requested(enemy_roster: Array, deployment_zones: Array
 
 			# It will initialize itself in _ready, and AIManager will pick it up when needed
 			# Though register_unit can be called here or in Unit's _ready
+
+			# It will initialize itself in _ready, and AIManager will pick it up when needed
+			# Though register_unit can be called here or in Unit's _ready
 			register_unit(unit_inst)
+
+	print("AIManager: Finished enemy deployment.")
+	SignalBus.enemy_deployment_finished.emit()
 
 func _process(_delta: float) -> void:
 	# Broadcast debug data every frame for visualizers
@@ -138,7 +144,9 @@ func process_planning_phase() -> void:
 			var ai_comp = unit.get_node("AIComponent")
 			ai_comp.evaluate_behavior()
 
+
 	# Once all units have planned, tell PhaseManager to execute.
 	# Assuming PhaseManager is registered as an Autoload named 'PhaseManager'
 	if PhaseManager:
-		PhaseManager.start_execution_phase(active_units.size())
+		# Just emit the signal, let PhaseManager handle it
+		SignalBus.all_units_planned.emit()
