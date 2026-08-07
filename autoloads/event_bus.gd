@@ -24,6 +24,6 @@ signal execution_tick(delta: float)
 # UI & INPUT SIGNALS
 # ==========================================
 ## Fired when the player drags an AI node in the Tactics Board
-signal ui_tactics_node_dropped(node_data: Resource, target_slot_id: StringName)
+signal ui_tactics_node_dropped(payload: Dictionary, target_info: Dictionary)
 ## Fired when the player selects a unit in the world
 signal ui_unit_selected(unit_id: StringName)
