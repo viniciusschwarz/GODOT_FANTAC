@@ -17,7 +17,6 @@ config/icon="res://assets/graphics/sprites/icon.svg"
 
 [autoload]
 
-EventBus="*uid://dbppm52mc0hod"
 
 [display]
 
