@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://b5gq2x4x8x8x"]
+
+[ext_resource type="Script" path="res://scripts/props/tactical_prop.gd" id="1_2a3b4"]
+
+[node name="TacticalProp" type="Node2D"]
+script = ExtResource("1_2a3b4")
