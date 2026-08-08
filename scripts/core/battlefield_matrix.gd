@@ -28,6 +28,43 @@ func initialize_grid(width: int = 12, depth: int = 12, height_levels: int = 2) -
 				tile.height_offset_meters = Z1_HEIGHT_METERS if z == 1 else Z0_HEIGHT_METERS
 				_grid[coord] = tile
 
+func duplicate_grid() -> BattlefieldMatrix:
+	var copy = BattlefieldMatrix.new()
+	copy._width = _width
+	copy._depth = _depth
+	copy._height_levels = _height_levels
+
+	for coord in _grid:
+		var tile: TileSpatialNodeResource = _grid[coord]
+		var tile_copy = TileSpatialNodeResource.new()
+		tile_copy.grid_position = tile.grid_position
+		tile_copy.height_offset_meters = tile.height_offset_meters
+		tile_copy.base_traversal_cost = tile.base_traversal_cost
+		tile_copy.vertical_connector_type = tile.vertical_connector_type
+		tile_copy.cardinal_traversal_mask = tile.cardinal_traversal_mask
+		tile_copy.cover_type = tile.cover_type
+		tile_copy.cover_cardinal_vector = tile.cover_cardinal_vector
+		tile_copy.damage_reduction_pct = tile.damage_reduction_pct
+		tile_copy.occupying_unit_id = tile.occupying_unit_id
+		tile_copy.reserved_unit_id = tile.reserved_unit_id
+		tile_copy.reservation_micro_tick = tile.reservation_micro_tick
+		tile_copy.prop_id = tile.prop_id
+		copy._grid[coord] = tile_copy
+
+	for prop_id in _props:
+		var prop: MultiStagePropResource = _props[prop_id]
+		var prop_copy = MultiStagePropResource.new()
+		prop_copy.prop_id = prop.prop_id
+		prop_copy.grid_position = prop.grid_position
+		prop_copy.max_hp = prop.max_hp
+		prop_copy.current_hp = prop.current_hp
+		prop_copy.material_hardness_threshold = prop.material_hardness_threshold
+		prop_copy.current_degradation_state = prop.current_degradation_state
+		prop_copy.attached_elevated_tile_coords = prop.attached_elevated_tile_coords.duplicate()
+		copy._props[prop_id] = prop_copy
+
+	return copy
+
 func register_prop(prop_data: MultiStagePropResource) -> void:
 	if prop_data:
 		_props[prop_data.prop_id] = prop_data
