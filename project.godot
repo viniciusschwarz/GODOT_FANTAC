@@ -17,6 +17,7 @@ config/icon="res://assets/graphics/sprites/icon.svg"
 
 [autoload]
 
+EventBus="*res://scripts/autoloads/event_bus.gd"
 
 [display]
 
