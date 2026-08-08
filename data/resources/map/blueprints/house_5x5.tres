@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="BuildingBlueprintData" load_steps=2 format=3 uid="uid://blueprint_house_5x5"]
+
+[ext_resource type="Script" path="res://data/resources/map/building_blueprint_data.gd" id="1_blue"]
+
+[resource]
+script = ExtResource("1_blue")
+blueprint_name = "Standard 5x5 House"
+z_layers = Array[PackedStringArray]([PackedStringArray("#####", "#...#", "#...#", "#.S.#", "##.##"), PackedStringArray("WWWWW", "W...W", "W...W", "W S W", "WWWWW")])

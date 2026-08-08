@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="AITreeData" format=3 uid="uid://qj2sdh8ijjj5"]
+
+[ext_resource type="Script" uid="uid://blfxwbxwk4ocr" path="res://data/resources/ai_conditions/ai_rule_data.gd" id="1_ks4ln"]
+[ext_resource type="Script" uid="uid://b8keqmo1hmeet" path="res://data/resources/actions/action_melee_attack_nearest.gd" id="2_61x8p"]
+[ext_resource type="Script" uid="uid://cgcg8irykkgnf" path="res://data/resources/ai_conditions/condition_always_true.gd" id="3_alevn"]
+[ext_resource type="Script" uid="uid://cg2msms2lfhuh" path="res://data/resources/ai_tree_data.gd" id="4_yxrqx"]
+
+[sub_resource type="Resource" id="Resource_bl6ij"]
+script = ExtResource("2_61x8p")
+metadata/_custom_type_script = "uid://b8keqmo1hmeet"
+
+[sub_resource type="Resource" id="Resource_3pm27"]
+script = ExtResource("3_alevn")
+metadata/_custom_type_script = "uid://cgcg8irykkgnf"
+
+[sub_resource type="Resource" id="Resource_h0jfm"]
+script = ExtResource("1_ks4ln")
+condition = SubResource("Resource_3pm27")
+action = SubResource("Resource_bl6ij")
+metadata/_custom_type_script = "uid://blfxwbxwk4ocr"
+
+[resource]
+script = ExtResource("4_yxrqx")
+rules = Array[ExtResource("1_ks4ln")]([SubResource("Resource_h0jfm")])
+metadata/_custom_type_script = "uid://cg2msms2lfhuh"

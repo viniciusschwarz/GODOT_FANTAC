@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UnitClassData" load_steps=2 format=3 uid="uid://class_starmoon_001"]
+
+[ext_resource type="Script" path="res://data/resources/unit_class_data.gd" id="1_class"]
+
+[resource]
+script = ExtResource("1_class")
+class_name_str = "Starmoon Lightyear"
+sprite_atlas_coord = Vector2i(3, 0)
+base_health = 200
+base_mana = 100
+base_ap = 12
+base_movement = 5
+physical_attack = 35
+physical_defense = 20
+stat_variance_margin = 0.05

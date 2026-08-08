@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UnitClassData" load_steps=2 format=3 uid="uid://class_recruit_001"]
+
+[ext_resource type="Script" path="res://data/resources/unit_class_data.gd" id="1_class"]
+
+[resource]
+script = ExtResource("1_class")
+class_name_str = "Guild Recruit"
+sprite_atlas_coord = Vector2i(0, 1)
+base_health = 80
+base_mana = 0
+base_ap = 8
+base_movement = 3
+physical_attack = 10
+physical_defense = 5
+stat_variance_margin = 0.15

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="UnitStats" load_steps=2 format=3 uid="uid://test_stats_001"]
+
+[ext_resource type="Script" path="res://data/resources/unit_stats.gd" id="1_stats"]
+
+[resource]
+script = ExtResource("1_stats")
+unit_name = "Sandbox Knight"
+max_health = 100
+max_mana = 50
+max_ap = 10
+base_movement_speed = 4
+physical_attack = 15
+magic_attack = 0
+physical_defense = 10
+magic_defense = 5
+is_flying = false
+base_vision_range = 6

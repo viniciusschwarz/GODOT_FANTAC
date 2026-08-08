@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="UnitStats" format=3 uid="uid://dciaw72frvdcr"]
+
+[ext_resource type="Script" uid="uid://csuslmars2gtn" path="res://data/resources/unit_stats.gd" id="1_stats"]
+
+[resource]
+script = ExtResource("1_stats")
+unit_name = "Starmoon Lightyear"
+max_health = 200
+base_movement_speed = 4
+physical_attack = 15
+magic_attack = 0
+physical_defense = 10
+base_vision_range = 6

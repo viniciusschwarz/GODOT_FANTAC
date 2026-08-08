@@ -1,3 +1,4 @@
+# File: res://core/systems/turn_manager.gd
 class_name TurnManager extends Node
 
 ## Governs the WeGo turn phases and controls the flow of simulated time.
@@ -11,7 +12,8 @@ enum TurnPhase {
 	RESOLUTION
 }
 
-@export var execution_phase_duration: float = 5.0 ## How many seconds the real-time execution lasts
+## How many seconds the real-time visual execution lasts before the next turn
+@export var execution_phase_duration: float = 5.0 
 
 var current_phase: TurnPhase = TurnPhase.DEPLOYMENT
 var _execution_timer: float = 0.0
@@ -27,12 +29,18 @@ func advance_phase() -> void:
 			_change_phase(TurnPhase.PLANNING)
 		TurnPhase.PLANNING:
 			_change_phase(TurnPhase.COMMIT)
-			# Pre-calculations happen here, then we automatically start execution
 			_change_phase(TurnPhase.EXECUTION)
 		TurnPhase.EXECUTION:
 			_change_phase(TurnPhase.RESOLUTION)
+			
+			# AUTOMATED TESTING LOOP: Bypass the missing UI and trigger the next step
+			advance_phase() 
+			
 		TurnPhase.RESOLUTION:
 			_change_phase(TurnPhase.PLANNING)
+			
+			# AUTOMATED TESTING LOOP: Push immediately back into planning automation
+			advance_phase()
 
 func _change_phase(new_phase: TurnPhase) -> void:
 	current_phase = new_phase
@@ -43,7 +51,7 @@ func _change_phase(new_phase: TurnPhase) -> void:
 	if current_phase == TurnPhase.EXECUTION:
 		_execution_timer = execution_phase_duration
 		set_process(true)
-		print("TurnManager: Execution Phase Started.")
+		print("TurnManager: Execution Phase Started. (Waiting %s seconds for visuals)" % execution_phase_duration)
 	else:
 		set_process(false)
 

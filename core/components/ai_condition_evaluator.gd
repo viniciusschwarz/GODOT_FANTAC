@@ -1,47 +1,31 @@
+# File: res://core/components/ai_condition_evaluator.gd
 class_name AIConditionEvaluator extends Node
 
-## Reads the unit's AITreeData resource and evaluates tactical conditions.
-## Returns the highest-priority valid action to the simulation engine.
+## AI BEHAVIOR PARSER
+## Evaluates the tree and returns an ActionIntent for the CombatManager.
 
-var _ai_tree: AITreeData
-var _parent_unit: Node
+var _tree_data: AITreeData
+var _unit: Node
 
-## Injected by the Unit container upon spawning.
-## @param tree_data: The specific AI strategy assigned to this unit by the player.
-## @param parent: The unit node this AI belongs to (needed for context).
-func initialize(tree_data: AITreeData, parent: Node) -> void:
-	if not tree_data:
-		push_warning("AIConditionEvaluator initialized without AITreeData. Unit will be inert.")
+func initialize(tree: AITreeData, unit: Node) -> void:
+	_tree_data = tree
+	_unit = unit
 
-	_ai_tree = tree_data
-	_parent_unit = parent
-	print("AIConditionEvaluator initialized for %s" % _parent_unit.name)
-
-## Called by the simulation (e.g., TurnManager) during the Execution Phase.
-## Parses the rules top-to-bottom and returns the first valid action.
-## @param blackboard: A dictionary containing battlefield context (enemies, map grid, etc.)
-## @return ActionData: The action the unit intends to execute.
-func determine_next_action(blackboard: Dictionary) -> ActionData:
-	if not _ai_tree:
+## Evaluates the AI tree and returns the chosen action intent.
+## @param blackboard: The combat context (all units, map data, etc.)
+## @return ActionIntent: The chosen action, or null if no condition is met.
+func get_intended_action(blackboard: Dictionary) -> ActionIntent:
+	if not _tree_data or _tree_data.rules.is_empty():
 		return null
-
-	# 1. Iterate through the priority list of rules
-	for rule: AIRuleData in _ai_tree.rules:
-		# Safety check for unconfigured rules
-		if not rule.condition or not rule.action:
-			continue
-
-		# 2. Evaluate the condition (EXTERNAL ACCESS: Calls Resource logic)
-		# We pass the parent unit and the blackboard so the condition can analyze the board state
-		var is_condition_met: bool = rule.condition.evaluate(_parent_unit, blackboard)
-
-		if is_condition_met:
-			print("AI Evaluator: Condition '%s' met. Executing '%s'." % [rule.condition.condition_name, rule.action.action_name])
-			return rule.action
-
-	# 3. If no conditions match, return the default behavior
-	if _ai_tree.fallback_action:
-		print("AI Evaluator: No conditions met. Executing Fallback Action.")
-		return _ai_tree.fallback_action
-
+		
+	for rule: AIRuleData in _tree_data.rules:
+		# EXTERNAL ACCESS NOTE: Querying the ConditionData Resource
+		if rule.condition and rule.condition.evaluate(_unit, blackboard):
+			# If true, lock in the action.
+			# For testing purposes, we default to the unit's current coordinate as the target.
+			# (In Phase 12/13, the condition will output the exact target coordinate to the blackboard).
+			var target_coord: Vector3i = blackboard.get("default_target_coord", Vector3i.ZERO)
+			
+			return ActionIntent.new(rule.action, _unit, target_coord)
+			
 	return null

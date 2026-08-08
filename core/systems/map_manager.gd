@@ -52,3 +52,6 @@ func is_line_of_sight_clear(start: Vector3i, target: Vector3i) -> bool:
 			return false
 
 	return true
+
+func get_tile_data(coord: Vector3i) -> TacticalTileData:	
+	return current_map_data.grid_tiles.get(coord, null)

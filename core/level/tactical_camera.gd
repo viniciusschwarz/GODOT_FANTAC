@@ -1,13 +1,14 @@
+# File: res://core/level/tactical_camera.gd
 class_name TacticalCamera extends Camera2D
 
-## THE PLAYER'S EYE
-## Handles panning, zooming, and Z-level focus.
-## Emits changes globally so the Renderer can slice the visual elevation.
+## THE PLAYER'S EYE (UPDATED)
+## Calibrated for 64x64 grids. Handles panning, zooming, and Z-level focus.
 
 @export_category("Camera Settings")
-@export var pan_speed: float = 500.0
+## Increased from 500.0 to 1000.0 for faster traversal over 64px tiles.
+@export var pan_speed: float = 1000.0 
 @export var zoom_speed: float = 0.1
-@export var min_zoom: float = 0.5
+@export var min_zoom: float = 0.2 ## Adjusted to allow zooming further out for large grids
 @export var max_zoom: float = 2.0
 @export var max_z_level: int = 3
 
@@ -16,14 +17,12 @@ var _target_zoom: Vector2 = Vector2.ONE
 
 func _ready() -> void:
 	_target_zoom = zoom
-	# Ensure the initial state is broadcasted
-	# EXTERNAL ACCESS NOTE: Emitting to global EventBus Autoload
+	# EXTERNAL ACCESS NOTE: Emitting to global EventBus Autoload[cite: 5]
 	EventBus.camera_z_level_changed.emit(current_z_level)
 
 func _process(delta: float) -> void:
 	_handle_panning(delta)
-
-	# Smoothly interpolate zoom
+	# Smoothly interpolate zoom[cite: 5]
 	zoom = zoom.lerp(_target_zoom, 10.0 * delta)
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -33,7 +32,6 @@ func _unhandled_input(event: InputEvent) -> void:
 func _handle_panning(delta: float) -> void:
 	var move_vec: Vector2 = Vector2.ZERO
 
-	# Assumes standard InputMap actions are defined in Project Settings
 	if Input.is_action_pressed("camera_up"): move_vec.y -= 1
 	if Input.is_action_pressed("camera_down"): move_vec.y += 1
 	if Input.is_action_pressed("camera_left"): move_vec.x -= 1
@@ -62,5 +60,5 @@ func _handle_z_level_slicing(event: InputEvent) -> void:
 
 	if z_changed:
 		print("TacticalCamera: Z-Level Focus changed to %d" % current_z_level)
-		# EXTERNAL ACCESS NOTE: Emitting to global EventBus Autoload
+		# EXTERNAL ACCESS NOTE: Emitting to global EventBus Autoload[cite: 5]
 		EventBus.camera_z_level_changed.emit(current_z_level)

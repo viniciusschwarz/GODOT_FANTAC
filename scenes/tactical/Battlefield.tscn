@@ -1,0 +1,47 @@
+[gd_scene format=3 uid="uid://deqtay0rf02vo"]
+
+[ext_resource type="Script" uid="uid://chkbc61wwhxox" path="res://core/systems/battlefield_manager.gd" id="1_mgr"]
+[ext_resource type="PackedScene" uid="uid://cykoc723ewnuh" path="res://core/entities/unit/unit.tscn" id="2_1jalt"]
+[ext_resource type="Resource" path="res://data/resources/class_recruit.tres" id="2_76ubf"]
+[ext_resource type="Script" uid="uid://yxcko8khoycv" path="res://core/level/tactical_camera.gd" id="2_cam"]
+[ext_resource type="Resource" path="res://data/resources/class_starmoon.tres" id="3_2ojlg"]
+[ext_resource type="Script" uid="uid://58mmfk5bnbce" path="res://core/systems/map_manager.gd" id="3_map"]
+[ext_resource type="Script" uid="uid://bshjp3tc63a05" path="res://core/level/battlefield_renderer.gd" id="4_render"]
+[ext_resource type="Script" uid="uid://1nvbkgs210v0" path="res://core/systems/combat_manager.gd" id="5_combat"]
+[ext_resource type="Resource" uid="uid://dbijasum2r37" path="res://data/resources/ai_ranged_tactics.tres" id="5_ve6ip"]
+[ext_resource type="Script" uid="uid://cfg20gk5jawgt" path="res://core/systems/turn_manager.gd" id="6_turn"]
+[ext_resource type="TileSet" uid="uid://bvyabi0j176qs" path="res://data/resources/map/tactical_tileset.tres" id="8_2ojlg"]
+[ext_resource type="Script" uid="uid://bgnm0laojd1tj" path="res://core/systems/unit_factory.gd" id="11_76ubf"]
+
+[node name="Battlefield" type="Node2D" unique_id=1408728878 node_paths=PackedStringArray("map_manager", "renderer", "combat_manager", "turn_manager", "unit_factory")]
+script = ExtResource("1_mgr")
+map_manager = NodePath("MapManager")
+renderer = NodePath("BattlefieldRenderer")
+combat_manager = NodePath("CombatManager")
+turn_manager = NodePath("TurnManager")
+unit_factory = NodePath("UnitFactory")
+recruit_class = ExtResource("2_76ubf")
+starmoon_class = ExtResource("3_2ojlg")
+test_ai_tree = ExtResource("5_ve6ip")
+
+[node name="TacticalCamera" type="Camera2D" parent="." unique_id=2089804085]
+position = Vector2(100, 100)
+zoom = Vector2(2, 2)
+script = ExtResource("2_cam")
+
+[node name="MapManager" type="Node" parent="." unique_id=522831174]
+script = ExtResource("3_map")
+
+[node name="BattlefieldRenderer" type="Node2D" parent="." unique_id=306549804]
+script = ExtResource("4_render")
+tileset = ExtResource("8_2ojlg")
+
+[node name="CombatManager" type="Node" parent="." unique_id=177044617]
+script = ExtResource("5_combat")
+
+[node name="TurnManager" type="Node" parent="." unique_id=1761018433]
+script = ExtResource("6_turn")
+
+[node name="UnitFactory" type="Node" parent="." unique_id=703106842]
+script = ExtResource("11_76ubf")
+unit_prefab = ExtResource("2_1jalt")
