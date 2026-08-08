@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="UnitDataResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/unit_data_resource.gd" id="1_d7s6h"]
+
+[resource]
+script = ExtResource("1_d7s6h")
+unit_id = -1
+faction_id = 1
+unit_name = "Enemy Guard"
+unit_class = 2
+max_hp = 120.0
+current_hp = 120.0
+current_stress = 0.0
+bravery_rating = 10.0
+loyalty_rating = 10.0
+base_initiative = 10
+encumbrance_penalty = 0.0
+movement_speed_ticks_per_tile = 10
+weapon_damage = 12.0
+weapon_hardness_rating = 5.0
+attack_range_min = 1
+attack_range_max = 1
+attack_duration_ticks = 20
+damage_application_tick_offset = 10
+can_vault = false
+max_jump_gap = 0
+landing_grade = 1.0
+is_stunned = false
+stun_remaining_ticks = 0
+is_order_fractured = false
+active_template_id = &"POINT_GUARD"
+template_parameters = {}

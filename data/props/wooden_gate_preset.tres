@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="MultiStagePropResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/multi_stage_prop_resource.gd" id="1_2nbfw"]
+
+[resource]
+script = ExtResource("1_2nbfw")
+prop_id = -1
+grid_position = Vector3i(0, 0, 0)
+max_hp = 50.0
+current_hp = 50.0
+material_hardness_threshold = 5.0
+current_degradation_state = 0
+attached_elevated_tile_coords = Array[Vector3i]([])
