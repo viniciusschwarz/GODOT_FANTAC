@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="AITemplateResource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/ai_template_resource.gd" id="1_w38s2"]
+
+[resource]
+script = ExtResource("1_w38s2")
+template_id = &"POINT_GUARD"
+display_name = "Point Guard"
+fallback_health_pct = 0.00
+target_priority_bias = 0
+cover_seeking_weight = 1.0
