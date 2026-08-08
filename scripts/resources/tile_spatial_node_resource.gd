@@ -17,3 +17,4 @@ enum CoverType { NONE, LOW_RAILING, WINDOW_FRAME, SOLID_PARAPET }
 @export var occupying_unit_id: int = -1
 @export var reserved_unit_id: int = -1
 @export var reservation_micro_tick: int = -1
+@export var prop_id: int = -1
