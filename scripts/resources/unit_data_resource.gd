@@ -31,6 +31,7 @@ enum Faction { ALLIED, ENEMY }
 @export var is_stunned: bool = false
 @export var stun_remaining_ticks: int = 0
 @export var is_order_fractured: bool = false
+@export var recalculation_cooldown_ticks: int = 0
 
 @export var active_template_id: StringName = &""
 @export var template_parameters: Dictionary = {}
@@ -67,6 +68,7 @@ func duplicate_data() -> UnitDataResource:
 	copy.is_stunned = is_stunned
 	copy.stun_remaining_ticks = stun_remaining_ticks
 	copy.is_order_fractured = is_order_fractured
+	copy.recalculation_cooldown_ticks = recalculation_cooldown_ticks
 
 	copy.active_template_id = active_template_id
 	copy.template_parameters = template_parameters.duplicate(true)
