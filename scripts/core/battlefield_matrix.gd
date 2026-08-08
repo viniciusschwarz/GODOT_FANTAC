@@ -4,6 +4,8 @@ class_name BattlefieldMatrix extends RefCounted
 # Using a 1D or 3D dictionary approach. Let's use a flat dictionary indexed by Vector3i for easier lookup.
 var _grid: Dictionary = {}
 
+var _props: Dictionary = {} # Maps prop_id (int) to MultiStagePropResource
+
 var _width: int = 0
 var _depth: int = 0
 var _height_levels: int = 0
@@ -25,6 +27,16 @@ func initialize_grid(width: int = 12, depth: int = 12, height_levels: int = 2) -
 				tile.grid_position = coord
 				tile.height_offset_meters = Z1_HEIGHT_METERS if z == 1 else Z0_HEIGHT_METERS
 				_grid[coord] = tile
+
+func register_prop(prop_data: MultiStagePropResource) -> void:
+	if prop_data:
+		_props[prop_data.prop_id] = prop_data
+		var tile = get_tile(prop_data.grid_position)
+		if tile:
+			tile.prop_id = prop_data.prop_id
+
+func get_prop(prop_id: int) -> MultiStagePropResource:
+	return _props.get(prop_id, null)
 
 func get_tile(coord: Vector3i) -> TileSpatialNodeResource:
 	return _grid.get(coord, null)
@@ -204,3 +216,51 @@ func calculate_3d_line_of_sight(origin: Vector3i, target: Vector3i) -> Dictionar
 			result["damage_mitigation_pct"] = target_tile.damage_reduction_pct
 
 	return result
+
+func apply_prop_damage(prop_id: int, amount: float, hardness: float) -> bool:
+	var prop = get_prop(prop_id)
+	if not prop:
+		return false
+
+	if prop.current_degradation_state == MultiStagePropResource.DegradationState.RUBBLE:
+		return false
+
+	if hardness >= prop.material_hardness_threshold:
+		prop.current_hp -= amount
+		if prop.current_hp <= 0:
+			collapse_prop(prop_id)
+		return true
+
+	# Log deflection if hardness is insufficient (could be a print or signal in the future)
+	return false
+
+func collapse_prop(prop_id: int) -> void:
+	var prop = get_prop(prop_id)
+	if not prop:
+		return
+
+	prop.current_degradation_state = MultiStagePropResource.DegradationState.RUBBLE
+
+	var tile = get_tile(prop.grid_position)
+	if tile:
+		tile.base_traversal_cost = 2.0
+		# Clear LOS occlusion by removing the prop reference from the tile blocking vision
+		tile.prop_id = -1
+		EventBus.navmesh_dirty.emit(prop.grid_position)
+
+	destroy_elevated_tiles(prop.attached_elevated_tile_coords)
+	EventBus.prop_state_changed.emit(prop_id, prop.current_degradation_state)
+
+func destroy_elevated_tiles(tile_coords: Array[Vector3i]) -> void:
+	for coord in tile_coords:
+		var tile = get_tile(coord)
+		if tile:
+			# Mark as destroyed/impassable
+			tile.base_traversal_cost = INF
+			tile.cardinal_traversal_mask = 0
+			tile.vertical_connector_type = TileSpatialNodeResource.VerticalConnectorType.NONE
+
+			# If a unit was occupying, they would fall to Z0.
+			# We leave the logic for unit state change to SimulationServer,
+			# but we notify that the navmesh changed.
+			EventBus.navmesh_dirty.emit(coord)
