@@ -740,3 +740,93 @@ REQUIREMENTS:
    - REMOVE the global modulo check (`current_tick % speed == 0`) from Step D.
    - REPLACE it with a check against `unit.template_parameters["unit_movement_cooldown"]`. Decrement this value. When it hits 0, execute the matrix step and reset the cooldown.
 ---------------------------------------------------------------------------------------------------
+
+## LAYER 11: VISUAL INITIALIZATION & UI BINDING
+
+### PROMPT 11.1: Complete Token Spawning & Sync
+---------------------------------------------------------------------------------------------------
+ROLE: Godot 4 Visual Programmer.
+CONTEXT: The grid renders, but only one unit spawns. We must fix BattlefieldView to parse Tick 0 correctly and spawn all units and props.
+OBJECTIVE: Finalize `unit_token_view.tscn` and `battlefield_view.gd` initialization.
+
+REQUIREMENTS:
+1. Unit & Prop Tokens (`unit_token_view.tscn`):
+   - Node2D root with a ColorRect (32x32) centered.
+   - Script method: `setup_visuals(faction_id: int, is_prop: bool)`
+   - Faction 0 = Blue, Faction 1 = Red, Prop = Brown.
+
+2. Full Initialization (`battlefield_view.gd`):
+   - Listen for `EventBus.turn_simulation_completed(buffer)`.
+   - On receiving Turn 1's buffer (which acts as Tick 0 setup), if `active_tokens` is empty:
+     - Iterate through `buffer.tick_snapshots[0].unit_transform_states`. Instantiate a token for every ID, call `setup_visuals`, and store in `active_tokens[id]`.
+     - Iterate through `buffer.tick_snapshots[0].prop_states`. Instantiate tokens for props and store them.
+   
+3. Y-Sorting & Positioning:
+   - Create a `Node2D` child named `TokenContainer` in `BattlefieldView` with `y_sort_enabled = true`. Add all tokens here.
+   - On `scrubber_tick_changed`, update token positions. If Z=1, subtract 12 pixels from the Y-axis position to simulate height.
+---------------------------------------------------------------------------------------------------
+
+### PROMPT 11.2: Wiring the Commander Inspector
+---------------------------------------------------------------------------------------------------
+ROLE: Godot 4 UI/UX Engineer.
+CONTEXT: The right-hand side panel is completely blank. We need to mount the dynamic Commander Inspector here and stop UI click-through.
+OBJECTIVE: Finalize `ui_manager.gd` and the single-prefab Inspector.
+
+REQUIREMENTS:
+1. Scene Hierarchy (`ui_manager.tscn`):
+   - Ensure the right-hand panel is a `PanelContainer` with `mouse_filter = Control.MOUSE_FILTER_STOP`.
+   - Mount `CommanderInspectorUI` (from Prompt 9.1) inside this panel.
+   - Ensure `CommanderInspectorUI` instantiates exactly ONE `UnitCardPrefab.tscn` as its child.
+
+2. Interaction Hookup:
+   - `battlefield_view.gd` must emit `EventBus.unit_selected(unit_id)` when the player left-clicks a unit token's grid coordinate.
+   - `CommanderInspectorUI` catches this, unhides the `UnitCardPrefab`, and populates the Name, HP, Stress, and AI OptionButton using `master_units`.
+
+3. The "Simulate" Button:
+   - When clicked, `ui_manager.gd` loops through the `draft_directives` dictionary. 
+   - It builds the `TurnPlanResource`, emits `EventBus.plan_submitted(plan)`, and disables all buttons to prevent double-clicks.
+---------------------------------------------------------------------------------------------------
+
+## LAYER 12: COMBAT VFX & MATCH RESOLUTION
+
+### PROMPT 12.1: Transient Combat VFX (GDScript Tweens)
+---------------------------------------------------------------------------------------------------
+ROLE: Godot 4 Visual Programmer.
+CONTEXT: Damage numbers are invisible if tied to 10ms micro-ticks. They must float independently in real-time.
+OBJECTIVE: Create `battlefield_vfx_manager.gd` (attached to a Node2D in BattlefieldView).
+
+REQUIREMENTS:
+1. Signal Hooks:
+   - Listen to `EventBus.scrubber_tick_changed(target_tick)`.
+
+2. Telemetry Parsing & Spawning:
+   - Read `tick_snapshots[target_tick].telemetry_events`.
+   - If an event contains "DAMAGE" or a negative HP delta:
+     - Instantiate a new `Label` node (Text: "-X", Color: Red, Outline: Black).
+     - Place it at the unit's visual screen coordinate.
+     - Use Godot `create_tween()` in GDScript to animate its position upward by 50 pixels and fade its alpha to 0 over 1.0 seconds.
+     - Add `tween.tween_callback(label.queue_free)` to destroy it when done.
+
+RULES:
+- Do NOT tie the Label's lifespan to the WeGo scrubber. Let the Tween handle the destruction in real-time to guarantee readability.
+---------------------------------------------------------------------------------------------------
+
+### PROMPT 12.2: Win/Loss Resolution
+---------------------------------------------------------------------------------------------------
+ROLE: Godot 4 Gameplay Engineer.
+CONTEXT: The MVP needs a definitive end state.
+OBJECTIVE: Create `match_resolution_panel.gd` and finalize the win condition.
+
+REQUIREMENTS:
+1. Resolution UI (`match_resolution_panel.tscn`):
+   - Full-screen `ColorRect` (semi-transparent black), hidden by default. `mouse_filter = STOP`.
+   - Label: "VICTORY" or "DEFEAT". Button: "RESTART MATCH".
+   - Button press calls `get_tree().reload_current_scene()`.
+
+2. State Trigger (`main_game_manager.gd`):
+   - At the end of `advance_to_next_turn()`, check the tile `Vector3i(6, 11, 1)`.
+   - If `occupying_unit_id != -1` AND the unit's `faction_id == 0` AND `current_hp > 0`:
+     - Emit `EventBus.match_ended(true)`.
+   - If `current_turn > 5`, emit `EventBus.match_ended(false)` (Timeout).
+   - Listen to `match_ended` in the UI to unhide the panel.
+---------------------------------------------------------------------------------------------------
