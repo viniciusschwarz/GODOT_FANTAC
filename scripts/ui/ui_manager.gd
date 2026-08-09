@@ -3,8 +3,8 @@ class_name UIManager extends CanvasLayer
 @onready var playback_slider: HSlider = $BottomPanel/HBoxContainer/PlaybackSlider
 @onready var play_pause_button: Button = $BottomPanel/HBoxContainer/PlayPauseButton
 @onready var simulate_turn_button: Button = $BottomPanel/HBoxContainer/SimulateTurnButton
-@onready var directive_list: VBoxContainer = $SidePanel/ScrollContainer/DirectiveList
 @onready var telemetry_badge: FloatingTelemetryBadge = $FloatingTelemetryBadge
+@onready var side_panel: Panel = $SidePanel
 
 var is_playing: bool = false
 var playback_speed_multiplier: float = 1.0
@@ -14,9 +14,11 @@ var current_tick: int = 0
 var selected_unit_id: int = -1
 var current_replay_buffer: TurnReplayBufferResource = null
 var ai_templates: Dictionary = {} # StringName -> AITemplateResource
-var roster: Array[UnitDataResource] = [] # Given we need to mutate unit data in planning phase
+var roster: Array[UnitDataResource] = []
+var master_units: Dictionary = {}
 var active_waypoints: Dictionary = {} # unit_id -> Vector3i
 
+var commander_inspector: CommanderInspectorUI = null
 
 func _ready() -> void:
 	EventBus.scrubber_tick_changed.connect(_on_scrubber_tick_changed)
@@ -30,6 +32,12 @@ func _ready() -> void:
 	simulate_turn_button.pressed.connect(_on_simulate_pressed)
 
 	_load_ai_templates()
+
+	# Create and add CommanderInspectorUI dynamically
+	commander_inspector = CommanderInspectorUI.new()
+	commander_inspector.name = "CommanderInspectorUI"
+	side_panel.add_child(commander_inspector)
+	commander_inspector.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 func _load_ai_templates() -> void:
 	var path = "res://data/ai_templates/"
@@ -48,51 +56,10 @@ func _load_ai_templates() -> void:
 
 func set_roster(units: Array[UnitDataResource]) -> void:
 	roster = units
-	_build_directive_list()
-
-func _build_directive_list() -> void:
-	for child in directive_list.get_children():
-		child.queue_free()
-
-	for unit in roster:
-		if unit.faction_id == 0:
-			var row = HBoxContainer.new()
-			row.set_meta("unit_id", unit.unit_id)
-
-			var label = Label.new()
-			label.text = unit.unit_name
-			label.custom_minimum_size = Vector2(100, 0)
-			row.add_child(label)
-
-			var dropdown = OptionButton.new()
-			dropdown.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-
-			for template_id in ai_templates.keys():
-				var tpl = ai_templates[template_id]
-				dropdown.add_item(tpl.display_name)
-				dropdown.set_item_metadata(dropdown.item_count - 1, template_id)
-
-			dropdown.item_selected.connect(_on_directive_selected.bind(dropdown, unit.unit_id))
-			row.add_child(dropdown)
-
-			directive_list.add_child(row)
-
-func _refresh_directive_ui() -> void:
-	for row in directive_list.get_children():
-		if row is HBoxContainer:
-			var unit_id = row.get_meta("unit_id")
-			var unit = _get_unit(unit_id)
-			var dropdown = row.get_child(1) as OptionButton
-			if unit and dropdown:
-				if unit.is_order_fractured:
-					dropdown.disabled = true
-					dropdown.text = "FRACTURED: UNCONTROLLED"
-				else:
-					dropdown.disabled = false
-					for i in range(dropdown.item_count):
-						if dropdown.get_item_metadata(i) == unit.active_template_id:
-							dropdown.select(i)
-							break
+	master_units.clear()
+	for unit in units:
+		master_units[unit.unit_id] = unit
+	commander_inspector.set_master_units(master_units)
 
 func _on_turn_simulation_completed(replay_buffer: TurnReplayBufferResource) -> void:
 	current_replay_buffer = replay_buffer
@@ -102,15 +69,9 @@ func _on_phase_changed(new_phase: int) -> void:
 	# 0=Planning, 1=Simulating, 2=Playback
 	if new_phase == 0:
 		simulate_turn_button.disabled = false
-		_refresh_directive_ui()
 		active_waypoints.clear()
 	else:
 		simulate_turn_button.disabled = true
-		for row in directive_list.get_children():
-			if row is HBoxContainer:
-				var dropdown = row.get_child(1) as OptionButton
-				if dropdown:
-					dropdown.disabled = true
 
 func _on_play_pause_pressed() -> void:
 	is_playing = !is_playing
@@ -142,29 +103,19 @@ func _on_unit_selected(unit_id: int) -> void:
 	_update_telemetry_badge()
 
 func _get_unit(unit_id: int) -> UnitDataResource:
-	for unit in roster:
-		if unit.unit_id == unit_id:
-			return unit
-	return null
-
-func _on_directive_selected(index: int, dropdown: OptionButton, unit_id: int) -> void:
-	var unit = _get_unit(unit_id)
-	if unit:
-		var template_id = dropdown.get_item_metadata(index)
-		unit.active_template_id = template_id
+	return master_units.get(unit_id, null)
 
 func _on_simulate_pressed() -> void:
 	simulate_turn_button.disabled = true
-	for row in directive_list.get_children():
-		if row is HBoxContainer:
-			var dropdown = row.get_child(1) as OptionButton
-			if dropdown:
-				dropdown.disabled = true
 
 	var plan = TurnPlanResource.new()
 	for unit in roster:
 		if unit.faction_id == 0:
-			plan.unit_templates[unit.unit_id] = ai_templates.get(unit.active_template_id)
+			var draft_template_id = commander_inspector.get_draft_template(unit.unit_id)
+			var active_template_id = unit.active_template_id
+			if draft_template_id != &"":
+				active_template_id = draft_template_id
+			plan.unit_templates[unit.unit_id] = ai_templates.get(active_template_id)
 
 	plan.unit_objectives = active_waypoints.duplicate()
 	EventBus.plan_submitted.emit(plan)
@@ -190,16 +141,11 @@ func _update_telemetry_badge() -> void:
 	for t in range(current_tick, -1, -1):
 		var check_snap = current_replay_buffer.tick_snapshots[t]
 		for event in check_snap.telemetry_events:
-			# telemetry_events are dictionaries with {"tick": int, "msg": String} as implemented in simulation_server.gd.
-			# But prompt specifies "unit_id == selected_unit_id and major_event_flag == true" and "telemetry_text"
-			# We'll check via .get() which is safe for dictionaries.
 			if typeof(event) == TYPE_DICTIONARY:
 				if event.get("unit_id", -1) == selected_unit_id and event.get("major_event_flag", false) == true:
 					latest_msg = event.get("telemetry_text", "")
 					break
 			else:
-				# If it's an object/resource, we can use standard property access if the properties exist.
-				# Using `in` keyword to safely check if property exists before accessing.
 				if "unit_id" in event and "major_event_flag" in event and "telemetry_text" in event:
 					if event.unit_id == selected_unit_id and event.major_event_flag == true:
 						latest_msg = event.telemetry_text
