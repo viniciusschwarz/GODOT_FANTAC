@@ -15,6 +15,59 @@ var current_replay_buffer: TurnReplayBufferResource = null
 func _ready() -> void:
 	EventBus.scrubber_tick_changed.connect(_on_scrubber_tick_changed)
 	EventBus.turn_simulation_completed.connect(_on_turn_simulation_completed)
+	EventBus.grid_initialized.connect(_on_grid_initialized)
+
+func _on_grid_initialized(matrix: BattlefieldMatrix) -> void:
+	paint_debug_grid(matrix)
+
+func paint_debug_grid(matrix: BattlefieldMatrix) -> void:
+	var atlas_img = Image.create(128, 64, false, Image.FORMAT_RGBA8)
+
+	# Paint Z0 Ground (Dark Green)
+	for x in range(0, 64):
+		for y in range(0, 64):
+			# 2px black border
+			if x < 2 or x >= 62 or y < 2 or y >= 62:
+				atlas_img.set_pixel(x, y, Color.BLACK)
+			else:
+				atlas_img.set_pixel(x, y, Color(0.15, 0.3, 0.15))
+
+	# Paint Z1 Rampart (Gray)
+	for x in range(64, 128):
+		for y in range(0, 64):
+			# 2px black border
+			if x < 66 or x >= 126 or y < 2 or y >= 62:
+				atlas_img.set_pixel(x, y, Color.BLACK)
+			else:
+				atlas_img.set_pixel(x, y, Color(0.4, 0.4, 0.4))
+
+	var texture = ImageTexture.create_from_image(atlas_img)
+	# Prevent pixel bleeding
+	# Texture filter is typically set on the CanvasItem or via project settings,
+	# but can't be set directly on ImageTexture in Godot 4.
+	# We can set texture_filter on the TileMapLayers to NEAREST.
+	ground_layer_z0.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	rampart_layer_z1.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+
+	var atlas_source = TileSetAtlasSource.new()
+	atlas_source.texture = texture
+	atlas_source.texture_region_size = Vector2i(64, 64)
+	atlas_source.create_tile(Vector2i(0, 0))
+	atlas_source.create_tile(Vector2i(1, 0))
+
+	var custom_tileset = TileSet.new()
+	custom_tileset.tile_size = Vector2i(64, 64)
+	custom_tileset.add_source(atlas_source)
+
+	ground_layer_z0.tile_set = custom_tileset
+	rampart_layer_z1.tile_set = custom_tileset
+
+	for x in range(12):
+		for y in range(12):
+			if matrix.get_tile(Vector3i(x, y, 0)) != null:
+				ground_layer_z0.set_cell(Vector2i(x, y), 0, Vector2i(0, 0))
+			if matrix.get_tile(Vector3i(x, y, 1)) != null:
+				rampart_layer_z1.set_cell(Vector2i(x, y), 0, Vector2i(1, 0))
 
 func _on_turn_simulation_completed(replay_buffer: TurnReplayBufferResource) -> void:
 	current_replay_buffer = replay_buffer
