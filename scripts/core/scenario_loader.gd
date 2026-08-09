@@ -58,8 +58,11 @@ func _ready() -> void:
 			tile.occupying_unit_id = archer.unit_id
 
 	# Spawn Wooden Gate prop at (6,4,0)
+	var next_prop_id: int = 1000
 	if wooden_gate_preset:
 		var gate = wooden_gate_preset.duplicate(true)
+		gate.prop_id = next_prop_id
+		next_prop_id += 1
 		gate.grid_position = Vector3i(6, 4, 0)
 		master_matrix.register_prop(gate)
 

@@ -5,7 +5,7 @@ var card_instance: Control = null
 
 var draft_directives: Dictionary = {} # Dictionary[int, StringName]
 var ai_templates: Dictionary = {}
-var current_phase: int = 0
+var current_phase: EventBus.Phase = EventBus.Phase.INITIALIZATION
 var current_tick: int = 0
 var current_replay_buffer: TurnReplayBufferResource = null
 var selected_unit_id: int = -1
@@ -98,14 +98,14 @@ func _on_unit_selected(unit_id: int) -> void:
 					dropdown.select(i)
 					break
 
-			if current_phase != 0:
+			if current_phase != EventBus.Phase.PLANNING:
 				dropdown.disabled = true
 	else:
 		# Enemy unit
 		dropdown.visible = false
 
 	# If we are in playback, sync bars to current tick
-	if current_phase == 2 and current_replay_buffer != null:
+	if current_phase == EventBus.Phase.PLAYBACK and current_replay_buffer != null:
 		_sync_playback_state(current_tick)
 
 func _on_dropdown_item_selected(index: int) -> void:
@@ -114,9 +114,9 @@ func _on_dropdown_item_selected(index: int) -> void:
 		var template_id = dropdown.get_item_metadata(index)
 		draft_directives[selected_unit_id] = template_id
 
-func _on_phase_changed(phase: int) -> void:
+func _on_phase_changed(phase: EventBus.Phase) -> void:
 	current_phase = phase
-	if phase == 0:
+	if phase == EventBus.Phase.PLANNING:
 		# Planning
 		draft_directives.clear()
 
@@ -135,7 +135,7 @@ func _on_turn_simulation_completed(replay_buffer: TurnReplayBufferResource) -> v
 
 func _on_scrubber_tick_changed(target_tick: int) -> void:
 	current_tick = target_tick
-	if current_phase == 2 and card_instance.visible and selected_unit_id != -1:
+	if current_phase == EventBus.Phase.PLAYBACK and card_instance.visible and selected_unit_id != -1:
 		_sync_playback_state(target_tick)
 
 func _sync_playback_state(tick: int) -> void:

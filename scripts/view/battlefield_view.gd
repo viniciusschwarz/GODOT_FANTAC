@@ -18,7 +18,7 @@ var current_replay_buffer: TurnReplayBufferResource = null
 var selected_unit_id: int = -1
 var active_waypoints: Dictionary = {}
 var master_matrix: BattlefieldMatrix = null
-var current_phase: int = 0
+var current_phase: EventBus.Phase = EventBus.Phase.INITIALIZATION
 var _static_unit_cache: Dictionary = {} # READ-ONLY cache of UnitDataResource
 var _static_prop_coords: Dictionary = {} # prop_id -> Vector3i
 
@@ -165,9 +165,9 @@ func _on_match_started(matrix: BattlefieldMatrix, units_cache: Dictionary) -> vo
 func _on_unit_selected(unit_id: int) -> void:
 	selected_unit_id = unit_id
 
-func _on_phase_changed(phase: int) -> void:
+func _on_phase_changed(phase: EventBus.Phase) -> void:
 	current_phase = phase
-	if phase != 0: # Not PLANNING
+	if phase != EventBus.Phase.PLANNING:
 		lines_container.hide()
 	else:
 		lines_container.show()
@@ -222,6 +222,6 @@ func _unhandled_input(event: InputEvent) -> void:
 			if tile and tile.occupying_unit_id != -1:
 				EventBus.unit_selected.emit(tile.occupying_unit_id)
 		elif event.button_index == MOUSE_BUTTON_RIGHT:
-			if current_phase == 0 and selected_unit_id != -1:
+			if current_phase == EventBus.Phase.PLANNING and selected_unit_id != -1:
 				if tile != null:
 					EventBus.tile_right_clicked.emit(selected_unit_id, clicked_coord)

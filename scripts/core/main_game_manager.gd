@@ -1,8 +1,6 @@
 class_name MainGameManager extends Node
 
-enum Phase { INITIALIZATION, PLANNING, SIMULATING, PLAYBACK, MATCH_END }
-
-var current_phase: Phase = Phase.INITIALIZATION
+var current_phase: EventBus.Phase = EventBus.Phase.INITIALIZATION
 var current_turn: int = 1
 
 var master_matrix: BattlefieldMatrix
@@ -50,17 +48,17 @@ func initialize_match(matrix: BattlefieldMatrix, units: Dictionary) -> void:
 	enter_planning_phase()
 
 func enter_planning_phase() -> void:
-	current_phase = Phase.PLANNING
+	current_phase = EventBus.Phase.PLANNING
 	var plan = TurnPlanResource.new()
 	plan.turn_number = current_turn
-	EventBus.phase_changed.emit(Phase.PLANNING)
+	EventBus.phase_changed.emit(EventBus.Phase.PLANNING)
 
 func execute_simulation(plan: TurnPlanResource) -> void:
-	if current_phase != Phase.PLANNING:
+	if current_phase != EventBus.Phase.PLANNING:
 		return
 
-	current_phase = Phase.SIMULATING
-	EventBus.phase_changed.emit(Phase.SIMULATING)
+	current_phase = EventBus.Phase.SIMULATING
+	EventBus.phase_changed.emit(EventBus.Phase.SIMULATING)
 
 	var sim_server = SimulationServer.new()
 	var replay_buffer = sim_server.run_turn_simulation(plan, master_matrix, master_units)
@@ -68,13 +66,13 @@ func execute_simulation(plan: TurnPlanResource) -> void:
 	enter_playback_phase(replay_buffer)
 
 func enter_playback_phase(buffer: TurnReplayBufferResource) -> void:
-	current_phase = Phase.PLAYBACK
+	current_phase = EventBus.Phase.PLAYBACK
 	current_replay_buffer = buffer
 	EventBus.turn_simulation_completed.emit(buffer)
-	EventBus.phase_changed.emit(Phase.PLAYBACK)
+	EventBus.phase_changed.emit(EventBus.Phase.PLAYBACK)
 
 func _on_playback_completed() -> void:
-	if current_phase == Phase.PLAYBACK and current_replay_buffer != null:
+	if current_phase == EventBus.Phase.PLAYBACK and current_replay_buffer != null:
 		advance_to_next_turn(current_replay_buffer)
 
 func debug_print_turn_summary(buffer: TurnReplayBufferResource) -> void:
@@ -143,13 +141,13 @@ func advance_to_next_turn(buffer: TurnReplayBufferResource) -> void:
 		if occ_id != -1 and master_units.has(occ_id):
 			var occ_unit = master_units[occ_id]
 			if occ_unit.faction_id == 0 and occ_unit.current_hp > 0:
-				current_phase = Phase.MATCH_END
+				current_phase = EventBus.Phase.MATCH_END
 				EventBus.match_ended.emit(true)
 				return
 
 	current_turn += 1
 	if current_turn > 5:
-		current_phase = Phase.MATCH_END
+		current_phase = EventBus.Phase.MATCH_END
 		EventBus.match_ended.emit(false)
 	else:
 		enter_planning_phase()
