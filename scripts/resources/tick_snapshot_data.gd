@@ -4,6 +4,7 @@ class_name TickSnapshotData extends Resource
 
 @export var unit_transform_states: Dictionary = {}
 @export var unit_hp_states: Dictionary = {}
+@export var unit_stress_states: Dictionary = {}
 @export var unit_animation_states: Dictionary = {}
 @export var prop_states: Dictionary = {}
 
