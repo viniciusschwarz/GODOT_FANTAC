@@ -1,4 +1,4 @@
-[gd_scene load_steps=5 format=3 uid="uid://mainsceneid"]
+[gd_scene format=3 uid="uid://mainsceneid"]
 
 [ext_resource type="Script" path="res://scripts/core/scenario_loader.gd" id="1_loader"]
 [ext_resource type="Script" path="res://scripts/core/main_game_manager.gd" id="2_manager"]

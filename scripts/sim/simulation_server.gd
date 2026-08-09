@@ -117,14 +117,14 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 		var reservations_granted: Dictionary = {}
 		for unit_id in unit_intents:
 			var intent = unit_intents[unit_id]
-			if intent.action_type == AITreeEvaluator.ActionType.ADVANCE_SHORTEST_PATH or intent.action_type == AITreeEvaluator.ActionType.ADVANCE_VIA_COVER or intent.action_type == AITreeEvaluator.ActionType.FALLBACK_TO_COVER:
+			if intent.action_type == AITreeEvaluator.ActionType.ADVANCE_TO_OBJECTIVE or intent.action_type == AITreeEvaluator.ActionType.FALLBACK_TO_COVER:
 				if intent.path_array.size() > 0:
 					var next_coord = intent.path_array[0]
 					var tile = working_matrix.get_tile(next_coord)
 					if tile:
 						var unit = working_units[unit_id]
 						if current_tick % unit.movement_speed_ticks_per_tile == 0:
-							var granted = reservation_server.resolve_tile_reservation(tile, unit, current_tick)
+							var granted = reservation_server.resolve_tile_reservation(tile, unit, current_tick, next_coord)
 							if granted:
 								reservations_granted[unit_id] = next_coord
 

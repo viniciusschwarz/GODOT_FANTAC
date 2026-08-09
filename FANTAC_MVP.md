@@ -567,3 +567,123 @@ REQUIREMENTS:
 RULES:
 - The UI MUST NOT mutate unit data during playback or transition. It only reads states and passes the TurnPlanResource.
 ---------------------------------------------------------------------------------------------------
+
+## LAYER 7: DEBUG RENDERING & TELEMETRY VISUALIZATION
+
+### PROMPT 7.1: Procedural Grid Rendering (No Art Assets)
+
+```text
+PROMPT TEMPLATE: LAYER 7 - STEP 1 (PROCEDURAL GRID RENDERING)
+---------------------------------------------------------------------------------------------------
+ROLE: Godot 4 Technical Artist & Systems Programmer.
+CONTEXT: We need to see the BattlefieldMatrix rendered in BattlefieldView without relying on any external art files (.png). 
+OBJECTIVE: Update res://scripts/view/battlefield_view.gd to programmatically generate a TileSet and paint the grid.
+
+REQUIREMENTS:
+1. Procedural TileSet Generation (in `_ready` or an initialization method):
+   - Create a new `TileSet` with `tile_size = Vector2i(64, 64)`.
+   - Programmatically create two `ImageTexture` objects using `Image.create(64, 64, false, Image.FORMAT_RGBA8)`.
+   - Tile 0 (Z0 Ground): Fill with Color(0.15, 0.3, 0.15) (Dark Green) and draw a 2px black border around the edges.
+   - Tile 1 (Z1 Rampart): Fill with Color(0.4, 0.4, 0.4) (Gray) and draw a 2px black border around the edges.
+   - Create a `TileSetAtlasSource`, assign the textures, and add them to the `TileSet`.
+   - Assign this programmatic `TileSet` to both `GroundLayerZ0` and `RampartLayerZ1`.
+
+2. Matrix Parsing & Painting:
+   - Add a method `paint_debug_grid(matrix: BattlefieldMatrix)` called upon receiving the initial Tick 0 snapshot.
+   - Iterate x from 0 to 11, y from 0 to 11.
+   - Query the matrix. If a tile exists at (x, y, 0), use `GroundLayerZ0.set_cell(Vector2i(x, y), 0, Vector2i(0, 0))`.
+   - If a tile exists at (x, y, 1), use `RampartLayerZ1.set_cell(Vector2i(x, y), 0, Vector2i(1, 0))`.
+
+RULES:
+- Do NOT abandon the TileMapLayer architecture. Use pure GDScript to inject the textures into it.
+---------------------------------------------------------------------------------------------------
+```
+### PROMPT 7.2: CONSOLE TELEMETRY DUMP
+
+```text
+
+PROMPT TEMPLATE: LAYER 7 - STEP 2 (CONSOLE TELEMETRY DUMP)
+---------------------------------------------------------------------------------------------------
+ROLE: Lead Godot 4 Systems Engineer.
+CONTEXT: The headless SimulationServer is a "black box". We need mathematical proof in the output console that units are evaluating their AI trees and attempting to move or attack during the simulation.
+OBJECTIVE: Update res://scripts/core/main_game_manager.gd to output a clean State Differential Dump.
+
+REQUIREMENTS:
+1. Implement `debug_print_turn_summary(buffer: TurnReplayBufferResource)`
+   - Call this method inside `advance_to_next_turn` or immediately after `execute_simulation` finishes.
+   - Fetch `tick_snapshots[0]` (Start) and `tick_snapshots[99]` (End).
+
+2. Console Formatting:
+   - Print a clear header: `print("=== SIMULATION TURN %d COMPLETED ===" % current_turn)`
+   - Iterate through all units in `master_units`.
+   - For each unit, print a single string containing:
+     * Unit Name & ID
+     * Assigned AI Template
+     * Start Coord -> End Coord
+     * Start HP -> End HP
+   - Example output: `[ID:0] Allied Vanguard (AGGRESSIVE_ASSAULT) | Pos: (8, 1, 0) -> (8, 4, 0) | HP: 100 -> 100`
+
+RULES:
+- Keep the print output extremely concise. Only print the delta between Tick 0 and Tick 99 to avoid console spam.
+---------------------------------------------------------------------------------------------------
+```
+## PROMPT 8.1: Player Selection & Waypoint Injection
+```text
+PROMPT TEMPLATE: LAYER 8 - STEP 1 (SELECTION & WAYPOINTS)
+---------------------------------------------------------------------------------------------------
+ROLE: Godot 4 Gameplay & UI Engineer.
+CONTEXT: We need to implement unit selection and waypoint assignment during the Planning Phase to make the MVP playable.
+OBJECTIVE: Update `battlefield_view.gd` and `ui_manager.gd` to handle mouse inputs, draw intent lines, and inject objectives into the Turn Plan.
+
+REQUIREMENTS:
+1. Grid Raycasting & Selection (`battlefield_view.gd`):
+   - Listen for `_unhandled_input(event)`.
+   - On Left-Click: Convert mouse position to grid coordinate. Query `master_matrix` for `occupying_unit_id`. If allied, emit `EventBus.unit_selected(unit_id)`.
+   - On Right-Click: If `current_phase == PLANNING` and a unit is selected, validate that the clicked grid coordinate exists in `master_matrix`. If valid, emit `EventBus.tile_right_clicked(selected_unit_id, grid_coord)`.
+
+2. Waypoint Management (`ui_manager.gd`):
+   - Listen for `tile_right_clicked`. Store it in a dictionary: `active_waypoints[unit_id] = grid_coord`.
+   - When the "Simulate" button is clicked, write `active_waypoints` into the new `TurnPlanResource.unit_objectives` dictionary alongside the templates.
+   - Clear `active_waypoints` completely at the start of a new turn.
+
+3. Visual Intent Lines (`battlefield_view.gd`):
+   - Create a `Line2D` container. Whenever `active_waypoints` changes, draw a simple line from the selected unit's visual token to the target tile's center. Hide these lines instantly when the phase changes to `SIMULATING`.
+
+RULES:
+- Keep UI management strictly in one container. Do not create complex nested UI elements for every unit state; just update a central selection panel.
+- Ensure strict GDScript only.
+---------------------------------------------------------------------------------------------------
+```
+
+## PROMPT 8.2: AI Execution & Headless Movement
+```text
+PROMPT TEMPLATE: LAYER 8 - STEP 2 (HEADLESS PATH EXECUTION)
+---------------------------------------------------------------------------------------------------
+ROLE: Godot 4 Core Engine Programmer.
+CONTEXT: The SimulationServer must physically move units across the matrix based on player objectives.
+OBJECTIVE: Update `simulation_server.gd` and `ai_tree_evaluator.gd` to calculate paths and execute step-by-step movement.
+
+REQUIREMENTS:
+1. Objective Injection (Start of Simulation):
+   - At Tick 0, iterate through `plan.unit_objectives`. For each unit, set `unit.template_parameters["objective_coord"] = plan.unit_objectives[unit_id]`.
+   - Clear `unit.template_parameters["current_path"]` to ensure a clean slate.
+
+2. AI Path Request (`ai_tree_evaluator.gd`):
+   - If a unit's AI decides to `ADVANCE_TO_OBJECTIVE`, check if `template_parameters["current_path"]` is empty.
+   - If empty, call `PathfindingEngine.calculate_path` to the `objective_coord`. Store the resulting array in `current_path`.
+
+3. Step Execution (`simulation_server.gd` - Step D Movement):
+   - For every unit whose AI output an `ADVANCE` action:
+   - Check `unit_movement_cooldown`. If > 0, decrement and skip.
+   - If cooldown is 0, pop the next `Vector3i` coordinate from their `current_path`.
+   - Call `InitiativeReservationServer` to claim that tile.
+   - If granted: 
+     - Update the unit's position in `master_matrix` (clear old tile, occupy new tile).
+     - Set `unit_movement_cooldown = unit.movement_speed_ticks_per_tile`.
+   - If denied (blocked):
+     - Clear `current_path`. Set a short AI hesitation cooldown (e.g., 5 ticks) so it recalculates a new route on its next evaluation.
+
+RULES:
+- Never use Godot Tweens or visual position vectors here. Movement is strictly updating the `occupying_unit_id` across discrete `Vector3i` matrix tiles.
+```
+---------------------------------------------------------------------------------------------------
