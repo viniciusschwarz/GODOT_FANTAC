@@ -8,8 +8,37 @@ var current_turn: int = 1
 var master_matrix: BattlefieldMatrix
 var master_units: Dictionary = {}
 
-func start_match() -> void:
+func initialize_match(matrix: BattlefieldMatrix, units: Dictionary) -> void:
+	master_matrix = matrix
+	master_units = units
 	current_turn = 1
+
+	var dummy_buffer = TurnReplayBufferResource.new()
+	dummy_buffer.turn_number = 0
+
+	var snapshot = TickSnapshotData.new()
+	snapshot.micro_tick_index = 0
+
+	# Populate initial unit states
+	for unit_id in master_units.keys():
+		var unit = master_units[unit_id]
+		snapshot.unit_hp_states[unit_id] = unit.current_hp
+		# We need to find the unit's position in the matrix to populate transform_states
+
+	for coord in master_matrix._grid.keys():
+		var tile = master_matrix.get_tile(coord)
+		if tile.occupying_unit_id != -1 and master_units.has(tile.occupying_unit_id):
+			snapshot.unit_transform_states[tile.occupying_unit_id] = coord
+
+	# Populate initial prop states
+	for prop_id in master_matrix._props.keys():
+		var prop = master_matrix.get_prop(prop_id)
+		snapshot.prop_states[prop_id] = prop.current_degradation_state
+
+	dummy_buffer.tick_snapshots.append(snapshot)
+
+	EventBus.turn_simulation_completed.emit(dummy_buffer)
+
 	enter_planning_phase()
 
 func enter_planning_phase() -> void:

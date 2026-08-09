@@ -1,0 +1,18 @@
+[gd_scene load_steps=5 format=3 uid="uid://mainsceneid"]
+
+[ext_resource type="Script" path="res://scripts/core/scenario_loader.gd" id="1_loader"]
+[ext_resource type="Script" path="res://scripts/core/main_game_manager.gd" id="2_manager"]
+[ext_resource type="PackedScene" uid="uid://battlefield_view_0" path="res://scenes/view/battlefield_view.tscn" id="3_view"]
+[ext_resource type="PackedScene" uid="uid://ui_manager_uid" path="res://scenes/ui/ui_manager.tscn" id="4_ui"]
+
+[node name="Main" type="Node"]
+
+[node name="ScenarioLoader" type="Node" parent="."]
+script = ExtResource("1_loader")
+
+[node name="MainGameManager" type="Node" parent="."]
+script = ExtResource("2_manager")
+
+[node name="BattlefieldView" parent="." instance=ExtResource("3_view")]
+
+[node name="UIManager" parent="." instance=ExtResource("4_ui")]
