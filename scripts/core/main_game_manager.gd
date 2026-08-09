@@ -18,6 +18,8 @@ func initialize_match(matrix: BattlefieldMatrix, units: Dictionary) -> void:
 	master_units = units
 	current_turn = 1
 
+	EventBus.match_started.emit(master_matrix, master_units)
+
 	var dummy_buffer = TurnReplayBufferResource.new()
 	dummy_buffer.turn_number = 0
 

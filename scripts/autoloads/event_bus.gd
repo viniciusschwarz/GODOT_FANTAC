@@ -20,6 +20,7 @@ signal playback_state_changed(is_playing: bool, speed_multiplier: float)
 
 # Match Signals
 signal match_ended(allied_won: bool)
+signal match_started(matrix: BattlefieldMatrix, units_cache: Dictionary)
 
 # Turn Flow Signals
 signal plan_submitted(plan: TurnPlanResource)
