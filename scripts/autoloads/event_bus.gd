@@ -8,6 +8,7 @@ signal turn_simulation_completed(replay_buffer: TurnReplayBufferResource)
 signal unit_selected(unit_id: int)
 signal unit_hovered(unit_id: int)
 signal tile_selected(grid_coord: Vector3i)
+signal tile_right_clicked(selected_unit_id: int, grid_coord: Vector3i)
 
 # Simulation & Environment Signals
 signal navmesh_dirty(tile_coord: Vector3i)

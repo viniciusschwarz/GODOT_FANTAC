@@ -137,4 +137,19 @@ func evaluate_unit_behavior(unit: UnitDataResource, matrix: BattlefieldMatrix, a
 		result["target_coord"] = unit.template_parameters.get("anchor_coord", unit_coord)
 		return result
 
+	if result["action_type"] == ActionType.ADVANCE_TO_OBJECTIVE or result["action_type"] == ActionType.FALLBACK_TO_COVER:
+		var recalc_cooldown = unit.template_parameters.get("path_recalculation_cooldown", 0)
+		if recalc_cooldown > 0:
+			unit.template_parameters["path_recalculation_cooldown"] = recalc_cooldown - 1
+			result["path_array"] = unit.template_parameters.get("current_path", [])
+		else:
+			var current_path = unit.template_parameters.get("current_path", [])
+			if current_path.is_empty():
+				var pf = PathfindingEngine.new()
+				var new_path = pf.calculate_path(matrix, unit_coord, result["target_coord"], unit)
+				unit.template_parameters["current_path"] = new_path
+				result["path_array"] = new_path
+			else:
+				result["path_array"] = current_path
+
 	return result

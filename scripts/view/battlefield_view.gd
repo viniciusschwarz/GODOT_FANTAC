@@ -5,20 +5,32 @@ const Z1_VISUAL_Y_OFFSET: float = -12.0
 
 @onready var ground_layer_z0 = $GroundLayerZ0
 @onready var rampart_layer_z1 = $RampartLayerZ1
+
 @onready var tokens_container = $TokensContainer
+@onready var lines_container = Node2D.new()
+
 
 var unit_token_scene: PackedScene = preload("res://scenes/view/unit_token_view.tscn")
 var unit_tokens: Dictionary = {} # Dictionary[int, UnitTokenView]
 
 var current_replay_buffer: TurnReplayBufferResource = null
 
+var selected_unit_id: int = -1
+var active_waypoints: Dictionary = {}
+var master_matrix: BattlefieldMatrix = null
+var current_phase: int = 0
+
+
 func _ready() -> void:
+	add_child(lines_container)
 	EventBus.scrubber_tick_changed.connect(_on_scrubber_tick_changed)
 	EventBus.turn_simulation_completed.connect(_on_turn_simulation_completed)
 	EventBus.grid_initialized.connect(_on_grid_initialized)
+	EventBus.unit_selected.connect(_on_unit_selected)
+	EventBus.phase_changed.connect(_on_phase_changed)
+	EventBus.tile_right_clicked.connect(_on_tile_right_clicked)
 
-func _on_grid_initialized(matrix: BattlefieldMatrix) -> void:
-	paint_debug_grid(matrix)
+
 
 func paint_debug_grid(matrix: BattlefieldMatrix) -> void:
 	var atlas_img = Image.create(128, 64, false, Image.FORMAT_RGBA8)
@@ -112,3 +124,71 @@ func _on_scrubber_tick_changed(target_tick: int) -> void:
 			token.update_state(coord, hp)
 		else:
 			token.visible = false
+
+func _on_grid_initialized(matrix: BattlefieldMatrix) -> void:
+	master_matrix = matrix
+	paint_debug_grid(matrix)
+
+func _on_unit_selected(unit_id: int) -> void:
+	selected_unit_id = unit_id
+
+func _on_phase_changed(phase: int) -> void:
+	current_phase = phase
+	if phase != 0: # Not PLANNING
+		lines_container.hide()
+	else:
+		lines_container.show()
+		# Waypoints are cleared by UI manager and simulation on new turn,
+		# but view just blindly draws what's in active_waypoints.
+		# We'll rely on UI to tell us or just keep it simple.
+		# To be safe, clear them visually when returning to planning.
+		active_waypoints.clear()
+		_redraw_intent_lines()
+
+func _on_tile_right_clicked(unit_id: int, grid_coord: Vector3i) -> void:
+	active_waypoints[unit_id] = grid_coord
+	_redraw_intent_lines()
+
+func _redraw_intent_lines() -> void:
+	for child in lines_container.get_children():
+		child.queue_free()
+
+	for unit_id in active_waypoints.keys():
+		if unit_tokens.has(unit_id):
+			var token = unit_tokens[unit_id]
+			var start_pos = token.position
+			var target_coord = active_waypoints[unit_id]
+			# Formula: Vector2(grid_x * 64 + 32, grid_y * 64 + 32 + (grid_z * -12))
+			var target_pos = Vector2(target_coord.x * 64 + 32, target_coord.y * 64 + 32 + (target_coord.z * -12.0))
+
+			var line = Line2D.new()
+			line.add_point(start_pos)
+			line.add_point(target_pos)
+			line.width = 4.0
+			line.default_color = Color(1.0, 0.5, 0.0, 0.8) # Orange intent line
+			lines_container.add_child(line)
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed:
+		if master_matrix == null:
+			return
+
+		var mouse_pos = get_global_mouse_position()
+		# Rough inverse calculation, assuming z=0 for picking
+		var grid_x = int(mouse_pos.x / 64.0)
+		var grid_y = int(mouse_pos.y / 64.0)
+
+		# Check Z1 first, then Z0
+		var clicked_coord = Vector3i(grid_x, grid_y, 1)
+		var tile = master_matrix.get_tile(clicked_coord)
+		if tile == null:
+			clicked_coord = Vector3i(grid_x, grid_y, 0)
+			tile = master_matrix.get_tile(clicked_coord)
+
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			if tile and tile.occupying_unit_id != -1:
+				EventBus.unit_selected.emit(tile.occupying_unit_id)
+		elif event.button_index == MOUSE_BUTTON_RIGHT:
+			if current_phase == 0 and selected_unit_id != -1:
+				if tile != null:
+					EventBus.tile_right_clicked.emit(selected_unit_id, clicked_coord)

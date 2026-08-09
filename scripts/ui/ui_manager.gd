@@ -15,12 +15,15 @@ var selected_unit_id: int = -1
 var current_replay_buffer: TurnReplayBufferResource = null
 var ai_templates: Dictionary = {} # StringName -> AITemplateResource
 var roster: Array[UnitDataResource] = [] # Given we need to mutate unit data in planning phase
+var active_waypoints: Dictionary = {} # unit_id -> Vector3i
+
 
 func _ready() -> void:
 	EventBus.scrubber_tick_changed.connect(_on_scrubber_tick_changed)
 	EventBus.unit_selected.connect(_on_unit_selected)
 	EventBus.turn_simulation_completed.connect(_on_turn_simulation_completed)
 	EventBus.phase_changed.connect(_on_phase_changed)
+	EventBus.tile_right_clicked.connect(_on_tile_right_clicked)
 
 	play_pause_button.pressed.connect(_on_play_pause_pressed)
 	playback_slider.value_changed.connect(_on_slider_value_changed)
@@ -100,6 +103,7 @@ func _on_phase_changed(new_phase: int) -> void:
 	if new_phase == 0:
 		simulate_turn_button.disabled = false
 		_refresh_directive_ui()
+		active_waypoints.clear()
 	else:
 		simulate_turn_button.disabled = true
 		for row in directive_list.get_children():
@@ -162,6 +166,7 @@ func _on_simulate_pressed() -> void:
 		if unit.faction_id == 0:
 			plan.unit_templates[unit.unit_id] = ai_templates.get(unit.active_template_id)
 
+	plan.unit_objectives = active_waypoints.duplicate()
 	EventBus.plan_submitted.emit(plan)
 
 func _update_telemetry_badge() -> void:
@@ -221,3 +226,6 @@ func _process(delta: float) -> void:
 
 			if current_tick >= 99:
 				EventBus.playback_completed.emit()
+
+func _on_tile_right_clicked(unit_id: int, grid_coord: Vector3i) -> void:
+	active_waypoints[unit_id] = grid_coord
