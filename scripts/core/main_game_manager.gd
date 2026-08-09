@@ -31,8 +31,10 @@ func initialize_match(matrix: BattlefieldMatrix, units: Dictionary) -> void:
 		# We need to find the unit's position in the matrix to populate transform_states
 
 	for coord in master_matrix._grid.keys():
+		# [EXTERNAL DATA ACCESS] Reading from the matrix
 		var tile = master_matrix.get_tile(coord)
 		if tile.occupying_unit_id != -1 and master_units.has(tile.occupying_unit_id):
+			# [EXTERNAL DATA ACCESS] Populating the snapshot buffer
 			snapshot.unit_transform_states[tile.occupying_unit_id] = coord
 
 	# Populate initial prop states

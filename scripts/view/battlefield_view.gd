@@ -110,6 +110,12 @@ func _initialize_tokens_from_buffer(replay_buffer: TurnReplayBufferResource) -> 
 			max_hp = unit_data.max_hp
 
 		token.setup_visuals(unit_id as int, faction_id, max_hp, false)
+
+		# [EXTERNAL DATA ACCESS] Apply initial unit visual position to fix stacking
+		var start_coord = initial_snapshot.unit_transform_states[unit_id]
+		var start_hp = initial_snapshot.unit_hp_states.get(unit_id, max_hp)
+		token.update_state(start_coord, start_hp)
+
 		unit_tokens[unit_id] = token
 
 	for prop_id in initial_snapshot.prop_states.keys():
@@ -118,6 +124,11 @@ func _initialize_tokens_from_buffer(replay_buffer: TurnReplayBufferResource) -> 
 
 		# Prop tokens use their own IDs, and faction is ignored
 		token.setup_visuals(prop_id as int, -1, 100.0, true)
+
+		# [EXTERNAL DATA ACCESS] Apply initial prop visual position to fix stacking
+		var p_coord = _static_prop_coords.get(prop_id, Vector3i.ZERO)
+		token.update_state(p_coord, 100.0)
+
 		unit_tokens[prop_id] = token
 
 	# Apply tick 0 state
@@ -127,6 +138,7 @@ func _on_scrubber_tick_changed(target_tick: int) -> void:
 	if not current_replay_buffer or target_tick < 0 or target_tick >= current_replay_buffer.tick_snapshots.size():
 		return
 
+	# [EXTERNAL DATA ACCESS] Accessing the replay buffer
 	var snapshot = current_replay_buffer.tick_snapshots[target_tick]
 
 	for token_id in unit_tokens.keys():
@@ -134,10 +146,12 @@ func _on_scrubber_tick_changed(target_tick: int) -> void:
 
 		if token_id in snapshot.unit_transform_states:
 			token.visible = true
+			# [EXTERNAL DATA ACCESS] Retrieving the exact grid coordinate from the snapshot
 			var coord: Vector3i = snapshot.unit_transform_states[token_id]
 			var hp: float = snapshot.unit_hp_states.get(token_id, 0.0)
 			token.update_state(coord, hp)
 		elif token_id in snapshot.prop_states:
+			# [EXTERNAL DATA ACCESS] Retrieving the prop state from the snapshot
 			var state = snapshot.prop_states[token_id]
 			if state == 0: # Intact
 				token.visible = true
