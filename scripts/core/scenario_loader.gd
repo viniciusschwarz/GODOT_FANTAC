@@ -1,6 +1,7 @@
 class_name ScenarioLoader extends Node
 
 @onready var game_manager = $"../MainGameManager"
+@onready var ui_manager = $"../UIManager"
 
 func _ready() -> void:
 	var master_matrix = BattlefieldMatrix.new()
@@ -61,5 +62,11 @@ func _ready() -> void:
 		var gate = wooden_gate_preset.duplicate(true)
 		gate.grid_position = Vector3i(6, 4, 0)
 		master_matrix.register_prop(gate)
+
+	var roster_array: Array[UnitDataResource] = []
+	for unit in master_units.values():
+		roster_array.append(unit)
+	if ui_manager:
+		ui_manager.call_deferred("set_roster", roster_array)
 
 	game_manager.call_deferred("initialize_match", master_matrix, master_units)

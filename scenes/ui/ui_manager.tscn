@@ -37,21 +37,31 @@ max_value = 99.0
 tick_count = 100
 ticks_on_borders = true
 
+[node name="SimulateTurnButton" type="Button" parent="BottomPanel/HBoxContainer"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+text = "Simulate Turn"
+
 [node name="SidePanel" type="Panel" parent="."]
 anchors_preset = 11
 anchor_left = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -200.0
+offset_left = -250.0
 offset_bottom = -60.0
 grow_horizontal = 0
 grow_vertical = 2
 
-[node name="DirectiveDropdown" type="OptionButton" parent="SidePanel"]
+[node name="ScrollContainer" type="ScrollContainer" parent="SidePanel"]
 layout_mode = 1
-anchors_preset = 10
+anchors_preset = 15
 anchor_right = 1.0
-offset_bottom = 31.0
+anchor_bottom = 1.0
 grow_horizontal = 2
+grow_vertical = 2
+
+[node name="DirectiveList" type="VBoxContainer" parent="SidePanel/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
 
 [node name="FloatingTelemetryBadge" parent="." instance=ExtResource("2_tbd")]

@@ -2,7 +2,8 @@ class_name UIManager extends CanvasLayer
 
 @onready var playback_slider: HSlider = $BottomPanel/HBoxContainer/PlaybackSlider
 @onready var play_pause_button: Button = $BottomPanel/HBoxContainer/PlayPauseButton
-@onready var directive_dropdown: OptionButton = $SidePanel/DirectiveDropdown
+@onready var simulate_turn_button: Button = $BottomPanel/HBoxContainer/SimulateTurnButton
+@onready var directive_list: VBoxContainer = $SidePanel/ScrollContainer/DirectiveList
 @onready var telemetry_badge: FloatingTelemetryBadge = $FloatingTelemetryBadge
 
 var is_playing: bool = false
@@ -23,7 +24,7 @@ func _ready() -> void:
 
 	play_pause_button.pressed.connect(_on_play_pause_pressed)
 	playback_slider.value_changed.connect(_on_slider_value_changed)
-	directive_dropdown.item_selected.connect(_on_directive_selected)
+	simulate_turn_button.pressed.connect(_on_simulate_pressed)
 
 	_load_ai_templates()
 
@@ -38,14 +39,57 @@ func _load_ai_templates() -> void:
 				var res = ResourceLoader.load(path + file_name) as AITemplateResource
 				if res:
 					ai_templates[res.template_id] = res
-					directive_dropdown.add_item(res.display_name)
-					directive_dropdown.set_item_metadata(directive_dropdown.item_count - 1, res.template_id)
 			file_name = dir.get_next()
 	else:
 		push_error("An error occurred when trying to access the path.")
 
 func set_roster(units: Array[UnitDataResource]) -> void:
 	roster = units
+	_build_directive_list()
+
+func _build_directive_list() -> void:
+	for child in directive_list.get_children():
+		child.queue_free()
+
+	for unit in roster:
+		if unit.faction_id == 0:
+			var row = HBoxContainer.new()
+			row.set_meta("unit_id", unit.unit_id)
+
+			var label = Label.new()
+			label.text = unit.unit_name
+			label.custom_minimum_size = Vector2(100, 0)
+			row.add_child(label)
+
+			var dropdown = OptionButton.new()
+			dropdown.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+			for template_id in ai_templates.keys():
+				var tpl = ai_templates[template_id]
+				dropdown.add_item(tpl.display_name)
+				dropdown.set_item_metadata(dropdown.item_count - 1, template_id)
+
+			dropdown.item_selected.connect(_on_directive_selected.bind(dropdown, unit.unit_id))
+			row.add_child(dropdown)
+
+			directive_list.add_child(row)
+
+func _refresh_directive_ui() -> void:
+	for row in directive_list.get_children():
+		if row is HBoxContainer:
+			var unit_id = row.get_meta("unit_id")
+			var unit = _get_unit(unit_id)
+			var dropdown = row.get_child(1) as OptionButton
+			if unit and dropdown:
+				if unit.is_order_fractured:
+					dropdown.disabled = true
+					dropdown.text = "FRACTURED: UNCONTROLLED"
+				else:
+					dropdown.disabled = false
+					for i in range(dropdown.item_count):
+						if dropdown.get_item_metadata(i) == unit.active_template_id:
+							dropdown.select(i)
+							break
 
 func _on_turn_simulation_completed(replay_buffer: TurnReplayBufferResource) -> void:
 	current_replay_buffer = replay_buffer
@@ -54,9 +98,15 @@ func _on_turn_simulation_completed(replay_buffer: TurnReplayBufferResource) -> v
 func _on_phase_changed(new_phase: int) -> void:
 	# 0=Planning, 1=Simulating, 2=Playback
 	if new_phase == 0:
-		directive_dropdown.disabled = false
-	elif new_phase == 2:
-		directive_dropdown.disabled = true
+		simulate_turn_button.disabled = false
+		_refresh_directive_ui()
+	else:
+		simulate_turn_button.disabled = true
+		for row in directive_list.get_children():
+			if row is HBoxContainer:
+				var dropdown = row.get_child(1) as OptionButton
+				if dropdown:
+					dropdown.disabled = true
 
 func _on_play_pause_pressed() -> void:
 	is_playing = !is_playing
@@ -85,19 +135,6 @@ func _on_scrubber_tick_changed(target_tick: int) -> void:
 
 func _on_unit_selected(unit_id: int) -> void:
 	selected_unit_id = unit_id
-
-	if unit_id != -1:
-		# Update dropdown to reflect selected unit's template
-		var unit = _get_unit(unit_id)
-		if unit:
-			var template_id = unit.active_template_id
-			for i in range(directive_dropdown.item_count):
-				if directive_dropdown.get_item_metadata(i) == template_id:
-					directive_dropdown.select(i)
-					break
-	else:
-		directive_dropdown.select(-1)
-
 	_update_telemetry_badge()
 
 func _get_unit(unit_id: int) -> UnitDataResource:
@@ -106,14 +143,26 @@ func _get_unit(unit_id: int) -> UnitDataResource:
 			return unit
 	return null
 
-func _on_directive_selected(index: int) -> void:
-	if selected_unit_id == -1:
-		return
-
-	var unit = _get_unit(selected_unit_id)
+func _on_directive_selected(index: int, dropdown: OptionButton, unit_id: int) -> void:
+	var unit = _get_unit(unit_id)
 	if unit:
-		var template_id = directive_dropdown.get_item_metadata(index)
+		var template_id = dropdown.get_item_metadata(index)
 		unit.active_template_id = template_id
+
+func _on_simulate_pressed() -> void:
+	simulate_turn_button.disabled = true
+	for row in directive_list.get_children():
+		if row is HBoxContainer:
+			var dropdown = row.get_child(1) as OptionButton
+			if dropdown:
+				dropdown.disabled = true
+
+	var plan = TurnPlanResource.new()
+	for unit in roster:
+		if unit.faction_id == 0:
+			plan.unit_templates[unit.unit_id] = ai_templates.get(unit.active_template_id)
+
+	EventBus.plan_submitted.emit(plan)
 
 func _update_telemetry_badge() -> void:
 	if selected_unit_id == -1 or current_replay_buffer == null or current_replay_buffer.tick_snapshots.is_empty():
@@ -169,3 +218,6 @@ func _process(delta: float) -> void:
 			current_tick = target_tick
 			playback_slider.set_value_no_signal(current_tick)
 			EventBus.scrubber_tick_changed.emit(current_tick)
+
+			if current_tick >= 99:
+				EventBus.playback_completed.emit()
