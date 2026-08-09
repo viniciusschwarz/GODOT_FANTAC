@@ -19,6 +19,8 @@ var selected_unit_id: int = -1
 var active_waypoints: Dictionary = {}
 var master_matrix: BattlefieldMatrix = null
 var current_phase: int = 0
+var _static_unit_cache: Dictionary = {} # READ-ONLY cache of UnitDataResource
+var _static_prop_coords: Dictionary = {} # prop_id -> Vector3i
 
 
 func _ready() -> void:
@@ -29,6 +31,7 @@ func _ready() -> void:
 	EventBus.unit_selected.connect(_on_unit_selected)
 	EventBus.phase_changed.connect(_on_phase_changed)
 	EventBus.tile_right_clicked.connect(_on_tile_right_clicked)
+	EventBus.match_started.connect(_on_match_started)
 
 
 
@@ -86,24 +89,36 @@ func _on_turn_simulation_completed(replay_buffer: TurnReplayBufferResource) -> v
 	_initialize_tokens_from_buffer(replay_buffer)
 
 func _initialize_tokens_from_buffer(replay_buffer: TurnReplayBufferResource) -> void:
-	# Clear existing tokens
-	for token in unit_tokens.values():
-		token.queue_free()
-	unit_tokens.clear()
+	# Only initialize once at Tick 0
+	if not unit_tokens.is_empty():
+		return
 
 	if replay_buffer.tick_snapshots.is_empty():
 		return
 
-	# Assume Tick 0 has all units for instantiation (in a real scenario, you'd get the roster details from GameState/BattlefieldManager)
 	var initial_snapshot = replay_buffer.tick_snapshots[0]
 
 	for unit_id in initial_snapshot.unit_transform_states.keys():
 		var token: UnitTokenView = unit_token_scene.instantiate()
 		tokens_container.add_child(token)
 
-		# Here we assume faction=0 and max_hp=100 as fallback. Real implementation should fetch from UnitDataResource roster.
-		token.setup(unit_id as int, 0, 100.0)
+		var faction_id = 0
+		var max_hp = 100.0
+		if _static_unit_cache.has(unit_id):
+			var unit_data = _static_unit_cache[unit_id]
+			faction_id = unit_data.faction_id
+			max_hp = unit_data.max_hp
+
+		token.setup_visuals(unit_id as int, faction_id, max_hp, false)
 		unit_tokens[unit_id] = token
+
+	for prop_id in initial_snapshot.prop_states.keys():
+		var token: UnitTokenView = unit_token_scene.instantiate()
+		tokens_container.add_child(token)
+
+		# Prop tokens use their own IDs, and faction is ignored
+		token.setup_visuals(prop_id as int, -1, 100.0, true)
+		unit_tokens[prop_id] = token
 
 	# Apply tick 0 state
 	_on_scrubber_tick_changed(0)
@@ -114,20 +129,38 @@ func _on_scrubber_tick_changed(target_tick: int) -> void:
 
 	var snapshot = current_replay_buffer.tick_snapshots[target_tick]
 
-	for unit_id in unit_tokens.keys():
-		var token: UnitTokenView = unit_tokens[unit_id]
+	for token_id in unit_tokens.keys():
+		var token: UnitTokenView = unit_tokens[token_id]
 
-		if unit_id in snapshot.unit_transform_states:
+		if token_id in snapshot.unit_transform_states:
 			token.visible = true
-			var coord: Vector3i = snapshot.unit_transform_states[unit_id]
-			var hp: float = snapshot.unit_hp_states.get(unit_id, 0.0)
+			var coord: Vector3i = snapshot.unit_transform_states[token_id]
+			var hp: float = snapshot.unit_hp_states.get(token_id, 0.0)
 			token.update_state(coord, hp)
+		elif token_id in snapshot.prop_states:
+			var state = snapshot.prop_states[token_id]
+			if state == 0: # Intact
+				token.visible = true
+			else:
+				token.visible = false
+
+			if _static_prop_coords.has(token_id):
+				var coord = _static_prop_coords[token_id]
+				token.update_state(coord, 100.0) # Props don't track HP in UI right now
 		else:
 			token.visible = false
 
 func _on_grid_initialized(matrix: BattlefieldMatrix) -> void:
 	master_matrix = matrix
 	paint_debug_grid(matrix)
+
+func _on_match_started(matrix: BattlefieldMatrix, units_cache: Dictionary) -> void:
+	_static_unit_cache = units_cache
+
+	_static_prop_coords.clear()
+	for prop_id in matrix._props.keys():
+		var prop = matrix.get_prop(prop_id)
+		_static_prop_coords[prop_id] = prop.grid_position
 
 func _on_unit_selected(unit_id: int) -> void:
 	selected_unit_id = unit_id

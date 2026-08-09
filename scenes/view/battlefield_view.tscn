@@ -12,3 +12,4 @@ modulate = Color(0.75, 0.75, 0.75, 1)
 z_index = 10
 
 [node name="TokensContainer" type="Node2D" parent="."]
+y_sort_enabled = true

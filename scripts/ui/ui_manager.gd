@@ -4,7 +4,8 @@ class_name UIManager extends CanvasLayer
 @onready var play_pause_button: Button = $BottomPanel/HBoxContainer/PlayPauseButton
 @onready var simulate_turn_button: Button = $BottomPanel/HBoxContainer/SimulateTurnButton
 @onready var telemetry_badge: FloatingTelemetryBadge = $FloatingTelemetryBadge
-@onready var side_panel: Panel = $SidePanel
+@onready var side_panel: PanelContainer = $SidePanel
+@onready var input_blocker: ColorRect = $InputBlocker
 
 var is_playing: bool = false
 var playback_speed_multiplier: float = 1.0
@@ -70,8 +71,12 @@ func _on_phase_changed(new_phase: int) -> void:
 	if new_phase == 0:
 		simulate_turn_button.disabled = false
 		active_waypoints.clear()
+		if input_blocker:
+			input_blocker.visible = false
 	else:
 		simulate_turn_button.disabled = true
+		if input_blocker:
+			input_blocker.visible = true
 
 func _on_play_pause_pressed() -> void:
 	is_playing = !is_playing
@@ -107,6 +112,7 @@ func _get_unit(unit_id: int) -> UnitDataResource:
 
 func _on_simulate_pressed() -> void:
 	simulate_turn_button.disabled = true
+	simulate_turn_button.release_focus()
 
 	var plan = TurnPlanResource.new()
 	for unit in roster:

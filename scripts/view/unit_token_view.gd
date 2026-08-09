@@ -7,17 +7,20 @@ var max_hp: float = 100.0
 @onready var token_sprite = $TokenSprite
 @onready var hp_bar = $HPBar
 
-func setup(id: int, faction: int, starting_max_hp: float) -> void:
+func setup_visuals(id: int, faction: int, starting_max_hp: float, is_prop: bool) -> void:
 	unit_id = id
 	max_hp = starting_max_hp
 
 	hp_bar.max_value = max_hp
 	hp_bar.value = max_hp
 
-	if faction == 0:
-		team_badge.color = Color.BLUE
+	if is_prop:
+		team_badge.color = Color.SADDLE_BROWN
 	else:
-		team_badge.color = Color.RED
+		if faction == 0:
+			team_badge.color = Color.BLUE
+		else:
+			team_badge.color = Color.RED
 
 func update_state(grid_coord: Vector3i, current_hp: float) -> void:
 	# Update HP

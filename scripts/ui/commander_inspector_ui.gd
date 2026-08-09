@@ -25,7 +25,7 @@ func _ready() -> void:
 	container.add_child(card_instance)
 	card_instance.visible = false
 
-	var dropdown = card_instance.get_node("TemplateDropdown") as OptionButton
+	var dropdown = card_instance.find_child("TemplateDropdown", true, false) as OptionButton
 	dropdown.item_selected.connect(_on_dropdown_item_selected)
 
 func _load_ai_templates() -> void:
@@ -55,10 +55,10 @@ func _on_unit_selected(unit_id: int) -> void:
 	var unit = master_units[unit_id] as UnitDataResource
 	card_instance.visible = true
 
-	var name_label = card_instance.get_node("NameLabel") as Label
-	var hp_bar = card_instance.get_node("HPBar") as ProgressBar
-	var stress_bar = card_instance.get_node("StressBar") as ProgressBar
-	var dropdown = card_instance.get_node("TemplateDropdown") as OptionButton
+	var name_label = card_instance.find_child("NameLabel", true, false) as Label
+	var hp_bar = card_instance.find_child("HPBar", true, false) as ProgressBar
+	var stress_bar = card_instance.find_child("StressBar", true, false) as ProgressBar
+	var dropdown = card_instance.find_child("TemplateDropdown", true, false) as OptionButton
 
 	# Explicitly reset visual states
 	name_label.text = ""
@@ -110,7 +110,7 @@ func _on_unit_selected(unit_id: int) -> void:
 
 func _on_dropdown_item_selected(index: int) -> void:
 	if selected_unit_id != -1:
-		var dropdown = card_instance.get_node("TemplateDropdown") as OptionButton
+		var dropdown = card_instance.find_child("TemplateDropdown", true, false) as OptionButton
 		var template_id = dropdown.get_item_metadata(index)
 		draft_directives[selected_unit_id] = template_id
 
@@ -124,9 +124,11 @@ func _on_phase_changed(phase: int) -> void:
 		if selected_unit_id != -1:
 			_on_unit_selected(selected_unit_id)
 	else:
-		# Lock dropdown
-		var dropdown = card_instance.get_node("TemplateDropdown") as OptionButton
-		dropdown.disabled = true
+		# Lock dropdown recursively by disabling and dropping focus
+		var dropdown = card_instance.find_child("TemplateDropdown", true, false) as OptionButton
+		if dropdown:
+			dropdown.disabled = true
+			dropdown.release_focus()
 
 func _on_turn_simulation_completed(replay_buffer: TurnReplayBufferResource) -> void:
 	current_replay_buffer = replay_buffer
@@ -144,8 +146,8 @@ func _sync_playback_state(tick: int) -> void:
 	var hp = snapshot.unit_hp_states.get(selected_unit_id, 0.0)
 	var stress = snapshot.unit_stress_states.get(selected_unit_id, 0.0)
 
-	var hp_bar = card_instance.get_node("HPBar") as ProgressBar
-	var stress_bar = card_instance.get_node("StressBar") as ProgressBar
+	var hp_bar = card_instance.find_child("HPBar", true, false) as ProgressBar
+	var stress_bar = card_instance.find_child("StressBar", true, false) as ProgressBar
 
 	hp_bar.value = hp
 	stress_bar.value = stress
