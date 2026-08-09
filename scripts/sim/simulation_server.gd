@@ -30,13 +30,13 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 
 		# Objective injection (PROMPT 8.2)
 		if plan and plan.unit_objectives.has(cloned_unit.unit_id):
-			cloned_unit.template_parameters["objective_coord"] = plan.unit_objectives[cloned_unit.unit_id]
+			cloned_unit.template_parameters["objective_coord"] = plan.unit_objectives[cloned_unit.unit_id] # [EXTERNAL DATA ACCESS]
 
 		# Reset path and cooldowns
 		cloned_unit.template_parameters["current_path"] = []
 		cloned_unit.template_parameters["path_recalculation_cooldown"] = 0
-		if not cloned_unit.template_parameters.has("unit_movement_cooldown"):
-			cloned_unit.template_parameters["unit_movement_cooldown"] = 0
+		# Always reset movement cooldown at start of the turn
+		cloned_unit.template_parameters["unit_movement_cooldown"] = 0 # [EXTERNAL DATA ACCESS]
 
 	var active_projectiles: Array[Dictionary] = []
 	var unit_intents: Dictionary = {}
