@@ -113,28 +113,61 @@ func debug_print_turn_summary(buffer: TurnReplayBufferResource) -> void:
 			str(end_stress)
 		])
 
-func advance_to_next_turn(buffer: TurnReplayBufferResource) -> void:
-	debug_print_turn_summary(buffer)
-	var final_state = buffer.tick_snapshots[99]
-
+func commit_simulation_state(start_snapshot: TickSnapshotData, final_snapshot: TickSnapshotData) -> void:
+	# 1. Update existing unit states and transforms
 	var dead_units: Array = []
-	for unit_id in master_units:
-		if final_state.unit_hp_states.has(unit_id):
-			master_units[unit_id].current_hp = final_state.unit_hp_states[unit_id]
-		if final_state.unit_stress_states.has(unit_id):
-			master_units[unit_id].current_stress = final_state.unit_stress_states[unit_id]
+	for unit_id in master_units.keys():
+		var unit = master_units[unit_id]
 
-		if master_units[unit_id].current_hp <= 0:
+		# Update core stats
+		if final_snapshot.unit_hp_states.has(unit_id):
+			unit.current_hp = final_snapshot.unit_hp_states[unit_id]
+		if final_snapshot.unit_stress_states.has(unit_id):
+			unit.current_stress = final_snapshot.unit_stress_states[unit_id]
+
+		# Update template parameters
+		if final_snapshot.unit_template_states.has(unit_id):
+			unit.template_parameters = final_snapshot.unit_template_states[unit_id].duplicate(true)
+
+		# Check for death
+		if unit.current_hp <= 0:
 			dead_units.append(unit_id)
+		else:
+			# Update position and matrix occupancy
+			if final_snapshot.unit_transform_states.has(unit_id) and start_snapshot.unit_transform_states.has(unit_id):
+				var new_coord = final_snapshot.unit_transform_states[unit_id]
+				var old_coord = start_snapshot.unit_transform_states[unit_id]
 
+				if old_coord != new_coord:
+					var old_tile = master_matrix.get_tile(old_coord)
+					if old_tile and old_tile.occupying_unit_id == unit_id:
+						old_tile.occupying_unit_id = -1
+
+				var new_tile = master_matrix.get_tile(new_coord)
+				if new_tile:
+					new_tile.occupying_unit_id = unit_id
+
+	# 2. Cleanup dead units
 	for unit_id in dead_units:
-		var dead_unit = master_units[unit_id]
-		if final_state.unit_transform_states.has(unit_id):
-			var final_coord = final_state.unit_transform_states[unit_id]
-			var tile = master_matrix.get_tile(final_coord)
+		if start_snapshot.unit_transform_states.has(unit_id):
+			var start_coord = start_snapshot.unit_transform_states[unit_id]
+			var tile = master_matrix.get_tile(start_coord)
 			if tile and tile.occupying_unit_id == unit_id:
 				tile.occupying_unit_id = -1
 		master_units.erase(unit_id)
+
+	# 3. Update prop states
+	for prop_id in final_snapshot.prop_states.keys():
+		var prop = master_matrix.get_prop(prop_id)
+		if prop:
+			prop.current_degradation_state = final_snapshot.prop_states[prop_id]
+
+func advance_to_next_turn(buffer: TurnReplayBufferResource) -> void:
+	debug_print_turn_summary(buffer)
+	var start_state = buffer.tick_snapshots[0]
+	var final_state = buffer.tick_snapshots[99]
+
+	commit_simulation_state(start_state, final_state)
 
 	# Win Condition Check at (6, 11, 1)
 	var win_tile = master_matrix.get_tile(Vector3i(6, 11, 1))

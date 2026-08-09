@@ -221,6 +221,7 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 			snapshot.unit_transform_states[unit_id] = Vector3i(cx, cy, cz)
 			snapshot.unit_hp_states[unit_id] = unit.current_hp
 			snapshot.unit_stress_states[unit_id] = unit.current_stress
+			snapshot.unit_template_states[unit_id] = unit.template_parameters.duplicate(true)
 			# Animation state could be derived, setting default 0 for now
 			snapshot.unit_animation_states[unit_id] = 0
 
