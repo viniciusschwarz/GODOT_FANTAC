@@ -19,14 +19,24 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 	var working_units: Dictionary = {}
 	for unit_id in initial_units:
 		var unit = initial_units[unit_id]
-		working_units[unit.unit_id] = unit.duplicate_data()
-		# If unit directives and templates are part of the plan, we should apply them here.
-		if plan:
-			if plan.unit_directives.has(unit.unit_id):
-				pass # we might want to store directives
-			if plan.unit_templates.has(unit.unit_id):
-				var template = plan.unit_templates[unit.unit_id]
-				working_units[unit.unit_id].active_template_id = template.template_id
+		var cloned_unit = unit.duplicate_data()
+		working_units[cloned_unit.unit_id] = cloned_unit
+
+		# Apply plan templates
+		if plan and plan.unit_templates.has(cloned_unit.unit_id):
+			var template = plan.unit_templates[cloned_unit.unit_id]
+			if template != null:
+				cloned_unit.active_template_id = template.template_id
+
+		# Objective injection (PROMPT 8.2)
+		if plan and plan.unit_objectives.has(cloned_unit.unit_id):
+			cloned_unit.template_parameters["objective_coord"] = plan.unit_objectives[cloned_unit.unit_id]
+
+		# Reset path and cooldowns
+		cloned_unit.template_parameters["current_path"] = []
+		cloned_unit.template_parameters["path_recalculation_cooldown"] = 0
+		if not cloned_unit.template_parameters.has("unit_movement_cooldown"):
+			cloned_unit.template_parameters["unit_movement_cooldown"] = 0
 
 	var active_projectiles: Array[Dictionary] = []
 	var unit_intents: Dictionary = {}
@@ -113,42 +123,57 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 				else:
 					unit_intents[unit_id] = intent
 
-		# STEP C: Resolve initiative claims and tile reservations
-		var reservations_granted: Dictionary = {}
+		# STEP C & D: Movement Execution & Reservation Check
 		for unit_id in unit_intents:
 			var intent = unit_intents[unit_id]
 			if intent.action_type == AITreeEvaluator.ActionType.ADVANCE_TO_OBJECTIVE or intent.action_type == AITreeEvaluator.ActionType.FALLBACK_TO_COVER:
-				if intent.path_array.size() > 0:
-					var next_coord = intent.path_array[0]
+				var unit = working_units[unit_id]
+
+				# Check and decrement unit_movement_cooldown
+				var move_cooldown = unit.template_parameters.get("unit_movement_cooldown", 0)
+				if move_cooldown > 0:
+					unit.template_parameters["unit_movement_cooldown"] = move_cooldown - 1
+					continue # Skip movement this tick
+
+				var path_array = unit.template_parameters.get("current_path", [])
+				if path_array.size() > 0:
+					var next_coord = path_array[0]
 					var tile = working_matrix.get_tile(next_coord)
 					if tile:
-						var unit = working_units[unit_id]
-						if current_tick % unit.movement_speed_ticks_per_tile == 0:
-							var granted = reservation_server.resolve_tile_reservation(tile, unit, current_tick, next_coord)
-							if granted:
-								reservations_granted[unit_id] = next_coord
+						# Note: signature in initiative_reservation_server.gd is:
+						# resolve_tile_reservation(tile, requesting_unit, units_map, micro_tick) -> int
+						var granted = reservation_server.resolve_tile_reservation(tile, unit, working_units, current_tick) == 1
 
-		# STEP D: Execute cardinal unit movement steps and path updates
-		for unit_id in reservations_granted:
-			var next_coord = reservations_granted[unit_id]
-			var unit = working_units[unit_id]
+						if granted:
+							# GRANTED
+							# Pop path
+							path_array.pop_front()
+							unit.template_parameters["current_path"] = path_array
 
-			var old_coord_x = unit.template_parameters.get("last_coord_x", -1)
-			var old_coord_y = unit.template_parameters.get("last_coord_y", -1)
-			var old_coord_z = unit.template_parameters.get("last_coord_z", -1)
+							var old_coord_x = unit.template_parameters.get("last_coord_x", -1)
+							var old_coord_y = unit.template_parameters.get("last_coord_y", -1)
+							var old_coord_z = unit.template_parameters.get("last_coord_z", -1)
 
-			if old_coord_x != -1:
-				var old_tile = working_matrix.get_tile(Vector3i(old_coord_x, old_coord_y, old_coord_z))
-				if old_tile and old_tile.occupying_unit_id == unit_id:
-					old_tile.occupying_unit_id = -1
+							if old_coord_x != -1:
+								var old_tile = working_matrix.get_tile(Vector3i(old_coord_x, old_coord_y, old_coord_z))
+								if old_tile and old_tile.occupying_unit_id == unit_id:
+									old_tile.occupying_unit_id = -1
 
-			var new_tile = working_matrix.get_tile(next_coord)
-			if new_tile:
-				new_tile.occupying_unit_id = unit_id
+							tile.occupying_unit_id = unit_id
+							unit.template_parameters["last_coord_x"] = next_coord.x
+							unit.template_parameters["last_coord_y"] = next_coord.y
+							unit.template_parameters["last_coord_z"] = next_coord.z
 
-			unit.template_parameters["last_coord_x"] = next_coord.x
-			unit.template_parameters["last_coord_y"] = next_coord.y
-			unit.template_parameters["last_coord_z"] = next_coord.z
+							# Reset cooldown
+							unit.template_parameters["unit_movement_cooldown"] = unit.movement_speed_ticks_per_tile
+
+						else:
+							# DENIED (blocked)
+							unit.template_parameters["current_path"] = []
+							unit.template_parameters["path_recalculation_cooldown"] = 5
+							# Also set move cooldown so it doesn't spam reservations
+							unit.template_parameters["unit_movement_cooldown"] = 1
+
 
 		# STEP E: Resolve combat hits, damage application, and morale/order fracture checks
 		for unit_id in unit_intents:
