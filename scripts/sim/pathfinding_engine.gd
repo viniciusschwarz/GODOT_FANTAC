@@ -2,7 +2,7 @@ class_name PathfindingEngine extends RefCounted
 
 func calculate_path(matrix: BattlefieldMatrix, start: Vector3i, target: Vector3i, unit_data: UnitDataResource) -> Array[Vector3i]:
 	if start == target:
-		return [start]
+		return []
 
 	# A* Implementation restricted to 4-directional cardinal steps (N, S, E, W)
 	var open_set: Array[Vector3i] = [start]
@@ -127,4 +127,8 @@ func _reconstruct_path(came_from: Dictionary, current: Vector3i) -> Array[Vector
 	while came_from.has(current):
 		current = came_from[current]
 		path.push_front(current)
+	if path.size() > 1:
+		path.pop_front() # Remove start node
+	elif path.size() == 1:
+		path.clear()
 	return path

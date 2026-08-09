@@ -93,18 +93,14 @@ func evaluate_unit_behavior(unit: UnitDataResource, matrix: BattlefieldMatrix, a
 			result["action_type"] = ActionType.FALLBACK_TO_COVER
 			result["target_coord"] = unit_coord
 			result["telemetry_entry"] = { "tick": current_tick, "msg": "Aggressive Assault: Falling back to cover" }
-			return result
-
 		# Branch 2: If enemy in melee range -> Action: Melee_Attack.
-		if melee_targets.size() > 0:
+		elif melee_targets.size() > 0:
 			result["action_type"] = ActionType.MELEE_ATTACK
 			result["target_coord"] = melee_targets[0]["coord"]
-			return result
-
 		# Default: Action: Advance_Shortest_Path_To_Objective.
-		result["action_type"] = ActionType.ADVANCE_TO_OBJECTIVE
-		result["target_coord"] = unit.template_parameters.get("objective_coord", closest_visible_enemy_coord)
-		return result
+		else:
+			result["action_type"] = ActionType.ADVANCE_TO_OBJECTIVE
+			result["target_coord"] = unit.template_parameters.get("objective_coord", closest_visible_enemy_coord)
 
 	elif active_template == &"CAUTIOUS_OVERWATCH":
 		# Branch 1: If current_hp / max_hp < 0.40 -> Action: Fallback_To_Cover.
@@ -113,35 +109,27 @@ func evaluate_unit_behavior(unit: UnitDataResource, matrix: BattlefieldMatrix, a
 			result["action_type"] = ActionType.FALLBACK_TO_COVER
 			result["target_coord"] = unit_coord
 			result["telemetry_entry"] = { "tick": current_tick, "msg": "Cautious Overwatch: Falling back to cover" }
-			return result
-
 		# Branch 2: If enemy in ranged threat envelope -> Action: Ranged_Trade_From_Cover (RANGED_ATTACK)
-		if ranged_targets.size() > 0:
+		elif ranged_targets.size() > 0:
 			result["action_type"] = ActionType.RANGED_ATTACK
 			result["target_coord"] = ranged_targets[0]["coord"]
-			return result
-
 		# Default: Action: Advance_Via_Cover_Tiles (ADVANCE_TO_OBJECTIVE)
-		result["action_type"] = ActionType.ADVANCE_TO_OBJECTIVE
-		result["target_coord"] = unit.template_parameters.get("objective_coord", closest_visible_enemy_coord)
-		return result
+		else:
+			result["action_type"] = ActionType.ADVANCE_TO_OBJECTIVE
+			result["target_coord"] = unit.template_parameters.get("objective_coord", closest_visible_enemy_coord)
 
 	elif active_template == &"POINT_GUARD":
 		# Branch 1: If enemy in melee/threat range -> Action: Attack_Target.
 		if melee_targets.size() > 0:
 			result["action_type"] = ActionType.MELEE_ATTACK
 			result["target_coord"] = melee_targets[0]["coord"]
-			return result
-
-		if ranged_targets.size() > 0:
+		elif ranged_targets.size() > 0:
 			result["action_type"] = ActionType.RANGED_ATTACK
 			result["target_coord"] = ranged_targets[0]["coord"]
-			return result
-
 		# Default: Action: Hold_Anchor_Tile.
-		result["action_type"] = ActionType.HOLD_ANCHOR
-		result["target_coord"] = unit.template_parameters.get("anchor_coord", unit_coord)
-		return result
+		else:
+			result["action_type"] = ActionType.HOLD_ANCHOR
+			result["target_coord"] = unit.template_parameters.get("anchor_coord", unit_coord)
 
 	if result["action_type"] == ActionType.ADVANCE_TO_OBJECTIVE or result["action_type"] == ActionType.FALLBACK_TO_COVER:
 		var recalc_cooldown = unit.template_parameters.get("path_recalculation_cooldown", 0)
