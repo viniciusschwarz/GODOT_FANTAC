@@ -23,3 +23,4 @@ signal match_ended(allied_won: bool)
 # Turn Flow Signals
 signal plan_submitted(plan: TurnPlanResource)
 signal playback_completed()
+signal grid_initialized(matrix: BattlefieldMatrix)

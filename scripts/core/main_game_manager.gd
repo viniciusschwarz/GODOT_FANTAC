@@ -42,6 +42,7 @@ func initialize_match(matrix: BattlefieldMatrix, units: Dictionary) -> void:
 
 	dummy_buffer.tick_snapshots.append(snapshot)
 
+	EventBus.grid_initialized.emit(master_matrix)
 	EventBus.turn_simulation_completed.emit(dummy_buffer)
 
 	enter_planning_phase()
