@@ -21,6 +21,8 @@ var master_matrix: BattlefieldMatrix = null
 var current_phase: EventBus.Phase = EventBus.Phase.INITIALIZATION
 var _static_unit_cache: Dictionary = {} # READ-ONLY cache of UnitDataResource
 var _static_prop_coords: Dictionary = {} # prop_id -> Vector3i
+var active_z_level: int = 1
+var _current_tick: int = 0
 
 
 func _ready() -> void:
@@ -138,6 +140,8 @@ func _on_scrubber_tick_changed(target_tick: int) -> void:
 	if not current_replay_buffer or target_tick < 0 or target_tick >= current_replay_buffer.tick_snapshots.size():
 		return
 
+	_current_tick = target_tick
+
 	# [EXTERNAL DATA ACCESS] Accessing the replay buffer
 	var snapshot = current_replay_buffer.tick_snapshots[target_tick]
 
@@ -145,22 +149,27 @@ func _on_scrubber_tick_changed(target_tick: int) -> void:
 		var token: UnitTokenView = unit_tokens[token_id]
 
 		if token_id in snapshot.unit_transform_states:
-			token.visible = true
 			# [EXTERNAL DATA ACCESS] Retrieving the exact grid coordinate from the snapshot
 			var coord: Vector3i = snapshot.unit_transform_states[token_id]
-			var hp: float = snapshot.unit_hp_states.get(token_id, 0.0)
-			token.update_state(coord, hp)
+			if coord.z <= active_z_level:
+				token.visible = true
+				var hp: float = snapshot.unit_hp_states.get(token_id, 0.0)
+				token.update_state(coord, hp)
+			else:
+				token.visible = false
 		elif token_id in snapshot.prop_states:
 			# [EXTERNAL DATA ACCESS] Retrieving the prop state from the snapshot
 			var state = snapshot.prop_states[token_id]
-			if state == 0: # Intact
-				token.visible = true
-			else:
-				token.visible = false
 
 			if _static_prop_coords.has(token_id):
 				var coord = _static_prop_coords[token_id]
-				token.update_state(coord, 100.0) # Props don't track HP in UI right now
+				if state == 0 and coord.z <= active_z_level: # Intact and on/below active Z
+					token.visible = true
+					token.update_state(coord, 100.0) # Props don't track HP in UI right now
+				else:
+					token.visible = false
+			else:
+				token.visible = false
 		else:
 			token.visible = false
 
@@ -215,7 +224,20 @@ func _redraw_intent_lines() -> void:
 			line.default_color = Color(1.0, 0.5, 0.0, 0.8) # Orange intent line
 			lines_container.add_child(line)
 
+func _set_active_z_level(level: int) -> void:
+	active_z_level = clampi(level, 0, 1)
+	rampart_layer_z1.visible = (active_z_level >= 1)
+	_on_scrubber_tick_changed(_current_tick) # Refresh tokens
+
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed:
+		if event.keycode == KEY_Q:
+			_set_active_z_level(active_z_level - 1)
+			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_E:
+			_set_active_z_level(active_z_level + 1)
+			get_viewport().set_input_as_handled()
+
 	if event is InputEventMouseButton and event.pressed:
 		if master_matrix == null:
 			return
@@ -225,9 +247,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		var grid_x = int(mouse_pos.x / 64.0)
 		var grid_y = int(mouse_pos.y / 64.0)
 
-		# Check Z1 first, then Z0
-		var clicked_coord = Vector3i(grid_x, grid_y, 1)
-		var tile = master_matrix.get_tile(clicked_coord)
+		var tile = null
+		var clicked_coord = Vector3i.ZERO
+
+		# Check Z1 first (if active), then Z0
+		if active_z_level >= 1:
+			clicked_coord = Vector3i(grid_x, grid_y, 1)
+			tile = master_matrix.get_tile(clicked_coord)
+
 		if tile == null:
 			clicked_coord = Vector3i(grid_x, grid_y, 0)
 			tile = master_matrix.get_tile(clicked_coord)
