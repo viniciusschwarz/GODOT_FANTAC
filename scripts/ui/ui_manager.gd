@@ -77,6 +77,10 @@ func _on_phase_changed(new_phase: EventBus.Phase) -> void:
 		if input_blocker:
 			input_blocker.visible = true
 
+	if new_phase == EventBus.Phase.PLAYBACK:
+		if not is_playing:
+			_on_play_pause_pressed()
+
 func _on_play_pause_pressed() -> void:
 	is_playing = !is_playing
 	if is_playing:
