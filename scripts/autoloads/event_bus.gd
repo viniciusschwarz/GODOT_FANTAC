@@ -16,3 +16,6 @@ signal prop_state_changed(prop_id: int, new_state: int)
 # Playback & UI Signals
 signal scrubber_tick_changed(target_tick: int)
 signal playback_state_changed(is_playing: bool, speed_multiplier: float)
+
+# Match Signals
+signal match_ended(allied_won: bool)

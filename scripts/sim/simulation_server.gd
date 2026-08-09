@@ -7,7 +7,7 @@ var ai_evaluator: AITreeEvaluator = AITreeEvaluator.new()
 
 var next_proj_id: int = 1
 
-func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatrix, initial_units: Array[UnitDataResource]) -> TurnReplayBufferResource:
+func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatrix, initial_units: Dictionary) -> TurnReplayBufferResource:
 	var replay_buffer = TurnReplayBufferResource.new()
 	if plan:
 		replay_buffer.turn_number = plan.turn_number
@@ -17,7 +17,8 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 
 	var working_matrix = initial_matrix.duplicate_grid()
 	var working_units: Dictionary = {}
-	for unit in initial_units:
+	for unit_id in initial_units:
+		var unit = initial_units[unit_id]
 		working_units[unit.unit_id] = unit.duplicate_data()
 		# If unit directives and templates are part of the plan, we should apply them here.
 		if plan:
@@ -194,6 +195,7 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 			var cz = unit.template_parameters.get("last_coord_z", 0)
 			snapshot.unit_transform_states[unit_id] = Vector3i(cx, cy, cz)
 			snapshot.unit_hp_states[unit_id] = unit.current_hp
+			snapshot.unit_stress_states[unit_id] = unit.current_stress
 			# Animation state could be derived, setting default 0 for now
 			snapshot.unit_animation_states[unit_id] = 0
 
