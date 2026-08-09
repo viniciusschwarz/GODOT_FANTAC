@@ -687,3 +687,56 @@ RULES:
 - Never use Godot Tweens or visual position vectors here. Movement is strictly updating the `occupying_unit_id` across discrete `Vector3i` matrix tiles.
 ```
 ---------------------------------------------------------------------------------------------------
+
+## LAYER 9: DYNAMIC COMMANDER INTERFACE
+
+### PROMPT 9.1: Single Dynamic Prefab Container & Inspector
+---------------------------------------------------------------------------------------------------
+ROLE: Godot 4 UI/UX Engineer.
+CONTEXT: We must avoid overcomplicating the interface system with multiple separate UI scripts. 
+OBJECTIVE: Write a centralized `commander_inspector_ui.gd` and a single `unit_card_prefab.tscn` that updates dynamically based on player selection.
+
+REQUIREMENTS:
+1. Single Prefab Instantiation:
+   - Create `UnitCardPrefab.tscn` (Control Node) containing a Name Label, HP/Stress ProgressBars, and a Template OptionButton. 
+   - `commander_inspector_ui.gd` hosts ONE instance of this prefab.
+   - When `EventBus.unit_selected(unit_id)` fires, populate this single prefab container with data from `master_units[unit_id]`. Do not spawn multiple panels.
+   
+2. Draft State & Visual Reset:
+   - Track `draft_directives: Dictionary[int, StringName]`. Save dropdown choices here before "Simulate" is clicked.
+   - When updating the prefab, EXPLICITLY reset all visual states before applying new data.
+   - If `unit.is_order_fractured == true`, force the prefab's OptionButton text to "FRACTURED" and disable it.
+
+3. Phase Handoff:
+   - PLANNING: Prefab reads `master_units`.
+   - PLAYBACK: Dropdown locks. Prefab reads HP/Stress from `TurnReplayBufferResource.tick_snapshots[current_tick]` via `scrubber_tick_changed`.
+
+RULES:
+- Use strict GDScript (GDS). No C#.
+---------------------------------------------------------------------------------------------------
+
+## LAYER 10: ARCHITECTURAL PATCHES & FIXES
+
+### PROMPT 10.1: Target Updates for Layers 7 & 8 (GDS Only)
+---------------------------------------------------------------------------------------------------
+ROLE: Lead Godot 4 Systems Engineer.
+CONTEXT: We are issuing a targeted refactor pass to update our existing Layers 7 and 8 scripts to fix WeGo movement timing, telemetry timing, and procedural texture generation.
+OBJECTIVE: Apply the following patches to existing scripts using pure GDScript (no C#).
+
+REQUIREMENTS:
+1. Procedural Grid Patch (`battlefield_view.gd` & `event_bus.gd`):
+   - Add `signal grid_initialized(matrix)` to `event_bus.gd`.
+   - Update grid painting to generate a SINGLE `128x64` Image for the `TileSetAtlasSource`. (X 0-63 is Z0 Green, X 64-127 is Z1 Gray). Explicitly set texture filtering to Nearest to prevent pixel bleeding.
+
+2. Telemetry Timing Patch (`main_game_manager.gd`):
+   - Move the call for `debug_print_turn_summary(buffer)` to the VERY BEGINNING of `advance_to_next_turn()`.
+   - It MUST execute before any dead units (HP <= 0) are removed from `master_units` to ensure combat results are logged. Include Stress deltas in the string output.
+
+3. Waypoint & Intent Patch (`battlefield_view.gd` & `ui_manager.gd`):
+   - Limit `active_waypoints` to STRICTLY ONE waypoint per unit.
+   - Draw the `Line2D` intent line as a straight path from the unit token to the target tile center, completely ignoring grid geometry (no Manhattan paths).
+
+4. Async Movement Cooldown Patch (`simulation_server.gd`):
+   - REMOVE the global modulo check (`current_tick % speed == 0`) from Step D.
+   - REPLACE it with a check against `unit.template_parameters["unit_movement_cooldown"]`. Decrement this value. When it hits 0, execute the matrix step and reset the cooldown.
+---------------------------------------------------------------------------------------------------
