@@ -1,18 +1,18 @@
 [gd_scene format=3 uid="uid://mainsceneid"]
 
-[ext_resource type="Script" path="res://scripts/core/scenario_loader.gd" id="1_loader"]
-[ext_resource type="Script" path="res://scripts/core/main_game_manager.gd" id="2_manager"]
-[ext_resource type="PackedScene" uid="uid://battlefield_view_0" path="res://scenes/view/battlefield_view.tscn" id="3_view"]
-[ext_resource type="PackedScene" uid="uid://ui_manager_uid" path="res://scenes/ui/ui_manager.tscn" id="4_ui"]
+[ext_resource type="Script" uid="uid://dsrqfbmk4yw41" path="res://scripts/core/scenario_loader.gd" id="1_loader"]
+[ext_resource type="Script" uid="uid://d3jts1dbnpelj" path="res://scripts/core/main_game_manager.gd" id="2_manager"]
+[ext_resource type="PackedScene" path="res://scenes/view/battlefield_view.tscn" id="3_view"]
+[ext_resource type="PackedScene" path="res://scenes/ui/ui_manager.tscn" id="4_ui"]
 
-[node name="Main" type="Node"]
+[node name="Main" type="Node" unique_id=31912235]
 
-[node name="ScenarioLoader" type="Node" parent="."]
+[node name="ScenarioLoader" type="Node" parent="." unique_id=2021797682]
 script = ExtResource("1_loader")
 
-[node name="MainGameManager" type="Node" parent="."]
+[node name="MainGameManager" type="Node" parent="." unique_id=827069838]
 script = ExtResource("2_manager")
 
-[node name="BattlefieldView" parent="." instance=ExtResource("3_view")]
+[node name="BattlefieldView" parent="." unique_id=1563475004 instance=ExtResource("3_view")]
 
-[node name="UIManager" parent="." instance=ExtResource("4_ui")]
+[node name="UIManager" parent="." unique_id=737082023 instance=ExtResource("4_ui")]

@@ -13,7 +13,7 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 		replay_buffer.turn_number = plan.turn_number
 	else:
 		replay_buffer.turn_number = 1
-	replay_buffer.tick_snapshots = []
+	replay_buffer.tick_snapshots = [] as Array[TickSnapshotData]
 
 	var working_matrix = initial_matrix.duplicate_grid()
 	var working_units: Dictionary = {}
