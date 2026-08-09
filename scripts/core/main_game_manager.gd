@@ -75,7 +75,44 @@ func _on_playback_completed() -> void:
 	if current_phase == Phase.PLAYBACK and current_replay_buffer != null:
 		advance_to_next_turn(current_replay_buffer)
 
+func debug_print_turn_summary(buffer: TurnReplayBufferResource) -> void:
+	print("=== SIMULATION TURN %d COMPLETED ===" % current_turn)
+
+	if buffer.tick_snapshots.is_empty():
+		return
+
+	var start_state: TickSnapshotData = buffer.tick_snapshots[0]
+	var final_state: TickSnapshotData = buffer.tick_snapshots[buffer.tick_snapshots.size() - 1]
+
+	for unit_id in master_units.keys():
+		var unit: UnitDataResource = master_units[unit_id]
+
+		var start_pos = start_state.unit_transform_states.get(unit_id, Vector3i.ZERO)
+		var end_pos = final_state.unit_transform_states.get(unit_id, Vector3i.ZERO)
+
+		var start_hp = start_state.unit_hp_states.get(unit_id, unit.current_hp)
+		var end_hp = final_state.unit_hp_states.get(unit_id, unit.current_hp)
+
+		var start_stress = start_state.unit_stress_states.get(unit_id, unit.current_stress)
+		var end_stress = final_state.unit_stress_states.get(unit_id, unit.current_stress)
+
+		var template_name = str(unit.active_template_id)
+
+		var pos_str = "(%d, %d, %d) -> (%d, %d, %d)" % [start_pos.x, start_pos.y, start_pos.z, end_pos.x, end_pos.y, end_pos.z]
+
+		print("[ID:%d] %s (%s) | Pos: %s | HP: %s -> %s | Stress: %s -> %s" % [
+			unit_id,
+			unit.unit_name,
+			template_name,
+			pos_str,
+			str(start_hp),
+			str(end_hp),
+			str(start_stress),
+			str(end_stress)
+		])
+
 func advance_to_next_turn(buffer: TurnReplayBufferResource) -> void:
+	debug_print_turn_summary(buffer)
 	var final_state = buffer.tick_snapshots[99]
 
 	var dead_units: Array = []
