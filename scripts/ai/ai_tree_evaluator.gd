@@ -35,9 +35,10 @@ func evaluate_unit_behavior(unit: UnitDataResource, matrix: BattlefieldMatrix, a
 	var melee_targets: Array[Dictionary] = []
 	var ranged_targets: Array[Dictionary] = []
 	var visible_enemies: Array[Dictionary] = []
+	var all_alive_enemies: Array[Dictionary] = []
 
 	for enemy_id in all_units:
-		var enemy: UnitDataResource = all_units[enemy_id]
+		var enemy: UnitDataResource = all_units[enemy_id] # [EXTERNAL DATA ACCESS]
 		if enemy.faction_id != unit.faction_id and enemy.current_hp > 0:
 			if not all_unit_coords.has(enemy.unit_id):
 				continue
@@ -54,6 +55,8 @@ func evaluate_unit_behavior(unit: UnitDataResource, matrix: BattlefieldMatrix, a
 			var grid_dist = abs(enemy_coord.x - unit_coord.x) + abs(enemy_coord.y - unit_coord.y) + abs(enemy_coord.z - unit_coord.z)
 			var in_range = (grid_dist >= unit.attack_range_min and grid_dist <= unit.attack_range_max)
 
+			all_alive_enemies.append({ "unit": enemy, "coord": enemy_coord, "dist": grid_dist })
+
 			# We only need to check LOS if they are in range OR for the visibility check
 			var los_result = matrix.calculate_3d_line_of_sight(unit_coord, enemy_coord)
 			var has_los = los_result.get("has_los", false)
@@ -68,6 +71,9 @@ func evaluate_unit_behavior(unit: UnitDataResource, matrix: BattlefieldMatrix, a
 	if visible_enemies.size() > 0:
 		visible_enemies.sort_custom(func(a, b): return a["dist"] < b["dist"])
 		closest_visible_enemy_coord = visible_enemies[0]["coord"]
+	elif all_alive_enemies.size() > 0:
+		all_alive_enemies.sort_custom(func(a, b): return a["dist"] < b["dist"])
+		closest_visible_enemy_coord = all_alive_enemies[0]["coord"]
 
 	# Hysteresis Check
 	var is_locked = current_tick < unit.template_parameters.get("fallback_lock_until_tick", 0)
