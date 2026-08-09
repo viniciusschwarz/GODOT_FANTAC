@@ -1,0 +1,57 @@
+[gd_scene load_steps=3 format=3 uid="uid://ui_manager_uid"]
+
+[ext_resource type="Script" path="res://scripts/ui/ui_manager.gd" id="1_uim"]
+[ext_resource type="PackedScene" uid="uid://telemetry_badge_uid" path="res://scenes/ui/floating_telemetry_badge.tscn" id="2_tbd"]
+
+[node name="UIManager" type="CanvasLayer"]
+script = ExtResource("1_uim")
+
+[node name="BottomPanel" type="Panel" parent="."]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -60.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="HBoxContainer" type="HBoxContainer" parent="BottomPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+alignment = 1
+
+[node name="PlayPauseButton" type="Button" parent="BottomPanel/HBoxContainer"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text = "Play"
+
+[node name="PlaybackSlider" type="HSlider" parent="BottomPanel/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+max_value = 99.0
+tick_count = 100
+ticks_on_borders = true
+
+[node name="SidePanel" type="Panel" parent="."]
+anchors_preset = 11
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -200.0
+offset_bottom = -60.0
+grow_horizontal = 0
+grow_vertical = 2
+
+[node name="DirectiveDropdown" type="OptionButton" parent="SidePanel"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 31.0
+grow_horizontal = 2
+
+[node name="FloatingTelemetryBadge" parent="." instance=ExtResource("2_tbd")]
