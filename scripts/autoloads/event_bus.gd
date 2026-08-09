@@ -19,3 +19,7 @@ signal playback_state_changed(is_playing: bool, speed_multiplier: float)
 
 # Match Signals
 signal match_ended(allied_won: bool)
+
+# Turn Flow Signals
+signal plan_submitted(plan: TurnPlanResource)
+signal playback_completed()

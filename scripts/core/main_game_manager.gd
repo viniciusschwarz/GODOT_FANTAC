@@ -7,6 +7,11 @@ var current_turn: int = 1
 
 var master_matrix: BattlefieldMatrix
 var master_units: Dictionary = {}
+var current_replay_buffer: TurnReplayBufferResource = null
+
+func _ready() -> void:
+	EventBus.plan_submitted.connect(execute_simulation)
+	EventBus.playback_completed.connect(_on_playback_completed)
 
 func initialize_match(matrix: BattlefieldMatrix, units: Dictionary) -> void:
 	master_matrix = matrix
@@ -61,8 +66,13 @@ func execute_simulation(plan: TurnPlanResource) -> void:
 
 func enter_playback_phase(buffer: TurnReplayBufferResource) -> void:
 	current_phase = Phase.PLAYBACK
+	current_replay_buffer = buffer
 	EventBus.turn_simulation_completed.emit(buffer)
 	EventBus.phase_changed.emit(Phase.PLAYBACK)
+
+func _on_playback_completed() -> void:
+	if current_phase == Phase.PLAYBACK and current_replay_buffer != null:
+		advance_to_next_turn(current_replay_buffer)
 
 func advance_to_next_turn(buffer: TurnReplayBufferResource) -> void:
 	var final_state = buffer.tick_snapshots[99]
