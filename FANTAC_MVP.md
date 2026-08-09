@@ -470,3 +470,100 @@ RULES:
 ---------------------------------------------------------------------------------------------------
 
 ```
+## LAYER 6: PLAYABLE MVP INTEGRATION PROMPTS
+Feed these exact prompts to your coding AI to finalize the MVP loop.
+
+### PROMPT 6.1: Macro Phase Controller (MainGameManager)
+Plaintext
+PROMPT TEMPLATE: LAYER 6 - STEP 1 (MACRO PHASE CONTROLLER)
+---------------------------------------------------------------------------------------------------
+ROLE: Lead Godot 4 Systems Engineer.
+CONTEXT: Building the overarching state machine that drives the WeGo tactical engine loop.
+OBJECTIVE: Write res://scripts/core/main_game_manager.gd (Attached to a Node).
+
+REQUIREMENTS:
+1. State Management:
+   - Define enum Phase { INITIALIZATION, PLANNING, SIMULATING, PLAYBACK, MATCH_END }
+   - Track current_phase, current_turn (1 to 5), master_matrix, master_units.
+
+2. Phase Loop Execution:
+   - enter_planning_phase(): Creates a fresh TurnPlanResource, unlocks UI via EventBus.phase_changed(PLANNING).
+   - execute_simulation(plan: TurnPlanResource): Sets phase to SIMULATING. Instantiates SimulationServer, passes master_matrix and master_units. Yields/Waits for SimulationServer to return the TurnReplayBufferResource.
+   - enter_playback_phase(buffer): Emits EventBus.turn_simulation_completed(buffer) and EventBus.phase_changed(PLAYBACK).
+
+3. The Tick 99 Turn Handoff (CRITICAL):
+   - Method: advance_to_next_turn(buffer: TurnReplayBufferResource)
+   - Extracts snapshot 99: var final_state = buffer.tick_snapshots[99]
+   - Iterates through master_units. Updates unit_current_hp and stress from the snapshot.
+   - If unit HP <= 0, removes unit from master_units and clears its occupying_unit_id from master_matrix.
+   - Evaluates Win/Loss (See Step 4).
+   - Increments current_turn. If current_turn > 5, triggers MATCH_END (Loss). Otherwise, loops back to enter_planning_phase().
+
+4. Win Condition Evaluation:
+   - At the end of advance_to_next_turn, check the master_matrix tile at Vector3i(6, 11, 1).
+   - If occupying_unit_id belongs to an ALLIED faction unit, emit EventBus.match_ended(true).
+
+RULES:
+- Ensure strict guardrails: execute_simulation MUST do nothing if current_phase != PLANNING.
+- Use GDScript strictly (No C#).
+---------------------------------------------------------------------------------------------------
+### PROMPT 6.2: Scenario Loader & Main Scene
+Plaintext
+PROMPT TEMPLATE: LAYER 6 - STEP 2 (SCENARIO LOADER & MAIN SCENE)
+---------------------------------------------------------------------------------------------------
+ROLE: Godot 4 Gameplay Programmer.
+CONTEXT: Assembling the final game scene that wires the Data, View, and UI layers together.
+OBJECTIVE: Create res://scenes/main.tscn and its attached script res://scripts/core/scenario_loader.gd.
+
+REQUIREMENTS:
+1. Scene Tree Structure (main.tscn):
+   - Root: Node (Main)
+     - ScenarioLoader (Script attached here)
+     - MainGameManager (Node)
+     - BattlefieldView (Instantiated Scene)
+     - UIManager (Instantiated CanvasLayer Scene)
+
+2. ScenarioLoader.gd Initialization Logic (_ready):
+   - Instantiates BattlefieldMatrix.
+   - Loads the .tres presets from res://data/units/ and res://data/props/.
+   - Duplicates them (.duplicate_data()) to create runtime instances.
+   - Spawns Allied Vanguard at (8,1,0), Allied Skirmisher at (4,1,0).
+   - Spawns Enemy Guard at (6,5,0), Enemy Archer at (6,8,1).
+   - Spawns Wooden Gate prop at (6,4,0).
+   - Registers all units into a dictionary and the matrix.
+
+3. Dependency Injection:
+   - Passes the populated master_matrix and master_units dictionary into MainGameManager.
+   - Calls MainGameManager.start_match() to kick off Turn 1.
+
+RULES:
+- ScenarioLoader is a one-time setup script. Once it injects data into MainGameManager, its job is done.
+- Use explicit ResourceLoader.load() calls to grab the .tres files.
+---------------------------------------------------------------------------------------------------
+### PROMPT 6.3: UI Handoff & Morale Lockout
+Plaintext
+PROMPT TEMPLATE: LAYER 6 - STEP 3 (UI HANDOFF & MORALE ENFORCEMENT)
+---------------------------------------------------------------------------------------------------
+ROLE: Godot 4 UI/UX Engineer.
+CONTEXT: Finalizing the UI Manager to respect the Turn Handoff and Morale state of the units.
+OBJECTIVE: Update res://scripts/ui/ui_manager.gd to handle the Submit button and Order Fractures.
+
+REQUIREMENTS:
+1. Submit Plan Button:
+   - Add a "Simulate Turn" Button to the UI.
+   - When clicked: Emits a local signal to MainGameManager containing the active TurnPlanResource.
+   - IMMEDIATELY disables the button and all template dropdowns to prevent the Double-Click Race Condition.
+
+2. Morale Lockout (Order Fracture UI):
+   - During the PLANNING phase, when the player selects a unit, read unit_data.is_order_fractured.
+   - If true: Disable the AI Template Dropdown for that unit.
+   - Force the UI text of the dropdown to read "FRACTURED: UNCONTROLLED".
+   - This ensures the player cannot magically override a panicked unit's behavior until they recover.
+
+3. End of Playback Catch:
+   - When the playback slider naturally reaches Tick 99 and completes the 5-second turn, emit a signal back to MainGameManager: EventBus.playback_completed.emit().
+   - This signal tells the MainGameManager to trigger the advance_to_next_turn() logic.
+
+RULES:
+- The UI MUST NOT mutate unit data during playback or transition. It only reads states and passes the TurnPlanResource.
+---------------------------------------------------------------------------------------------------
