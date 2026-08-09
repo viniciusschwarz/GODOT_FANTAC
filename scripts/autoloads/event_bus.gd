@@ -1,7 +1,10 @@
 extends Node
 
+# Global Phase Enum
+enum Phase { INITIALIZATION, PLANNING, SIMULATING, PLAYBACK, MATCH_END }
+
 # Phase Signals
-signal phase_changed(new_phase: int) # 0=Planning, 1=Simulating, 2=Playback
+signal phase_changed(new_phase: Phase)
 signal turn_simulation_completed(replay_buffer: TurnReplayBufferResource)
 
 # Selection & Interaction Signals

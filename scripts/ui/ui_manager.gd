@@ -66,9 +66,8 @@ func _on_turn_simulation_completed(replay_buffer: TurnReplayBufferResource) -> v
 	current_replay_buffer = replay_buffer
 	_update_telemetry_badge()
 
-func _on_phase_changed(new_phase: int) -> void:
-	# 0=Planning, 1=Simulating, 2=Playback
-	if new_phase == 0:
+func _on_phase_changed(new_phase: EventBus.Phase) -> void:
+	if new_phase == EventBus.Phase.PLANNING:
 		simulate_turn_button.disabled = false
 		active_waypoints.clear()
 		if input_blocker:
