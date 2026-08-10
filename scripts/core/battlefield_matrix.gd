@@ -122,18 +122,18 @@ func is_cardinal_passable(from_coord: Vector3i, to_coord: Vector3i) -> bool:
 		var expected_up_connector: TileSpatialNodeResource.VerticalConnectorType = TileSpatialNodeResource.VerticalConnectorType.NONE
 		var expected_down_connector: TileSpatialNodeResource.VerticalConnectorType = TileSpatialNodeResource.VerticalConnectorType.NONE
 
-		if dy == -1:
-			expected_up_connector = TileSpatialNodeResource.VerticalConnectorType.STAIRS_N
-			expected_down_connector = TileSpatialNodeResource.VerticalConnectorType.STAIRS_S
-		elif dy == 1:
+		if dy == -1: # Moving North
 			expected_up_connector = TileSpatialNodeResource.VerticalConnectorType.STAIRS_S
 			expected_down_connector = TileSpatialNodeResource.VerticalConnectorType.STAIRS_N
-		elif dx == 1:
-			expected_up_connector = TileSpatialNodeResource.VerticalConnectorType.STAIRS_E
-			expected_down_connector = TileSpatialNodeResource.VerticalConnectorType.STAIRS_W
-		elif dx == -1:
+		elif dy == 1: # Moving South
+			expected_up_connector = TileSpatialNodeResource.VerticalConnectorType.STAIRS_N
+			expected_down_connector = TileSpatialNodeResource.VerticalConnectorType.STAIRS_S
+		elif dx == 1: # Moving East
 			expected_up_connector = TileSpatialNodeResource.VerticalConnectorType.STAIRS_W
 			expected_down_connector = TileSpatialNodeResource.VerticalConnectorType.STAIRS_E
+		elif dx == -1: # Moving West
+			expected_up_connector = TileSpatialNodeResource.VerticalConnectorType.STAIRS_E
+			expected_down_connector = TileSpatialNodeResource.VerticalConnectorType.STAIRS_W
 
 		if dz == 1: # Moving UP
 			# The stair flag must strictly be on the Z=0 (from_tile)

@@ -132,10 +132,6 @@ func commit_simulation_state(start_snapshot: TickSnapshotData, final_snapshot: T
 		if final_snapshot.unit_stress_states.has(unit_id):
 			unit.current_stress = final_snapshot.unit_stress_states[unit_id]
 
-		# Update template parameters
-		if final_snapshot.unit_template_states.has(unit_id):
-			unit.template_parameters = final_snapshot.unit_template_states[unit_id].duplicate(true)
-
 		# Check for death
 		if unit.current_hp <= 0:
 			# Use final snapshot strictly, falling back to start snapshot
@@ -144,6 +140,18 @@ func commit_simulation_state(start_snapshot: TickSnapshotData, final_snapshot: T
 				var tile = master_matrix.get_tile(target_coord) # [EXTERNAL DATA ACCESS]
 				if tile and tile.occupying_unit_id == unit_id:
 					tile.occupying_unit_id = -1
+
+		# Get old coordinates from template parameters BEFORE overwriting them
+		var old_coord_x = unit.template_parameters.get("last_coord_x", -1)
+		var old_coord_y = unit.template_parameters.get("last_coord_y", -1)
+		var old_coord_z = unit.template_parameters.get("last_coord_z", -1)
+		var old_coord = Vector3i(old_coord_x, old_coord_y, old_coord_z)
+		unit.template_parameters["__temp_old_coord"] = old_coord
+
+		# Update template parameters
+		if final_snapshot.unit_template_states.has(unit_id):
+			unit.template_parameters = final_snapshot.unit_template_states[unit_id].duplicate(true)
+			unit.template_parameters["__temp_old_coord"] = old_coord
 
 	# We must erase after the iteration, or erase immediately using `.keys()` iteration
 	var dead_units: Array = []
@@ -162,16 +170,15 @@ func commit_simulation_state(start_snapshot: TickSnapshotData, final_snapshot: T
 			if final_snapshot.unit_transform_states.has(unit_id):
 				var new_coord = final_snapshot.unit_transform_states[unit_id]
 
-				# Get the old coordinate from the unit's template_parameters BEFORE updating it
-				var old_coord_x = unit.template_parameters.get("last_coord_x", -1)
-				var old_coord_y = unit.template_parameters.get("last_coord_y", -1)
-				var old_coord_z = unit.template_parameters.get("last_coord_z", -1)
-				var old_coord = Vector3i(old_coord_x, old_coord_y, old_coord_z)
+				# Get the old coordinate extracted BEFORE updating template_parameters
+				var old_coord: Vector3i = unit.template_parameters.get("__temp_old_coord", Vector3i(-1, -1, -1))
 
-				if old_coord_x != -1 and old_coord != new_coord:
+				if old_coord.x != -1 and old_coord != new_coord:
 					var old_tile = master_matrix.get_tile(old_coord)
 					if old_tile and old_tile.occupying_unit_id == unit_id:
 						old_tile.occupying_unit_id = -1
+
+				unit.template_parameters.erase("__temp_old_coord")
 
 				unit.template_parameters["last_coord_x"] = new_coord.x
 				unit.template_parameters["last_coord_y"] = new_coord.y
