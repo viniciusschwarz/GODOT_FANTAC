@@ -23,6 +23,7 @@ enum Faction { ALLIED, ENEMY }
 @export var attack_range_max: int = 1
 @export var attack_duration_ticks: int = 20
 @export var damage_application_tick_offset: int = 10
+@export var weapon_cooldown_ticks: int = 20
 
 @export var can_vault: bool = false
 @export var max_jump_gap: int = 0
@@ -61,6 +62,7 @@ func duplicate_data() -> UnitDataResource:
 	copy.attack_range_max = attack_range_max
 	copy.attack_duration_ticks = attack_duration_ticks
 	copy.damage_application_tick_offset = damage_application_tick_offset
+	copy.weapon_cooldown_ticks = weapon_cooldown_ticks
 
 	copy.can_vault = can_vault
 	copy.max_jump_gap = max_jump_gap

@@ -5,7 +5,8 @@ class_name ScenarioLoader extends Node
 
 func _ready() -> void:
 	var master_matrix = BattlefieldMatrix.new()
-	master_matrix.initialize_grid(12, 12, 2)
+	var grid_gen = GridGenerator.new()
+	grid_gen.generate_tower_map(master_matrix)
 
 	var master_units: Dictionary = {}
 

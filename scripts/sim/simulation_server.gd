@@ -82,6 +82,10 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 			if unit.current_hp <= 0:
 				continue
 
+			var attack_cooldown = unit.template_parameters.get("attack_cooldown", 0)
+			if attack_cooldown > 0:
+				unit.template_parameters["attack_cooldown"] = attack_cooldown - 1
+
 			var eval_result = {}
 			var has_override = false
 
@@ -169,21 +173,22 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 						unit_intents[unit_id] = intent
 
 					if current_tick == (intent.intent_start_tick + unit.damage_application_tick_offset):
+						unit.template_parameters["attack_cooldown"] = unit.weapon_cooldown_ticks
 						# Fire projectile
 						var unit_3d_pos = Vector3(unit.template_parameters.get("last_coord_x", 0) + 0.5, unit.template_parameters.get("last_coord_y", 0) + 0.5, unit.template_parameters.get("last_coord_z", 0) * 3.0 + 1.0)
 						var target = intent.target_coord
 						var target_3d_pos = Vector3(target.x + 0.5, target.y + 0.5, target.z * 3.0 + 1.0)
-						var dir_vec = (target_3d_pos - unit_3d_pos).normalized()
+						var direction: Vector3 = (target_3d_pos - unit_3d_pos).normalized()
 						var speed = 0.5 # assumed projectile speed
 
 						# Apply 1-voxel offset to avoid hitting own tile's cover/boundary
-						unit_3d_pos += dir_vec * 1.0
+						unit_3d_pos += direction * 1.0
 
 						active_projectiles.append({
 							"id": next_proj_id,
 							"source_id": unit.unit_id,
 							"current_pos_3d": unit_3d_pos,
-							"velocity": dir_vec * speed,
+							"velocity": direction * speed,
 							"damage": unit.weapon_damage,
 							"hardness": unit.weapon_hardness_rating
 						})
@@ -260,6 +265,7 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 
 					var melee_result = combat_engine.resolve_melee_attack(attacker, defender, attacker_coord, defender_coord, current_tick)
 					if melee_result.status == &"MELEE_SCHEDULED":
+						attacker.template_parameters["attack_cooldown"] = attacker.weapon_cooldown_ticks
 						scheduled_melee_events.append(melee_result)
 						# Consume the intent so it doesn't trigger multiple times
 						intent.action_type = AITreeEvaluator.ActionType.NONE
