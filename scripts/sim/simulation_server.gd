@@ -53,12 +53,13 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 			var proj = active_projectiles[proj_idx]
 			var result = combat_engine.process_projectile_step(proj, working_matrix, working_units)
 
+			telemetry_events.append(TurnTelemetryLogger.log_projectile_result(current_tick, proj.id, proj.current_pos_3d, str(result.status)))
+
 			if result.status == &"HIT_UNIT":
 				var target_unit = working_units[result.target_id]
 				var dmg = result.damage
 				target_unit.current_hp -= dmg
 				target_unit.current_stress += (dmg * 0.5)
-				telemetry_events.append({"tick": current_tick, "msg": "Unit " + str(target_unit.unit_id) + " hit by projectile for " + str(dmg)})
 				check_morale_fracture(target_unit, current_tick, telemetry_events, unit_intents, scheduled_melee_events)
 				active_projectiles.remove_at(proj_idx)
 			elif result.status == &"INTERCEPTED_TERRAIN":
@@ -86,6 +87,9 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 					"target_coord": eval_result.get("target_coord", Vector3i()),
 					"path_array": eval_result.get("path_array", [])
 				}
+				if not unit_intents.has(unit_id) or unit_intents[unit_id].action_type != intent.action_type:
+					var action_name = AITreeEvaluator.ActionType.keys()[AITreeEvaluator.ActionType.values().find(intent.action_type)]
+					telemetry_events.append(TurnTelemetryLogger.log_ai_decision(current_tick, unit_id, action_name, intent.target_id, intent.target_coord))
 
 				# If it's a ranged attack, we spawn a projectile when the tick offsets match
 				if intent.action_type == AITreeEvaluator.ActionType.RANGED_ATTACK:
@@ -111,6 +115,9 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 						var dir_vec = (target_3d_pos - unit_3d_pos).normalized()
 						var speed = 0.5 # assumed projectile speed
 
+						# Apply 1-voxel offset to avoid hitting own tile's cover/boundary
+						unit_3d_pos += dir_vec * 1.0
+
 						active_projectiles.append({
 							"id": next_proj_id,
 							"source_id": unit.unit_id,
@@ -119,6 +126,8 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 							"damage": unit.weapon_damage,
 							"hardness": unit.weapon_hardness_rating
 						})
+						var los_result = working_matrix.calculate_3d_line_of_sight(Vector3i(unit.template_parameters.get("last_coord_x", 0), unit.template_parameters.get("last_coord_y", 0), unit.template_parameters.get("last_coord_z", 0)), intent.target_coord)
+						telemetry_events.append(TurnTelemetryLogger.log_ranged_fire(current_tick, unit.unit_id, intent.target_id, los_result.get("has_los", false)))
 						next_proj_id += 1
 				else:
 					unit_intents[unit_id] = intent
@@ -166,9 +175,11 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 
 							# Reset cooldown
 							unit.template_parameters["unit_movement_cooldown"] = unit.movement_speed_ticks_per_tile
-
+							telemetry_events.append(TurnTelemetryLogger.log_movement(current_tick, unit_id, next_coord, unit.movement_speed_ticks_per_tile, unit.movement_speed_ticks_per_tile))
 						else:
 							# DENIED (blocked)
+							var occupant = tile.occupying_unit_id if tile.occupying_unit_id != -1 else tile.reserved_unit_id
+							telemetry_events.append(TurnTelemetryLogger.log_rejection(current_tick, unit_id, next_coord, occupant))
 							unit.template_parameters["current_path"] = []
 							unit.template_parameters["path_recalculation_cooldown"] = 5
 							# Also set move cooldown so it doesn't spam reservations
