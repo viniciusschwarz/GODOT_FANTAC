@@ -168,14 +168,14 @@ func commit_simulation_state(start_snapshot: TickSnapshotData, final_snapshot: T
 				var old_coord_z = unit.template_parameters.get("last_coord_z", -1)
 				var old_coord = Vector3i(old_coord_x, old_coord_y, old_coord_z)
 
-				unit.template_parameters["last_coord_x"] = new_coord.x
-				unit.template_parameters["last_coord_y"] = new_coord.y
-				unit.template_parameters["last_coord_z"] = new_coord.z
-
 				if old_coord_x != -1 and old_coord != new_coord:
 					var old_tile = master_matrix.get_tile(old_coord)
 					if old_tile and old_tile.occupying_unit_id == unit_id:
 						old_tile.occupying_unit_id = -1
+
+				unit.template_parameters["last_coord_x"] = new_coord.x
+				unit.template_parameters["last_coord_y"] = new_coord.y
+				unit.template_parameters["last_coord_z"] = new_coord.z
 
 				var new_tile = master_matrix.get_tile(new_coord)
 				if new_tile:

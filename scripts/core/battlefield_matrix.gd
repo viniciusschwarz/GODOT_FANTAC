@@ -104,20 +104,18 @@ func is_cardinal_passable(from_coord: Vector3i, to_coord: Vector3i) -> bool:
 	elif dx == -1: direction_bitmask = 8 # W
 
 	# Check if the traversal mask permits passage from the origin tile
-	# Only check standard cardinal traversal masks if we are moving on the same Z level.
-	# Z-level transitions rely purely on vertical_connector_type validation.
-	if dz == 0:
-		if (from_tile.cardinal_traversal_mask & direction_bitmask) == 0:
-			return false
+	# Always check standard cardinal traversal masks, even during Z-level transitions
+	if (from_tile.cardinal_traversal_mask & direction_bitmask) == 0:
+		return false
 
-		var opposite_bitmask: int = 0
-		if dy == -1: opposite_bitmask = 2 # S
-		elif dy == 1: opposite_bitmask = 1 # N
-		elif dx == 1: opposite_bitmask = 8 # W
-		elif dx == -1: opposite_bitmask = 4 # E
+	var opposite_bitmask: int = 0
+	if dy == -1: opposite_bitmask = 2 # S
+	elif dy == 1: opposite_bitmask = 1 # N
+	elif dx == 1: opposite_bitmask = 8 # W
+	elif dx == -1: opposite_bitmask = 4 # E
 
-		if (to_tile.cardinal_traversal_mask & opposite_bitmask) == 0:
-			return false
+	if (to_tile.cardinal_traversal_mask & opposite_bitmask) == 0:
+		return false
 
 	# Z-level transition logic
 	if dz != 0:
@@ -138,12 +136,12 @@ func is_cardinal_passable(from_coord: Vector3i, to_coord: Vector3i) -> bool:
 			expected_down_connector = TileSpatialNodeResource.VerticalConnectorType.STAIRS_E
 
 		if dz == 1: # Moving UP
-			# Check if either tile has the correctly aligned vertical connector
-			if from_tile.vertical_connector_type != expected_up_connector and to_tile.vertical_connector_type != expected_up_connector:
+			# The stair flag must strictly be on the Z=0 (from_tile)
+			if from_tile.vertical_connector_type != expected_up_connector:
 				return false
 		elif dz == -1: # Moving DOWN
-			# Check if either tile has the correctly aligned vertical connector
-			if from_tile.vertical_connector_type != expected_down_connector and to_tile.vertical_connector_type != expected_down_connector:
+			# The stair flag must strictly be on the Z=0 (to_tile)
+			if to_tile.vertical_connector_type != expected_down_connector:
 				return false
 
 	elif from_tile.vertical_connector_type != TileSpatialNodeResource.VerticalConnectorType.NONE or to_tile.vertical_connector_type != TileSpatialNodeResource.VerticalConnectorType.NONE:
