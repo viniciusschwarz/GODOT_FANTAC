@@ -39,11 +39,15 @@ func evaluate_unit_behavior(unit: UnitDataResource, matrix: BattlefieldMatrix, a
 		# If the unit is not on the board, return NONE
 		return result
 
+	if unit.template_parameters.get("attack_cooldown", 0) > 0:
+		return result
+
 	# Identify valid enemy targets
 	var melee_targets: Array[Dictionary] = []
 	var ranged_targets: Array[Dictionary] = []
 	var visible_enemies: Array[Dictionary] = []
 	var all_alive_enemies: Array[Dictionary] = []
+	var pf = PathfindingEngine.new()
 
 	for enemy_id in all_units:
 		var enemy: UnitDataResource = all_units[enemy_id] # [EXTERNAL DATA ACCESS]
@@ -54,9 +58,7 @@ func evaluate_unit_behavior(unit: UnitDataResource, matrix: BattlefieldMatrix, a
 			var enemy_coord = all_unit_coords[enemy.unit_id]
 
 			# Melee Check
-			var dx = enemy_coord.x - unit_coord.x
-			var dy = enemy_coord.y - unit_coord.y
-			if abs(dx) + abs(dy) == 1 and unit_coord.z == enemy_coord.z:
+			if pf._is_cardinal_adjacent(unit_coord, enemy_coord, matrix):
 				melee_targets.append({ "unit": enemy, "coord": enemy_coord })
 
 			# Ranged and Visibility Check
