@@ -86,65 +86,14 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 			if attack_cooldown > 0:
 				unit.template_parameters["attack_cooldown"] = attack_cooldown - 1
 
-			var eval_result = {}
-			var has_override = false
-
+			var directive = {}
 			if plan and plan.unit_directives.has(unit_id):
-				var directive = plan.unit_directives[unit_id]
-				if directive.type == "ATTACK":
-					has_override = true
-					var target_id = directive.target_id
-					_append_telemetry(telemetry_events, telemetry_logger.log_ui_intent(current_tick, unit_id, target_id, "ATTACK"))
-					var target_coord = directive.target_coord
+				directive = plan.unit_directives[unit_id]
 
-					if working_units.has(target_id):
-						var target_unit = working_units[target_id]
-						var unit_coord = Vector3i(unit.template_parameters.get("last_coord_x", 0), unit.template_parameters.get("last_coord_y", 0), unit.template_parameters.get("last_coord_z", 0))
-						var t_coord = Vector3i(target_unit.template_parameters.get("last_coord_x", 0), target_unit.template_parameters.get("last_coord_y", 0), target_unit.template_parameters.get("last_coord_z", 0))
-
-						var dx = t_coord.x - unit_coord.x
-						var dy = t_coord.y - unit_coord.y
-						var dist = abs(t_coord.x - unit_coord.x) + abs(t_coord.y - unit_coord.y) + abs(t_coord.z - unit_coord.z)
-						var on_cooldown = unit.template_parameters.get("attack_cooldown", 0) > 0
-
-						if abs(dx) + abs(dy) == 1 and unit_coord.z == t_coord.z and not on_cooldown:
-							eval_result["action_type"] = AITreeEvaluator.ActionType.MELEE_ATTACK
-							eval_result["target_id"] = target_id
-							eval_result["target_coord"] = t_coord
-						elif dist >= unit.attack_range_min and dist <= unit.attack_range_max and not on_cooldown:
-							eval_result["action_type"] = AITreeEvaluator.ActionType.RANGED_ATTACK
-							eval_result["target_id"] = target_id
-							eval_result["target_coord"] = t_coord
-						else:
-							eval_result["action_type"] = AITreeEvaluator.ActionType.ADVANCE_TO_OBJECTIVE
-							eval_result["target_coord"] = t_coord
-
-							var recalc_cooldown = unit.template_parameters.get("path_recalculation_cooldown", 0)
-							if recalc_cooldown > 0:
-								unit.template_parameters["path_recalculation_cooldown"] = recalc_cooldown - 1
-								eval_result["path_array"] = unit.template_parameters.get("current_path", [])
-							else:
-								var current_path = unit.template_parameters.get("current_path", [])
-								if current_path.is_empty():
-									var pf = PathfindingEngine.new()
-									var new_path = pf.calculate_path(working_matrix, unit_coord, t_coord, unit)
-									if new_path.size() > 0:
-										_append_telemetry(telemetry_events, telemetry_logger.log_pathfinding(current_tick, unit_id, "Path generated (Length: " + str(new_path.size()) + ")"))
-									else:
-										_append_telemetry(telemetry_events, telemetry_logger.log_pathfinding(current_tick, unit_id, "Path failed (Unreachable)"))
-									unit.template_parameters["current_path"] = new_path
-									eval_result["path_array"] = new_path
-								else:
-									eval_result["path_array"] = current_path
-					else:
-						# Target is dead, clear override
-						has_override = false
-
-			if not has_override:
-				eval_result = ai_evaluator.evaluate_unit_behavior(unit, working_matrix, working_units, current_tick, telemetry_logger)
-				if eval_result.has("telemetry_entries"):
-					for t_entry in eval_result.telemetry_entries:
-						_append_telemetry(telemetry_events, t_entry)
+			var eval_result = ai_evaluator.evaluate_unit_behavior(unit, working_matrix, working_units, current_tick, telemetry_logger, directive)
+			if eval_result.has("telemetry_entries"):
+				for t_entry in eval_result.telemetry_entries:
+					_append_telemetry(telemetry_events, t_entry)
 
 			if eval_result.has("action_type"):
 				var intent = {

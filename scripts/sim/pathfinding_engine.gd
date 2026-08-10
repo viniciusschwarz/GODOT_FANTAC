@@ -26,13 +26,6 @@ func calculate_path(matrix: BattlefieldMatrix, start: Vector3i, target: Vector3i
 	var f_score: Dictionary = {}
 	f_score[start] = _heuristic(start, target)
 
-	var directions: Array[Vector3i] = [
-		Vector3i(0, -1, 0), # N
-		Vector3i(0, 1, 0),  # S
-		Vector3i(1, 0, 0),  # E
-		Vector3i(-1, 0, 0)  # W
-	]
-
 	while open_set.size() > 0:
 		# Get node in open_set with lowest f_score
 		var current: Vector3i = open_set[0]
@@ -52,49 +45,67 @@ func calculate_path(matrix: BattlefieldMatrix, start: Vector3i, target: Vector3i
 
 		open_set.remove_at(current_index)
 
-		for dir in directions:
-			for dz in [-1, 0, 1]:
-				var neighbor = current + dir + Vector3i(0, 0, dz)
+		var valid_neighbors = _get_valid_neighbors(matrix, current, unit_data.unit_id, target)
+		for neighbor in valid_neighbors:
+			var neighbor_tile = matrix.get_tile(neighbor)
 
-				# Check passability using the matrix
-				if not matrix.is_cardinal_passable(current, neighbor):
-					continue
+			# Calculate cost
+			var cost: float = neighbor_tile.base_traversal_cost # Normal: 1.0, Rubble: 2.0
 
-				var neighbor_tile = matrix.get_tile(neighbor)
-				if not neighbor_tile:
-					continue
+			# Staircase cost applies if transitioning Z
+			if current.z != neighbor.z:
+				cost = 1.5
 
-				# Calculate cost
-				var cost: float = neighbor_tile.base_traversal_cost # Normal: 1.0, Rubble: 2.0
+			var tentative_g_score = g_score.get(current, INF) + cost
 
-				# Staircase cost applies if transitioning Z
-				if current.z != neighbor.z:
-					cost = 1.5
+			if tentative_g_score < g_score.get(neighbor, INF):
+				came_from[neighbor] = current
+				g_score[neighbor] = tentative_g_score
+				f_score[neighbor] = tentative_g_score + _heuristic(neighbor, target)
 
-				# Static Occupied Tile Penalty
-				# If the target is an enemy for melee, it will be occupied. Allow pathing to the target itself.
-				# We will strip the final occupied node in _reconstruct_path.
-				# A* naturally doesn't block on the start node because it doesn't get evaluated as a neighbor of itself.
-				if neighbor_tile.occupying_unit_id != -1 and neighbor_tile.occupying_unit_id != unit_data.unit_id:
-					if neighbor != target:
-						continue
-
-				var tentative_g_score = g_score.get(current, INF) + cost
-
-				if tentative_g_score < g_score.get(neighbor, INF):
-					came_from[neighbor] = current
-					g_score[neighbor] = tentative_g_score
-					f_score[neighbor] = tentative_g_score + _heuristic(neighbor, target)
-
-					if not open_set.has(neighbor):
-						open_set.append(neighbor)
+				if not open_set.has(neighbor):
+					open_set.append(neighbor)
 
 	# Path calculation failed
 	unit_data.recalculation_cooldown_ticks = 5
 	return []
 
+func _get_valid_neighbors(matrix: BattlefieldMatrix, current: Vector3i, unit_id: int, target: Vector3i) -> Array[Vector3i]:
+	var valid_neighbors: Array[Vector3i] = []
+	var directions: Array[Vector3i] = [
+		Vector3i(0, -1, 0), # N
+		Vector3i(0, 1, 0),  # S
+		Vector3i(1, 0, 0),  # E
+		Vector3i(-1, 0, 0)  # W
+	]
+
+	for dir in directions:
+		for dz in [-1, 0, 1]:
+			var neighbor = current + dir + Vector3i(0, 0, dz)
+
+			# Check passability using the matrix
+			if not matrix.is_cardinal_passable(current, neighbor):
+				continue
+
+			var neighbor_tile = matrix.get_tile(neighbor)
+			if not neighbor_tile:
+				continue
+
+			# Static Occupied Tile Penalty
+			# If the target is an enemy for melee, it will be occupied. Allow pathing to the target itself.
+			# We will strip the final occupied node in _reconstruct_path.
+			# A* naturally doesn't block on the start node because it doesn't get evaluated as a neighbor of itself.
+			if neighbor_tile.occupying_unit_id != -1 and neighbor_tile.occupying_unit_id != unit_id:
+				if neighbor != target:
+					continue
+
+			valid_neighbors.append(neighbor)
+
+	return valid_neighbors
+
 func _heuristic(a: Vector3i, b: Vector3i) -> float:
-	return abs(a.x - b.x) + abs(a.y - b.y) + abs(a.z - b.z) * 1.5 # Z transitions are more expensive
+	# Use standard 3D Manhattan distance without infinite penalty on Z
+	return abs(a.x - b.x) + abs(a.y - b.y) + abs(a.z - b.z)
 
 func _reconstruct_path(came_from: Dictionary, current: Vector3i, matrix: BattlefieldMatrix) -> Array[Vector3i]:
 	var path: Array[Vector3i] = [current]
