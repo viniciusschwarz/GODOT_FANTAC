@@ -1,5 +1,7 @@
 class_name SimulationServer extends RefCounted
 
+var telemetry_logger: TurnTelemetryLogger = TurnTelemetryLogger.new()
+
 var combat_engine: CombatEngine = CombatEngine.new()
 var reservation_server: InitiativeReservationServer = InitiativeReservationServer.new()
 var pathfinding: PathfindingEngine = PathfindingEngine.new()
@@ -38,6 +40,7 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 		# Always reset movement cooldown at start of the turn
 		cloned_unit.template_parameters["unit_movement_cooldown"] = 0 # [EXTERNAL DATA ACCESS]
 
+	telemetry_logger.reset_turn_cache()
 	var active_projectiles: Array[Dictionary] = []
 	var unit_intents: Dictionary = {}
 	var scheduled_melee_events: Array[Dictionary] = []
@@ -53,7 +56,7 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 			var proj = active_projectiles[proj_idx]
 			var result = combat_engine.process_projectile_step(proj, working_matrix, working_units)
 
-			telemetry_events.append(TurnTelemetryLogger.log_projectile_result(current_tick, proj.id, proj.current_pos_3d, str(result.status)))
+			_append_telemetry(telemetry_events, telemetry_logger.log_projectile_result(current_tick, proj.id, proj.current_pos_3d, str(result.status)))
 
 			if result.status == &"HIT_UNIT":
 				var target_unit = working_units[result.target_id]
@@ -87,7 +90,7 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 				if directive.type == "ATTACK":
 					has_override = true
 					var target_id = directive.target_id
-					telemetry_events.append(TurnTelemetryLogger.log_ui_intent(current_tick, unit_id, target_id, "ATTACK"))
+					_append_telemetry(telemetry_events, telemetry_logger.log_ui_intent(current_tick, unit_id, target_id, "ATTACK"))
 					var target_coord = directive.target_coord
 
 					if working_units.has(target_id):
@@ -121,9 +124,9 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 									var pf = PathfindingEngine.new()
 									var new_path = pf.calculate_path(working_matrix, unit_coord, t_coord, unit)
 									if new_path.size() > 0:
-										telemetry_events.append(TurnTelemetryLogger.log_pathfinding(current_tick, unit_id, "Path generated (Length: " + str(new_path.size()) + ")"))
+										_append_telemetry(telemetry_events, telemetry_logger.log_pathfinding(current_tick, unit_id, "Path generated (Length: " + str(new_path.size()) + ")"))
 									else:
-										telemetry_events.append(TurnTelemetryLogger.log_pathfinding(current_tick, unit_id, "Path failed (Unreachable)"))
+										_append_telemetry(telemetry_events, telemetry_logger.log_pathfinding(current_tick, unit_id, "Path failed (Unreachable)"))
 									unit.template_parameters["current_path"] = new_path
 									eval_result["path_array"] = new_path
 								else:
@@ -133,10 +136,10 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 						has_override = false
 
 			if not has_override:
-				eval_result = ai_evaluator.evaluate_unit_behavior(unit, working_matrix, working_units, current_tick)
+				eval_result = ai_evaluator.evaluate_unit_behavior(unit, working_matrix, working_units, current_tick, telemetry_logger)
 				if eval_result.has("telemetry_entries"):
 					for t_entry in eval_result.telemetry_entries:
-						telemetry_events.append(t_entry)
+						_append_telemetry(telemetry_events, t_entry)
 
 			if eval_result.has("action_type"):
 				var intent = {
@@ -147,7 +150,7 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 				}
 				if not unit_intents.has(unit_id) or unit_intents[unit_id].action_type != intent.action_type:
 					var action_name = AITreeEvaluator.ActionType.keys()[AITreeEvaluator.ActionType.values().find(intent.action_type)]
-					telemetry_events.append(TurnTelemetryLogger.log_ai_decision(current_tick, unit_id, action_name, intent.target_id, intent.target_coord))
+					_append_telemetry(telemetry_events, telemetry_logger.log_ai_decision(current_tick, unit_id, action_name, intent.target_id, intent.target_coord))
 
 				# If it's a ranged attack, we spawn a projectile when the tick offsets match
 				if intent.action_type == AITreeEvaluator.ActionType.RANGED_ATTACK:
@@ -185,7 +188,7 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 							"hardness": unit.weapon_hardness_rating
 						})
 						var los_result = working_matrix.calculate_3d_line_of_sight(Vector3i(unit.template_parameters.get("last_coord_x", 0), unit.template_parameters.get("last_coord_y", 0), unit.template_parameters.get("last_coord_z", 0)), intent.target_coord)
-						telemetry_events.append(TurnTelemetryLogger.log_ranged_fire(current_tick, unit.unit_id, intent.target_id, los_result.get("has_los", false)))
+						_append_telemetry(telemetry_events, telemetry_logger.log_ranged_fire(current_tick, unit.unit_id, intent.target_id, los_result.get("has_los", false)))
 						next_proj_id += 1
 				else:
 					unit_intents[unit_id] = intent
@@ -233,11 +236,11 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 
 							# Reset cooldown
 							unit.template_parameters["unit_movement_cooldown"] = unit.movement_speed_ticks_per_tile
-							telemetry_events.append(TurnTelemetryLogger.log_movement(current_tick, unit_id, next_coord, unit.movement_speed_ticks_per_tile, unit.movement_speed_ticks_per_tile))
+							_append_telemetry(telemetry_events, telemetry_logger.log_movement(current_tick, unit_id, next_coord, unit.movement_speed_ticks_per_tile, unit.movement_speed_ticks_per_tile))
 						else:
 							# DENIED (blocked)
 							var occupant = tile.occupying_unit_id if tile.occupying_unit_id != -1 else tile.reserved_unit_id
-							telemetry_events.append(TurnTelemetryLogger.log_rejection(current_tick, unit_id, next_coord, occupant))
+							_append_telemetry(telemetry_events, telemetry_logger.log_rejection(current_tick, unit_id, next_coord, occupant))
 							unit.template_parameters["current_path"] = []
 							unit.template_parameters["path_recalculation_cooldown"] = 5
 							# Also set move cooldown so it doesn't spam reservations
@@ -271,7 +274,7 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 					var dmg = event.damage
 					defender.current_hp -= dmg
 					defender.current_stress += (dmg * 0.5)
-					telemetry_events.append({"tick": current_tick, "msg": "Unit " + str(defender.unit_id) + " melee hit for " + str(dmg)})
+					_append_telemetry(telemetry_events, {"tick": current_tick, "msg": "Unit " + str(defender.unit_id) + " melee hit for " + str(dmg)})
 					check_morale_fracture(defender, current_tick, telemetry_events, unit_intents, scheduled_melee_events)
 				scheduled_melee_events.remove_at(melee_idx)
 			melee_idx -= 1
@@ -322,7 +325,7 @@ func check_morale_fracture(unit: UnitDataResource, current_tick: int, telemetry_
 				scheduled_melee_events.remove_at(melee_idx)
 			melee_idx -= 1
 
-		telemetry_events.append({"tick": current_tick, "msg": "[Tick " + str(current_tick) + "] Order Fractured! Falling back in panic."})
+		_append_telemetry(telemetry_events, {"tick": current_tick, "msg": "[Tick " + str(current_tick) + "] Order Fractured! Falling back in panic."})
 
 func _cleanup_dead_units(working_units: Dictionary, working_matrix: BattlefieldMatrix, telemetry_events: Array, current_tick: int, unit_intents: Dictionary, scheduled_melee_events: Array):
 	var dead_units: Array = []
@@ -352,5 +355,9 @@ func _cleanup_dead_units(working_units: Dictionary, working_matrix: BattlefieldM
 		if tile and tile.occupying_unit_id == dead_id:
 			tile.occupying_unit_id = -1
 
-		telemetry_events.append({"tick": current_tick, "msg": "Unit " + str(dead_id) + " died."})
+		_append_telemetry(telemetry_events, {"tick": current_tick, "msg": "Unit " + str(dead_id) + " died."})
 		working_units.erase(dead_id)
+
+func _append_telemetry(events: Array, event: Dictionary) -> void:
+	if not event.is_empty():
+		events.append(event)
