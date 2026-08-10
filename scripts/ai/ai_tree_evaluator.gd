@@ -29,13 +29,13 @@ func evaluate_unit_behavior(unit: UnitDataResource, matrix: BattlefieldMatrix, a
 
 	# Pre-compute all unit positions
 	var all_unit_coords: Dictionary = {}
-	for x in range(matrix._width):
-		for y in range(matrix._depth):
-			for z in range(matrix._height_levels):
-				var coord := Vector3i(x, y, z)
-				var tile := matrix.get_tile(coord)
-				if tile and tile.occupying_unit_id != -1:
-					all_unit_coords[tile.occupying_unit_id] = coord
+	for u_id in all_units:
+		var u = all_units[u_id]
+		var ux = u.template_parameters.get("last_coord_x", -1)
+		var uy = u.template_parameters.get("last_coord_y", -1)
+		var uz = u.template_parameters.get("last_coord_z", -1)
+		if ux != -1:
+			all_unit_coords[u_id] = Vector3i(ux, uy, uz)
 
 	var unit_coord = all_unit_coords.get(unit.unit_id, Vector3i.ZERO)
 	if not all_unit_coords.has(unit.unit_id):
