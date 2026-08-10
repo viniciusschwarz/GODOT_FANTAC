@@ -137,10 +137,15 @@ func evaluate_unit_behavior(unit: UnitDataResource, matrix: BattlefieldMatrix, a
 							var new_path = pf.calculate_path(matrix, unit_coord, target_coord, unit)
 							if new_path.size() > 0:
 								result["telemetry_entries"].append(telemetry_logger.log_pathfinding(current_tick, unit.unit_id, "Path generated (Length: " + str(new_path.size()) + ")"))
+								unit.template_parameters["current_path"] = new_path
+								result["path_array"] = new_path
 							else:
 								result["telemetry_entries"].append(telemetry_logger.log_pathfinding(current_tick, unit.unit_id, "Path failed (Unreachable)"))
-							unit.template_parameters["current_path"] = new_path
-							result["path_array"] = new_path
+								result["action_type"] = ActionType.HOLD_ANCHOR
+								result["target_coord"] = unit_coord
+								unit.template_parameters["fallback_lock_until_tick"] = current_tick + 10
+								unit.template_parameters["current_path"] = []
+								result["path_array"] = []
 						else:
 							result["path_array"] = current_path
 					return result
@@ -257,10 +262,15 @@ func evaluate_unit_behavior(unit: UnitDataResource, matrix: BattlefieldMatrix, a
 				var new_path = pf.calculate_path(matrix, unit_coord, result["target_coord"], unit)
 				if new_path.size() > 0:
 					result["telemetry_entries"].append(telemetry_logger.log_pathfinding(current_tick, unit.unit_id, "Path generated (Length: " + str(new_path.size()) + ")"))
+					unit.template_parameters["current_path"] = new_path
+					result["path_array"] = new_path
 				else:
 					result["telemetry_entries"].append(telemetry_logger.log_pathfinding(current_tick, unit.unit_id, "Path failed (Unreachable)"))
-				unit.template_parameters["current_path"] = new_path
-				result["path_array"] = new_path
+					result["action_type"] = ActionType.HOLD_ANCHOR
+					result["target_coord"] = unit_coord
+					unit.template_parameters["fallback_lock_until_tick"] = current_tick + 10
+					unit.template_parameters["current_path"] = []
+					result["path_array"] = []
 			else:
 				result["path_array"] = current_path
 

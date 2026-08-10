@@ -1,5 +1,8 @@
 class_name CombatEngine extends RefCounted
 
+const TILE_SIZE: float = 1.0
+const HEIGHT_PER_LEVEL: float = 3.0
+
 func process_projectile_step(projectile: Dictionary, matrix: BattlefieldMatrix, units_map: Dictionary) -> Dictionary:
 	var pos = projectile.current_pos_3d
 	var vel = projectile.velocity
@@ -7,14 +10,14 @@ func process_projectile_step(projectile: Dictionary, matrix: BattlefieldMatrix, 
 	var new_pos = pos + vel
 	projectile.current_pos_3d = new_pos
 
-	var grid_x = floor(new_pos.x)
-	var grid_y = floor(new_pos.y)
+	var grid_x = floor(new_pos.x / TILE_SIZE)
+	var grid_y = floor(new_pos.y / TILE_SIZE)
 	if new_pos.z <= 0.0:
 		new_pos.z = 0.0
 		projectile.current_pos_3d = new_pos
 		return { "status": &"INTERCEPTED_TERRAIN" }
 
-	var grid_z = floor(new_pos.z / 3.0)
+	var grid_z = floor(new_pos.z / HEIGHT_PER_LEVEL)
 	var grid_coord = Vector3i(grid_x, grid_y, grid_z)
 
 	# Check Bounds dynamically
@@ -25,7 +28,7 @@ func process_projectile_step(projectile: Dictionary, matrix: BattlefieldMatrix, 
 	if tile == null:
 		return { "status": &"OUT_OF_BOUNDS" }
 
-	var tile_base_z = grid_coord.z * 3.0
+	var tile_base_z = grid_coord.z * HEIGHT_PER_LEVEL
 
 	# Check Terrain/Props
 	if tile.prop_id != -1 or tile.cover_type != TileSpatialNodeResource.CoverType.NONE:
@@ -56,7 +59,7 @@ func process_projectile_step(projectile: Dictionary, matrix: BattlefieldMatrix, 
 	var target_unit_id = tile.occupying_unit_id
 	if target_unit_id != -1 and target_unit_id != projectile.source_id:
 		if units_map.has(target_unit_id):
-			var unit_base_z = tile.grid_position.z * 3.0
+			var unit_base_z = tile.grid_position.z * HEIGHT_PER_LEVEL
 			var proj_z = new_pos.z
 			if proj_z >= unit_base_z and proj_z <= (unit_base_z + 1.8):
 				return {

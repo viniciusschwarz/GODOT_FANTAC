@@ -16,9 +16,21 @@ func _deduplicate(unit_id: Variant, category: String, tick: int, signature: Stri
 	return { "tick": tick, "msg": full_msg }
 
 func log_ai_decision(tick: int, unit_id: int, action_name: String, target_id: int, target_coord: Vector3i) -> Dictionary:
-	var msg = "[Tick %d] [AI] Unit %d evaluated %s (Target: %d at %s)" % [tick, unit_id, action_name, target_id, str(target_coord)]
-	var sig = "[AI] evaluated %s (Target: %d at %s)" % [action_name, target_id, str(target_coord)]
+	var msg = ""
+	var sig = ""
+	if target_id == -1:
+		msg = "[Tick %d] [AI] Unit %d evaluated %s at %s" % [tick, unit_id, action_name, str(target_coord)]
+		sig = "[AI] evaluated %s at %s" % [action_name, str(target_coord)]
+	else:
+		msg = "[Tick %d] [AI] Unit %d evaluated %s (Target: %d at %s)" % [tick, unit_id, action_name, target_id, str(target_coord)]
+		sig = "[AI] evaluated %s (Target: %d at %s)" % [action_name, target_id, str(target_coord)]
 	return _deduplicate(unit_id, "ai_decision", tick, sig, msg)
+
+func log_combat(attacker_id: int, target_id: int, tick: int, damage: float, resulting_hp: float, is_melee: bool) -> Dictionary:
+	var type_str = "MELEE" if is_melee else "RANGED"
+	var msg = "[Tick %d] [%s] Unit %d hit Unit %d for %s damage (Resulting HP: %s)" % [tick, type_str, attacker_id, target_id, str(damage), str(resulting_hp)]
+	var sig = "[%s] hit Unit %d for %s damage (Resulting HP: %s)" % [type_str, target_id, str(damage), str(resulting_hp)]
+	return _deduplicate(target_id, "combat", tick, sig, msg)
 
 func log_movement(tick: int, unit_id: int, coord: Vector3i, cost_ticks: int, remaining_cooldown: int) -> Dictionary:
 	var msg = "[Tick %d] [MOVE] Unit %d stepped to %s (Cost: %d Ticks, Remaining Cooldown: %d)" % [tick, unit_id, str(coord), cost_ticks, remaining_cooldown]
