@@ -163,6 +163,10 @@ func commit_simulation_state(start_snapshot: TickSnapshotData, final_snapshot: T
 				var new_coord = final_snapshot.unit_transform_states[unit_id]
 				var old_coord = start_snapshot.unit_transform_states[unit_id]
 
+				unit.template_parameters["last_coord_x"] = new_coord.x
+				unit.template_parameters["last_coord_y"] = new_coord.y
+				unit.template_parameters["last_coord_z"] = new_coord.z
+
 				if old_coord != new_coord:
 					var old_tile = master_matrix.get_tile(old_coord)
 					if old_tile and old_tile.occupying_unit_id == unit_id:

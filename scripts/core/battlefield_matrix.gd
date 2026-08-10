@@ -138,12 +138,12 @@ func is_cardinal_passable(from_coord: Vector3i, to_coord: Vector3i) -> bool:
 			expected_down_connector = TileSpatialNodeResource.VerticalConnectorType.STAIRS_E
 
 		if dz == 1: # Moving UP
-			# The from_tile (Z0) MUST have the up connector
-			if from_tile.vertical_connector_type != expected_up_connector:
+			# Check if either tile has the correctly aligned vertical connector
+			if from_tile.vertical_connector_type != expected_up_connector and to_tile.vertical_connector_type != expected_up_connector:
 				return false
 		elif dz == -1: # Moving DOWN
-			# The to_tile (Z0) MUST have the down connector
-			if to_tile.vertical_connector_type != expected_down_connector:
+			# Check if either tile has the correctly aligned vertical connector
+			if from_tile.vertical_connector_type != expected_down_connector and to_tile.vertical_connector_type != expected_down_connector:
 				return false
 
 	elif from_tile.vertical_connector_type != TileSpatialNodeResource.VerticalConnectorType.NONE or to_tile.vertical_connector_type != TileSpatialNodeResource.VerticalConnectorType.NONE:

@@ -132,6 +132,10 @@ func _on_simulate_pressed() -> void:
 
 	plan.unit_objectives = active_waypoints.duplicate()
 	plan.unit_directives = active_directives.duplicate()
+
+	active_waypoints.clear()
+	active_directives.clear()
+
 	EventBus.plan_submitted.emit(plan)
 
 func _update_telemetry_badge() -> void:

@@ -125,7 +125,14 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 					if current_tick == (intent.intent_start_tick + unit.damage_application_tick_offset):
 						unit.template_parameters["attack_cooldown"] = 20
 						# Fire projectile
-						var unit_3d_pos = Vector3(unit.template_parameters.get("last_coord_x", 0) + 0.5, unit.template_parameters.get("last_coord_y", 0) + 0.5, unit.template_parameters.get("last_coord_z", 0) * 3.0 + 1.0)
+						var tile_size = 1.0
+						var height_per_level = 3.0
+
+						var ux = unit.template_parameters.get("last_coord_x", 0)
+						var uy = unit.template_parameters.get("last_coord_y", 0)
+						var uz = unit.template_parameters.get("last_coord_z", 0)
+
+						var unit_3d_pos = Vector3(ux * tile_size, uy * tile_size, (uz * height_per_level) + 1.2)
 						var target_3d_pos = Vector3.ZERO
 						if intent.has("target_id") and working_units.has(intent.target_id):
 							var target_unit = working_units[intent.target_id]
@@ -133,10 +140,10 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 							var tx = target_unit.template_parameters.get("last_coord_x", intent.target_coord.x)
 							var ty = target_unit.template_parameters.get("last_coord_y", intent.target_coord.y)
 							var tz = target_unit.template_parameters.get("last_coord_z", intent.target_coord.z)
-							target_3d_pos = Vector3(tx + 0.5, ty + 0.5, tz * 3.0 + 1.0)
+							target_3d_pos = Vector3(tx * tile_size, ty * tile_size, (tz * height_per_level) + 1.2)
 						else:
 							var target = intent.target_coord
-							target_3d_pos = Vector3(target.x + 0.5, target.y + 0.5, target.z * 3.0 + 1.0)
+							target_3d_pos = Vector3(target.x * tile_size, target.y * tile_size, (target.z * height_per_level) + 1.2)
 
 						var direction: Vector3 = (target_3d_pos - unit_3d_pos).normalized()
 						var speed = 0.5 # assumed projectile speed
@@ -240,7 +247,7 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 					var dmg = event.damage
 					defender.current_hp -= dmg
 					defender.current_stress += (dmg * 0.5)
-					_append_telemetry(telemetry_events, {"tick": current_tick, "msg": "Unit " + str(defender.unit_id) + " melee hit for " + str(dmg)})
+					_append_telemetry(telemetry_events, telemetry_logger.log_combat(event.attacker_id, event.defender_id, current_tick, dmg, defender.current_hp, true))
 					check_morale_fracture(defender, current_tick, telemetry_events, unit_intents, scheduled_melee_events)
 				scheduled_melee_events.remove_at(melee_idx)
 			melee_idx -= 1
