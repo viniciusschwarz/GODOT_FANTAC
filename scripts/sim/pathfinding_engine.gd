@@ -53,81 +53,41 @@ func calculate_path(matrix: BattlefieldMatrix, start: Vector3i, target: Vector3i
 		open_set.remove_at(current_index)
 
 		for dir in directions:
-			# Calculate lateral neighbor coordinate (ignoring z first to check passable)
-			var lateral_neighbor = current + dir
+			for dz in [-1, 0, 1]:
+				var neighbor = current + dir + Vector3i(0, 0, dz)
 
-			# We need to determine the correct Z coordinate of the neighbor.
-			# is_cardinal_passable will validate the transition, but we have to pass it
-			# the exact coordinates including Z.
-			#
-			# Rules for Z:
-			# ASCENDING (Z0 -> Z1): Moving in the direction of the connector
-			# DESCENDING (Z1 -> Z0): Moving in the OPPOSITE direction of the connector from Z1
-
-			var current_tile = matrix.get_tile(current)
-			if not current_tile:
-				continue
-
-			var neighbor_z = current.z
-			var neighbor = Vector3i(lateral_neighbor.x, lateral_neighbor.y, neighbor_z)
-
-			if current.z == 0:
-				# Check for ascending
-				var expected_up_connector: TileSpatialNodeResource.VerticalConnectorType = TileSpatialNodeResource.VerticalConnectorType.NONE
-				if dir == Vector3i(0, -1, 0): expected_up_connector = TileSpatialNodeResource.VerticalConnectorType.STAIRS_N
-				elif dir == Vector3i(0, 1, 0): expected_up_connector = TileSpatialNodeResource.VerticalConnectorType.STAIRS_S
-				elif dir == Vector3i(1, 0, 0): expected_up_connector = TileSpatialNodeResource.VerticalConnectorType.STAIRS_E
-				elif dir == Vector3i(-1, 0, 0): expected_up_connector = TileSpatialNodeResource.VerticalConnectorType.STAIRS_W
-
-				if current_tile.vertical_connector_type == expected_up_connector:
-					neighbor_z = 1
-					neighbor.z = 1
-
-			elif current.z == 1:
-				# Check for descending (tile below current has the connector pointing opposite)
-				var expected_down_connector: TileSpatialNodeResource.VerticalConnectorType = TileSpatialNodeResource.VerticalConnectorType.NONE
-				if dir == Vector3i(0, -1, 0): expected_down_connector = TileSpatialNodeResource.VerticalConnectorType.STAIRS_S
-				elif dir == Vector3i(0, 1, 0): expected_down_connector = TileSpatialNodeResource.VerticalConnectorType.STAIRS_N
-				elif dir == Vector3i(1, 0, 0): expected_down_connector = TileSpatialNodeResource.VerticalConnectorType.STAIRS_W
-				elif dir == Vector3i(-1, 0, 0): expected_down_connector = TileSpatialNodeResource.VerticalConnectorType.STAIRS_E
-
-				var tile_below = matrix.get_tile(Vector3i(current.x, current.y, 0))
-				if tile_below and tile_below.vertical_connector_type == expected_down_connector:
-					neighbor_z = 0
-					neighbor.z = 0
-
-			# Check passability using the matrix
-			if not matrix.is_cardinal_passable(current, neighbor):
-				continue
-
-			var neighbor_tile = matrix.get_tile(neighbor)
-			if not neighbor_tile:
-				continue
-
-			# Calculate cost
-			var cost: float = neighbor_tile.base_traversal_cost # Normal: 1.0, Rubble: 2.0
-
-			# Staircase cost applies if transitioning Z
-			if current.z != neighbor.z:
-				cost = 1.5
-
-			# Static Occupied Tile Penalty
-			# If the target is an enemy for melee, it will be occupied. Allow pathing to the target itself.
-			# We will strip the final occupied node in _reconstruct_path.
-			# A* naturally doesn't block on the start node because it doesn't get evaluated as a neighbor of itself.
-			if neighbor_tile.occupying_unit_id != -1 and neighbor_tile.occupying_unit_id != unit_data.unit_id:
-				if neighbor != target:
+				# Check passability using the matrix
+				if not matrix.is_cardinal_passable(current, neighbor):
 					continue
 
-			var tentative_g_score = g_score.get(current, INF) + cost
+				var neighbor_tile = matrix.get_tile(neighbor)
+				if not neighbor_tile:
+					continue
 
-			if tentative_g_score < g_score.get(neighbor, INF):
-				came_from[neighbor] = current
-				g_score[neighbor] = tentative_g_score
-				f_score[neighbor] = tentative_g_score + _heuristic(neighbor, target)
+				# Calculate cost
+				var cost: float = neighbor_tile.base_traversal_cost # Normal: 1.0, Rubble: 2.0
 
-				if not open_set.has(neighbor):
-					open_set.append(neighbor)
+				# Staircase cost applies if transitioning Z
+				if current.z != neighbor.z:
+					cost = 1.5
+
+				# Static Occupied Tile Penalty
+				# If the target is an enemy for melee, it will be occupied. Allow pathing to the target itself.
+				# We will strip the final occupied node in _reconstruct_path.
+				# A* naturally doesn't block on the start node because it doesn't get evaluated as a neighbor of itself.
+				if neighbor_tile.occupying_unit_id != -1 and neighbor_tile.occupying_unit_id != unit_data.unit_id:
+					if neighbor != target:
+						continue
+
+				var tentative_g_score = g_score.get(current, INF) + cost
+
+				if tentative_g_score < g_score.get(neighbor, INF):
+					came_from[neighbor] = current
+					g_score[neighbor] = tentative_g_score
+					f_score[neighbor] = tentative_g_score + _heuristic(neighbor, target)
+
+					if not open_set.has(neighbor):
+						open_set.append(neighbor)
 
 	# Path calculation failed
 	unit_data.recalculation_cooldown_ticks = 5
