@@ -138,18 +138,26 @@ func commit_simulation_state(start_snapshot: TickSnapshotData, final_snapshot: T
 
 		# Check for death
 		if unit.current_hp <= 0:
-			if final_snapshot.unit_transform_states.has(unit_id):
-				var end_coord = final_snapshot.unit_transform_states[unit_id]
-				var tile = master_matrix.get_tile(end_coord)
+			# Use final snapshot strictly, falling back to start snapshot
+			var target_coord = final_snapshot.unit_transform_states.get(unit_id, start_snapshot.unit_transform_states.get(unit_id, Vector3i(-1,-1,-1)))
+			if target_coord != Vector3i(-1,-1,-1):
+				var tile = master_matrix.get_tile(target_coord) # [EXTERNAL DATA ACCESS]
 				if tile and tile.occupying_unit_id == unit_id:
 					tile.occupying_unit_id = -1
-			elif start_snapshot.unit_transform_states.has(unit_id):
-				var start_coord = start_snapshot.unit_transform_states[unit_id]
-				var tile = master_matrix.get_tile(start_coord)
-				if tile and tile.occupying_unit_id == unit_id:
-					tile.occupying_unit_id = -1
-			master_units.erase(unit_id)
-		else:
+
+	# We must erase after the iteration, or erase immediately using `.keys()` iteration
+	var dead_units: Array = []
+	for unit_id in master_units.keys():
+		if master_units[unit_id].current_hp <= 0:
+			dead_units.append(unit_id)
+
+	for unit_id in dead_units:
+		master_units.erase(unit_id) # [EXTERNAL DATA ACCESS]
+
+	# Now update position and matrix occupancy for alive units
+	for unit_id in master_units.keys():
+		var unit = master_units[unit_id]
+		if unit.current_hp > 0:
 			# Update position and matrix occupancy
 			if final_snapshot.unit_transform_states.has(unit_id) and start_snapshot.unit_transform_states.has(unit_id):
 				var new_coord = final_snapshot.unit_transform_states[unit_id]
