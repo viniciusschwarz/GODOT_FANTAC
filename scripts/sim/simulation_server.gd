@@ -105,12 +105,13 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 						var dx = t_coord.x - unit_coord.x
 						var dy = t_coord.y - unit_coord.y
 						var dist = abs(t_coord.x - unit_coord.x) + abs(t_coord.y - unit_coord.y) + abs(t_coord.z - unit_coord.z)
+						var on_cooldown = unit.template_parameters.get("attack_cooldown", 0) > 0
 
-						if abs(dx) + abs(dy) == 1 and unit_coord.z == t_coord.z:
+						if abs(dx) + abs(dy) == 1 and unit_coord.z == t_coord.z and not on_cooldown:
 							eval_result["action_type"] = AITreeEvaluator.ActionType.MELEE_ATTACK
 							eval_result["target_id"] = target_id
 							eval_result["target_coord"] = t_coord
-						elif dist >= unit.attack_range_min and dist <= unit.attack_range_max:
+						elif dist >= unit.attack_range_min and dist <= unit.attack_range_max and not on_cooldown:
 							eval_result["action_type"] = AITreeEvaluator.ActionType.RANGED_ATTACK
 							eval_result["target_id"] = target_id
 							eval_result["target_coord"] = t_coord
@@ -173,12 +174,13 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 						unit_intents[unit_id] = intent
 
 					if current_tick == (intent.intent_start_tick + unit.damage_application_tick_offset):
-						unit.template_parameters["attack_cooldown"] = unit.weapon_cooldown_ticks
+						unit.template_parameters["attack_cooldown"] = 20
 						# Fire projectile
 						var unit_3d_pos = Vector3(unit.template_parameters.get("last_coord_x", 0) + 0.5, unit.template_parameters.get("last_coord_y", 0) + 0.5, unit.template_parameters.get("last_coord_z", 0) * 3.0 + 1.0)
 						var target_3d_pos = Vector3.ZERO
 						if intent.has("target_id") and working_units.has(intent.target_id):
 							var target_unit = working_units[intent.target_id]
+							# Fetch current active floating-point 3D transform via current micro-tick coordinates
 							var tx = target_unit.template_parameters.get("last_coord_x", intent.target_coord.x)
 							var ty = target_unit.template_parameters.get("last_coord_y", intent.target_coord.y)
 							var tz = target_unit.template_parameters.get("last_coord_z", intent.target_coord.z)
@@ -274,7 +276,7 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 
 					var melee_result = combat_engine.resolve_melee_attack(attacker, defender, attacker_coord, defender_coord, current_tick)
 					if melee_result.status == &"MELEE_SCHEDULED":
-						attacker.template_parameters["attack_cooldown"] = attacker.weapon_cooldown_ticks
+						attacker.template_parameters["attack_cooldown"] = 20
 						scheduled_melee_events.append(melee_result)
 						# Consume the intent so it doesn't trigger multiple times
 						intent.action_type = AITreeEvaluator.ActionType.NONE
