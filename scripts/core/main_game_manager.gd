@@ -123,7 +123,6 @@ func debug_print_turn_summary(buffer: TurnReplayBufferResource) -> void:
 
 func commit_simulation_state(start_snapshot: TickSnapshotData, final_snapshot: TickSnapshotData) -> void:
 	# 1. Update existing unit states and transforms
-	var dead_units: Array = []
 	for unit_id in master_units.keys():
 		var unit = master_units[unit_id]
 
@@ -139,7 +138,17 @@ func commit_simulation_state(start_snapshot: TickSnapshotData, final_snapshot: T
 
 		# Check for death
 		if unit.current_hp <= 0:
-			dead_units.append(unit_id)
+			if final_snapshot.unit_transform_states.has(unit_id):
+				var end_coord = final_snapshot.unit_transform_states[unit_id]
+				var tile = master_matrix.get_tile(end_coord)
+				if tile and tile.occupying_unit_id == unit_id:
+					tile.occupying_unit_id = -1
+			elif start_snapshot.unit_transform_states.has(unit_id):
+				var start_coord = start_snapshot.unit_transform_states[unit_id]
+				var tile = master_matrix.get_tile(start_coord)
+				if tile and tile.occupying_unit_id == unit_id:
+					tile.occupying_unit_id = -1
+			master_units.erase(unit_id)
 		else:
 			# Update position and matrix occupancy
 			if final_snapshot.unit_transform_states.has(unit_id) and start_snapshot.unit_transform_states.has(unit_id):
@@ -155,21 +164,7 @@ func commit_simulation_state(start_snapshot: TickSnapshotData, final_snapshot: T
 				if new_tile:
 					new_tile.occupying_unit_id = unit_id
 
-	# 2. Cleanup dead units
-	for unit_id in dead_units:
-		if final_snapshot.unit_transform_states.has(unit_id):
-			var end_coord = final_snapshot.unit_transform_states[unit_id]
-			var tile = master_matrix.get_tile(end_coord)
-			if tile and tile.occupying_unit_id == unit_id:
-				tile.occupying_unit_id = -1
-		elif start_snapshot.unit_transform_states.has(unit_id):
-			var start_coord = start_snapshot.unit_transform_states[unit_id]
-			var tile = master_matrix.get_tile(start_coord)
-			if tile and tile.occupying_unit_id == unit_id:
-				tile.occupying_unit_id = -1
-		master_units.erase(unit_id)
-
-	# 3. Update prop states
+	# 2. Update prop states
 	for prop_id in final_snapshot.prop_states.keys():
 		var prop = master_matrix.get_prop(prop_id)
 		if prop:
