@@ -9,11 +9,16 @@ func process_projectile_step(projectile: Dictionary, matrix: BattlefieldMatrix, 
 
 	var grid_x = floor(new_pos.x)
 	var grid_y = floor(new_pos.y)
+	if new_pos.z <= 0.0:
+		new_pos.z = 0.0
+		projectile.current_pos_3d = new_pos
+		return { "status": &"INTERCEPTED_TERRAIN" }
+
 	var grid_z = floor(new_pos.z / 3.0)
 	var grid_coord = Vector3i(grid_x, grid_y, grid_z)
 
-	# Check Bounds
-	if grid_coord.x < 0 or grid_coord.x >= 12 or grid_coord.y < 0 or grid_coord.y >= 12:
+	# Check Bounds dynamically
+	if grid_coord.x < 0 or grid_coord.x >= matrix._width or grid_coord.y < 0 or grid_coord.y >= matrix._depth:
 		return { "status": &"OUT_OF_BOUNDS" }
 
 	var tile = matrix.get_tile(grid_coord)

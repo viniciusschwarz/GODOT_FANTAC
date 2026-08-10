@@ -157,7 +157,12 @@ func commit_simulation_state(start_snapshot: TickSnapshotData, final_snapshot: T
 
 	# 2. Cleanup dead units
 	for unit_id in dead_units:
-		if start_snapshot.unit_transform_states.has(unit_id):
+		if final_snapshot.unit_transform_states.has(unit_id):
+			var end_coord = final_snapshot.unit_transform_states[unit_id]
+			var tile = master_matrix.get_tile(end_coord)
+			if tile and tile.occupying_unit_id == unit_id:
+				tile.occupying_unit_id = -1
+		elif start_snapshot.unit_transform_states.has(unit_id):
 			var start_coord = start_snapshot.unit_transform_states[unit_id]
 			var tile = master_matrix.get_tile(start_coord)
 			if tile and tile.occupying_unit_id == unit_id:
