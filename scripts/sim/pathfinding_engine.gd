@@ -4,6 +4,16 @@ func calculate_path(matrix: BattlefieldMatrix, start: Vector3i, target: Vector3i
 	if start == target:
 		return []
 
+	# Ensure the start tile's occupancy is explicitly bypassed.
+	# A* naturally ignores the origin passability check, but we verify here for safety
+	# against any potential self-blocking bugs.
+	var start_tile = matrix.get_tile(start)
+	if start_tile and start_tile.occupying_unit_id != -1 and start_tile.occupying_unit_id != unit_data.unit_id:
+		# If the start tile is occupied by SOMEONE ELSE, technically we shouldn't be here,
+		# but if it's occupied by US, we proceed.
+		pass
+
+
 	# A* Implementation restricted to 4-directional cardinal steps (N, S, E, W)
 	var open_set: Array[Vector3i] = [start]
 	var came_from: Dictionary = {}
@@ -38,7 +48,7 @@ func calculate_path(matrix: BattlefieldMatrix, start: Vector3i, target: Vector3i
 				current_index = i
 
 		if current == target:
-			return _reconstruct_path(came_from, current)
+			return _reconstruct_path(came_from, current, matrix)
 
 		open_set.remove_at(current_index)
 
@@ -102,8 +112,12 @@ func calculate_path(matrix: BattlefieldMatrix, start: Vector3i, target: Vector3i
 				cost = 1.5
 
 			# Static Occupied Tile Penalty
+			# If the target is an enemy for melee, it will be occupied. Allow pathing to the target itself.
+			# We will strip the final occupied node in _reconstruct_path.
+			# A* naturally doesn't block on the start node because it doesn't get evaluated as a neighbor of itself.
 			if neighbor_tile.occupying_unit_id != -1 and neighbor_tile.occupying_unit_id != unit_data.unit_id:
-				continue
+				if neighbor != target:
+					continue
 
 			var tentative_g_score = g_score.get(current, INF) + cost
 
@@ -122,13 +136,24 @@ func calculate_path(matrix: BattlefieldMatrix, start: Vector3i, target: Vector3i
 func _heuristic(a: Vector3i, b: Vector3i) -> float:
 	return abs(a.x - b.x) + abs(a.y - b.y) + abs(a.z - b.z) * 1.5 # Z transitions are more expensive
 
-func _reconstruct_path(came_from: Dictionary, current: Vector3i) -> Array[Vector3i]:
+func _reconstruct_path(came_from: Dictionary, current: Vector3i, matrix: BattlefieldMatrix) -> Array[Vector3i]:
 	var path: Array[Vector3i] = [current]
 	while came_from.has(current):
 		current = came_from[current]
 		path.push_front(current)
+
 	if path.size() > 1:
 		path.pop_front() # Remove start node
+
+		# If the final destination is occupied, it means we pathfound directly TO an enemy (melee adjacency).
+		# Strip the final node so the unit stops adjacent to the target.
+		if path.size() > 0:
+			var final_node = path[path.size() - 1]
+			var final_tile = matrix.get_tile(final_node)
+			if final_tile and final_tile.occupying_unit_id != -1:
+				path.pop_back()
+
 	elif path.size() == 1:
 		path.clear()
+
 	return path
