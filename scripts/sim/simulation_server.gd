@@ -208,6 +208,11 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 
 							# Reset cooldown
 							unit.template_parameters["unit_movement_cooldown"] = unit.movement_speed_ticks_per_tile
+
+							# Guardrail: If path is now empty, explicitly clear the array to prevent stale path loops
+							if path_array.is_empty():
+								unit.template_parameters["current_path"].clear()
+
 							_append_telemetry(telemetry_events, telemetry_logger.log_movement(current_tick, unit_id, next_coord, unit.movement_speed_ticks_per_tile, unit.movement_speed_ticks_per_tile))
 						else:
 							# DENIED (blocked)

@@ -144,6 +144,7 @@ func evaluate_unit_behavior(unit: UnitDataResource, matrix: BattlefieldMatrix, a
 								result["action_type"] = ActionType.HOLD_ANCHOR
 								result["target_coord"] = unit_coord
 								unit.template_parameters["fallback_lock_until_tick"] = current_tick + 10
+								unit.template_parameters["locked_action_type"] = ActionType.HOLD_ANCHOR
 								unit.template_parameters["current_path"] = []
 								result["path_array"] = []
 						else:
@@ -154,7 +155,7 @@ func evaluate_unit_behavior(unit: UnitDataResource, matrix: BattlefieldMatrix, a
 	var is_locked = current_tick < unit.template_parameters.get("fallback_lock_until_tick", 0)
 
 	if is_locked:
-		result["action_type"] = ActionType.FALLBACK_TO_COVER
+		result["action_type"] = unit.template_parameters.get("locked_action_type", ActionType.FALLBACK_TO_COVER)
 		result["target_coord"] = unit_coord
 		return result
 
@@ -165,6 +166,7 @@ func evaluate_unit_behavior(unit: UnitDataResource, matrix: BattlefieldMatrix, a
 		# Branch 1: If current_hp / max_hp < 0.15 -> Action: Fallback_To_Cover.
 		if hp_pct < 0.15:
 			unit.template_parameters["fallback_lock_until_tick"] = current_tick + 15
+			unit.template_parameters["locked_action_type"] = ActionType.FALLBACK_TO_COVER
 			result["action_type"] = ActionType.FALLBACK_TO_COVER
 			result["target_coord"] = unit_coord
 			result["telemetry_entries"].append(telemetry_logger.log_ai_condition(current_tick, unit.unit_id, "Aggressive Assault: Falling back to cover due to low HP."))
@@ -201,6 +203,7 @@ func evaluate_unit_behavior(unit: UnitDataResource, matrix: BattlefieldMatrix, a
 		# Branch 1: If current_hp / max_hp < 0.40 -> Action: Fallback_To_Cover.
 		if hp_pct < 0.40:
 			unit.template_parameters["fallback_lock_until_tick"] = current_tick + 15
+			unit.template_parameters["locked_action_type"] = ActionType.FALLBACK_TO_COVER
 			result["action_type"] = ActionType.FALLBACK_TO_COVER
 			result["target_coord"] = unit_coord
 			result["telemetry_entries"].append(telemetry_logger.log_ai_condition(current_tick, unit.unit_id, "Cautious Overwatch: Falling back to cover due to low HP."))
@@ -269,6 +272,7 @@ func evaluate_unit_behavior(unit: UnitDataResource, matrix: BattlefieldMatrix, a
 					result["action_type"] = ActionType.HOLD_ANCHOR
 					result["target_coord"] = unit_coord
 					unit.template_parameters["fallback_lock_until_tick"] = current_tick + 10
+					unit.template_parameters["locked_action_type"] = ActionType.HOLD_ANCHOR
 					unit.template_parameters["current_path"] = []
 					result["path_array"] = []
 			else:

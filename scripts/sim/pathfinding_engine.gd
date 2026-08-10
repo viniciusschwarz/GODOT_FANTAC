@@ -76,18 +76,12 @@ func _get_valid_neighbors(matrix: BattlefieldMatrix, current: Vector3i, unit_id:
 		Vector3i(0, -1, 0), # N
 		Vector3i(0, 1, 0),  # S
 		Vector3i(1, 0, 0),  # E
-		Vector3i(-1, 0, 0), # W
-		Vector3i(0, 0, 1),  # U
-		Vector3i(0, 0, -1)  # D
+		Vector3i(-1, 0, 0)  # W
 	]
 
 	for dir in directions:
 		for dz in [-1, 0, 1]:
 			var neighbor = current + dir + Vector3i(0, 0, dz)
-
-			# Skip if the direction inherently has a dz and we are adding another dz
-			if dir.z != 0 and dz != 0:
-				continue
 
 			# Check passability using the matrix
 			if not matrix.is_cardinal_passable(current, neighbor):
