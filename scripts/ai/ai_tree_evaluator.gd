@@ -13,7 +13,7 @@ func evaluate_unit_behavior(unit: UnitDataResource, matrix: BattlefieldMatrix, a
 	var result := {
 		"action_type": ActionType.NONE,
 		"target_coord": Vector3i.ZERO,
-		"telemetry_entry": {}
+		"telemetry_entries": []
 	}
 
 	# Pre-compute all unit positions
@@ -92,15 +92,17 @@ func evaluate_unit_behavior(unit: UnitDataResource, matrix: BattlefieldMatrix, a
 			unit.template_parameters["fallback_lock_until_tick"] = current_tick + 15
 			result["action_type"] = ActionType.FALLBACK_TO_COVER
 			result["target_coord"] = unit_coord
-			result["telemetry_entry"] = { "tick": current_tick, "msg": "Aggressive Assault: Falling back to cover" }
+			result["telemetry_entries"].append(TurnTelemetryLogger.log_ai_condition(current_tick, unit.unit_id, "Aggressive Assault: Falling back to cover due to low HP."))
 		# Branch 2: If enemy in melee range -> Action: Melee_Attack.
 		elif melee_targets.size() > 0:
 			result["action_type"] = ActionType.MELEE_ATTACK
 			result["target_coord"] = melee_targets[0]["coord"]
+			result["telemetry_entries"].append(TurnTelemetryLogger.log_ai_condition(current_tick, unit.unit_id, "Enemy in melee range, engaging in melee."))
 		# Default: Action: Advance_Shortest_Path_To_Objective.
 		else:
 			result["action_type"] = ActionType.ADVANCE_TO_OBJECTIVE
 			result["target_coord"] = unit.template_parameters.get("objective_coord", closest_visible_enemy_coord)
+			result["telemetry_entries"].append(TurnTelemetryLogger.log_ai_condition(current_tick, unit.unit_id, "No immediate threat, advancing to objective."))
 
 	elif active_template == &"CAUTIOUS_OVERWATCH":
 		# Branch 1: If current_hp / max_hp < 0.40 -> Action: Fallback_To_Cover.
@@ -108,28 +110,33 @@ func evaluate_unit_behavior(unit: UnitDataResource, matrix: BattlefieldMatrix, a
 			unit.template_parameters["fallback_lock_until_tick"] = current_tick + 15
 			result["action_type"] = ActionType.FALLBACK_TO_COVER
 			result["target_coord"] = unit_coord
-			result["telemetry_entry"] = { "tick": current_tick, "msg": "Cautious Overwatch: Falling back to cover" }
+			result["telemetry_entries"].append(TurnTelemetryLogger.log_ai_condition(current_tick, unit.unit_id, "Cautious Overwatch: Falling back to cover due to low HP."))
 		# Branch 2: If enemy in ranged threat envelope -> Action: Ranged_Trade_From_Cover (RANGED_ATTACK)
 		elif ranged_targets.size() > 0:
 			result["action_type"] = ActionType.RANGED_ATTACK
 			result["target_coord"] = ranged_targets[0]["coord"]
+			result["telemetry_entries"].append(TurnTelemetryLogger.log_ai_condition(current_tick, unit.unit_id, "Enemy in ranged threat envelope, engaging from cover."))
 		# Default: Action: Advance_Via_Cover_Tiles (ADVANCE_TO_OBJECTIVE)
 		else:
 			result["action_type"] = ActionType.ADVANCE_TO_OBJECTIVE
 			result["target_coord"] = unit.template_parameters.get("objective_coord", closest_visible_enemy_coord)
+			result["telemetry_entries"].append(TurnTelemetryLogger.log_ai_condition(current_tick, unit.unit_id, "No immediate threat, advancing to objective."))
 
 	elif active_template == &"POINT_GUARD":
 		# Branch 1: If enemy in melee/threat range -> Action: Attack_Target.
 		if melee_targets.size() > 0:
 			result["action_type"] = ActionType.MELEE_ATTACK
 			result["target_coord"] = melee_targets[0]["coord"]
+			result["telemetry_entries"].append(TurnTelemetryLogger.log_ai_condition(current_tick, unit.unit_id, "Enemy in melee range, engaging in melee."))
 		elif ranged_targets.size() > 0:
 			result["action_type"] = ActionType.RANGED_ATTACK
 			result["target_coord"] = ranged_targets[0]["coord"]
+			result["telemetry_entries"].append(TurnTelemetryLogger.log_ai_condition(current_tick, unit.unit_id, "Enemy in ranged threat envelope, engaging from cover."))
 		# Default: Action: Hold_Anchor_Tile.
 		else:
 			result["action_type"] = ActionType.HOLD_ANCHOR
 			result["target_coord"] = unit.template_parameters.get("anchor_coord", unit_coord)
+			result["telemetry_entries"].append(TurnTelemetryLogger.log_ai_condition(current_tick, unit.unit_id, "No immediate threat, holding anchor tile."))
 
 	if result["action_type"] == ActionType.ADVANCE_TO_OBJECTIVE or result["action_type"] == ActionType.FALLBACK_TO_COVER:
 		var recalc_cooldown = unit.template_parameters.get("path_recalculation_cooldown", 0)
@@ -141,6 +148,10 @@ func evaluate_unit_behavior(unit: UnitDataResource, matrix: BattlefieldMatrix, a
 			if current_path.is_empty():
 				var pf = PathfindingEngine.new()
 				var new_path = pf.calculate_path(matrix, unit_coord, result["target_coord"], unit)
+				if new_path.size() > 0:
+					result["telemetry_entries"].append(TurnTelemetryLogger.log_pathfinding(current_tick, unit.unit_id, "Path generated (Length: " + str(new_path.size()) + ")"))
+				else:
+					result["telemetry_entries"].append(TurnTelemetryLogger.log_pathfinding(current_tick, unit.unit_id, "Path failed (Unreachable)"))
 				unit.template_parameters["current_path"] = new_path
 				result["path_array"] = new_path
 			else:

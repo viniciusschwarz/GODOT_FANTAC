@@ -17,7 +17,9 @@ var current_replay_buffer: TurnReplayBufferResource = null
 var ai_templates: Dictionary = {} # StringName -> AITemplateResource
 var roster: Array[UnitDataResource] = []
 var master_units: Dictionary = {}
+var master_matrix: BattlefieldMatrix = null
 var active_waypoints: Dictionary = {} # unit_id -> Vector3i
+var active_directives: Dictionary = {} # unit_id -> Dictionary
 
 var commander_inspector: CommanderInspectorUI = null
 
@@ -27,6 +29,7 @@ func _ready() -> void:
 	EventBus.turn_simulation_completed.connect(_on_turn_simulation_completed)
 	EventBus.phase_changed.connect(_on_phase_changed)
 	EventBus.tile_right_clicked.connect(_on_tile_right_clicked)
+	EventBus.grid_initialized.connect(_on_grid_initialized)
 
 	play_pause_button.pressed.connect(_on_play_pause_pressed)
 	playback_slider.value_changed.connect(_on_slider_value_changed)
@@ -70,6 +73,7 @@ func _on_phase_changed(new_phase: EventBus.Phase) -> void:
 	if new_phase == EventBus.Phase.PLANNING:
 		simulate_turn_button.disabled = false
 		active_waypoints.clear()
+		active_directives.clear()
 		if input_blocker:
 			input_blocker.visible = false
 	else:
@@ -127,6 +131,7 @@ func _on_simulate_pressed() -> void:
 			plan.unit_templates[unit.unit_id] = ai_templates.get(active_template_id)
 
 	plan.unit_objectives = active_waypoints.duplicate()
+	plan.unit_directives = active_directives.duplicate()
 	EventBus.plan_submitted.emit(plan)
 
 func _update_telemetry_badge() -> void:
@@ -182,5 +187,28 @@ func _process(delta: float) -> void:
 			if current_tick >= 99:
 				EventBus.playback_completed.emit()
 
+
 func _on_tile_right_clicked(unit_id: int, grid_coord: Vector3i) -> void:
+	if master_matrix:
+		var tile = master_matrix.get_tile(grid_coord)
+		if tile and tile.occupying_unit_id != -1:
+			var target_id = tile.occupying_unit_id
+			if master_units.has(target_id):
+				var target_unit = master_units[target_id]
+				if target_unit.faction_id != 0: # Assuming 0 is player faction
+					# Register ATTACK intent
+					active_directives[unit_id] = {
+						"type": "ATTACK",
+						"target_id": target_id,
+						"target_coord": grid_coord
+					}
+					active_waypoints.erase(unit_id) # Remove any conflicting move waypoint
+					return
+
+	# If not clicking an enemy, it's a move waypoint
 	active_waypoints[unit_id] = grid_coord
+	active_directives.erase(unit_id) # Remove any conflicting attack intent
+
+
+func _on_grid_initialized(matrix: BattlefieldMatrix) -> void:
+	master_matrix = matrix
