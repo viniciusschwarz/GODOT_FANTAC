@@ -113,6 +113,14 @@ func debug_print_turn_summary(buffer: TurnReplayBufferResource) -> void:
 			str(end_stress)
 		])
 
+	# Output telemetry events
+	print("--- TELEMETRY EVENTS ---")
+	for tick_data in buffer.tick_snapshots:
+		for event in tick_data.telemetry_events:
+			if event.has("msg"):
+				print(event.msg)
+	print("------------------------")
+
 func commit_simulation_state(start_snapshot: TickSnapshotData, final_snapshot: TickSnapshotData) -> void:
 	# 1. Update existing unit states and transforms
 	var dead_units: Array = []
@@ -161,6 +169,8 @@ func commit_simulation_state(start_snapshot: TickSnapshotData, final_snapshot: T
 		var prop = master_matrix.get_prop(prop_id)
 		if prop:
 			prop.current_degradation_state = final_snapshot.prop_states[prop_id]
+
+	print("[STATE_COMMIT] master_units and master_matrix have been overwritten with end of Tick 99 state.")
 
 func advance_to_next_turn(buffer: TurnReplayBufferResource) -> void:
 	debug_print_turn_summary(buffer)

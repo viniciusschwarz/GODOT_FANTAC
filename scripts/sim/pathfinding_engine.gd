@@ -103,7 +103,7 @@ func calculate_path(matrix: BattlefieldMatrix, start: Vector3i, target: Vector3i
 
 			# Static Occupied Tile Penalty
 			if neighbor_tile.occupying_unit_id != -1 and neighbor_tile.occupying_unit_id != unit_data.unit_id:
-				cost += 50.0
+				continue
 
 			var tentative_g_score = g_score.get(current, INF) + cost
 

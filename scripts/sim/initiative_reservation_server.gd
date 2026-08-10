@@ -3,6 +3,10 @@ class_name InitiativeReservationServer extends RefCounted
 func resolve_tile_reservation(tile: TileSpatialNodeResource, requesting_unit: UnitDataResource, units_map: Dictionary, micro_tick: int) -> int:
 	var req_initiative: float = float(requesting_unit.base_initiative) - requesting_unit.encumbrance_penalty + (float(requesting_unit.unit_id) * 0.001)
 
+	if tile.occupying_unit_id != -1 and tile.occupying_unit_id != requesting_unit.unit_id:
+		# Explicitly reject movement into tiles occupied by stationary units
+		return 0
+
 	if tile.reserved_unit_id == -1:
 		# Unreserved, simply claim it
 		_claim_tile(tile, requesting_unit, micro_tick)
