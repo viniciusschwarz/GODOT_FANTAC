@@ -262,7 +262,7 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 					if melee_result.status == &"MELEE_SCHEDULED":
 						scheduled_melee_events.append(melee_result)
 						# Consume the intent so it doesn't trigger multiple times
-						unit_intents.erase(unit_id)
+						intent.action_type = AITreeEvaluator.ActionType.NONE
 
 		# Process scheduled melee damages that occur this tick
 		var melee_idx = scheduled_melee_events.size() - 1
@@ -357,6 +357,7 @@ func _cleanup_dead_units(working_units: Dictionary, working_matrix: BattlefieldM
 
 		_append_telemetry(telemetry_events, {"tick": current_tick, "msg": "Unit " + str(dead_id) + " died."})
 		working_units.erase(dead_id)
+		unit_intents.erase(dead_id)
 
 func _append_telemetry(events: Array, event: Dictionary) -> void:
 	if not event.is_empty():

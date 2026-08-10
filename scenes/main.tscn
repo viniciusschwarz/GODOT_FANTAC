@@ -4,7 +4,7 @@
 [ext_resource type="Script" uid="uid://d3jts1dbnpelj" path="res://scripts/core/main_game_manager.gd" id="2_manager"]
 [ext_resource type="PackedScene" path="res://scenes/view/battlefield_view.tscn" id="3_view"]
 [ext_resource type="PackedScene" path="res://scenes/ui/ui_manager.tscn" id="4_ui"]
-[ext_resource type="Script" path="res://scripts/view/tactical_camera.gd" id="5_camera"]
+[ext_resource type="Script" uid="uid://6yvs0yrbveul" path="res://scripts/view/tactical_camera.gd" id="5_camera"]
 
 [node name="Main" type="Node" unique_id=31912235]
 
@@ -16,8 +16,7 @@ script = ExtResource("2_manager")
 
 [node name="BattlefieldView" parent="." unique_id=1563475004 instance=ExtResource("3_view")]
 
-[node name="TacticalCamera" type="Camera2D" parent="BattlefieldView"]
+[node name="TacticalCamera" type="Camera2D" parent="BattlefieldView" unique_id=52529905]
 script = ExtResource("5_camera")
-enabled = true
 
 [node name="UIManager" parent="." unique_id=737082023 instance=ExtResource("4_ui")]
