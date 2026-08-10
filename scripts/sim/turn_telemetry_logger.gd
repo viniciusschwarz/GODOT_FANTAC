@@ -20,3 +20,15 @@ static func log_ranged_fire(tick: int, unit_id: int, target_id: int, has_los: bo
 static func log_projectile_result(tick: int, proj_id: int, pos: Vector3, result: String) -> Dictionary:
 	var msg = "[Tick %d] [PROJECTILE] Projectile %d Pos: %s -> Result: %s" % [tick, proj_id, str(pos), result]
 	return { "tick": tick, "msg": msg }
+
+static func log_ui_intent(tick: int, unit_id: int, target_id: int, intent_type: String) -> Dictionary:
+	var msg = "[Tick %d] [UI_INTENT] Unit %d received manual override: %s Target %d" % [tick, unit_id, intent_type, target_id]
+	return { "tick": tick, "msg": msg }
+
+static func log_pathfinding(tick: int, unit_id: int, result: String) -> Dictionary:
+	var msg = "[Tick %d] [PATHFINDING] Unit %d %s" % [tick, unit_id, result]
+	return { "tick": tick, "msg": msg }
+
+static func log_ai_condition(tick: int, unit_id: int, condition_msg: String) -> Dictionary:
+	var msg = "[Tick %d] [AI_CONDITION] Unit %d %s" % [tick, unit_id, condition_msg]
+	return { "tick": tick, "msg": msg }
