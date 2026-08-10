@@ -169,7 +169,6 @@ func evaluate_unit_behavior(unit: UnitDataResource, matrix: BattlefieldMatrix, a
 		else:
 			var current_path = unit.template_parameters.get("current_path", [])
 			if current_path.is_empty():
-				var pf = PathfindingEngine.new()
 				var new_path = pf.calculate_path(matrix, unit_coord, result["target_coord"], unit)
 				if new_path.size() > 0:
 					result["telemetry_entries"].append(telemetry_logger.log_pathfinding(current_tick, unit.unit_id, "Path generated (Length: " + str(new_path.size()) + ")"))
