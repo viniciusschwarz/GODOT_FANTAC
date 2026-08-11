@@ -313,28 +313,30 @@ func _cleanup_dead_units(working_units: Dictionary, working_matrix: BattlefieldM
 
 	for dead_id in dead_units:
 		var dead_unit = working_units[dead_id]
-		# Find units within 3 tiles and add stress
-		var dead_x = dead_unit.template_parameters.get("last_coord_x", 0)
-		var dead_y = dead_unit.template_parameters.get("last_coord_y", 0)
 
-		for other_id in working_units:
-			if other_id != dead_id:
-				var other = working_units[other_id]
-				if other.faction_id == dead_unit.faction_id:
-					var ox = other.template_parameters.get("last_coord_x", 0)
-					var oy = other.template_parameters.get("last_coord_y", 0)
-					if abs(dead_x - ox) + abs(dead_y - oy) <= 3: # 3 cardinal tiles
-						other.current_stress += 15.0
-						check_morale_fracture(other, current_tick, telemetry_events, unit_intents, scheduled_melee_events)
-
-		# Clear occupation
-		var cz = dead_unit.template_parameters.get("last_coord_z", 0)
-		var tile = working_matrix.get_tile(Vector3i(dead_x, dead_y, cz))
-		if tile and tile.occupying_unit_id == dead_id:
-			tile.occupying_unit_id = -1
-
-		# Mark dead without erasing, ensuring snapshot retention across ticks
+		# Only process death logic once on the tick the unit dies
 		if not dead_unit.template_parameters.get("is_dead", false):
+			# Find units within 3 tiles and add stress
+			var dead_x = dead_unit.template_parameters.get("last_coord_x", 0)
+			var dead_y = dead_unit.template_parameters.get("last_coord_y", 0)
+
+			for other_id in working_units:
+				if other_id != dead_id:
+					var other = working_units[other_id]
+					if other.faction_id == dead_unit.faction_id:
+						var ox = other.template_parameters.get("last_coord_x", 0)
+						var oy = other.template_parameters.get("last_coord_y", 0)
+						if abs(dead_x - ox) + abs(dead_y - oy) <= 3: # 3 cardinal tiles
+							other.current_stress += 15.0
+							check_morale_fracture(other, current_tick, telemetry_events, unit_intents, scheduled_melee_events)
+
+			# Clear occupation
+			var cz = dead_unit.template_parameters.get("last_coord_z", 0)
+			var tile = working_matrix.get_tile(Vector3i(dead_x, dead_y, cz))
+			if tile and tile.occupying_unit_id == dead_id:
+				tile.occupying_unit_id = -1
+
+			# Mark dead without erasing, ensuring snapshot retention across ticks
 			_append_telemetry(telemetry_events, {"tick": current_tick, "msg": "Unit " + str(dead_id) + " died."})
 			dead_unit.template_parameters["is_dead"] = true
 
