@@ -10,6 +10,8 @@ enum ActionType {
 	HOLD_ENGAGEMENT
 }
 
+const NULL_COORD = Vector3i(-1, -1, -1)
+
 
 func evaluate_ranged_attack(unit: UnitDataResource, unit_coord: Vector3i, matrix: BattlefieldMatrix, ranged_targets: Array) -> Dictionary:
 	for target in ranged_targets:
@@ -21,7 +23,7 @@ func evaluate_ranged_attack(unit: UnitDataResource, unit_coord: Vector3i, matrix
 func evaluate_unit_behavior(unit: UnitDataResource, matrix: BattlefieldMatrix, all_units: Dictionary, current_tick: int, telemetry_logger: TurnTelemetryLogger, directive: Dictionary = {}) -> Dictionary:
 	var result := {
 		"action_type": ActionType.NONE,
-		"target_coord": Vector3i.ZERO,
+		"target_coord": NULL_COORD,
 		"telemetry_entries": []
 	}
 
@@ -37,7 +39,7 @@ func evaluate_unit_behavior(unit: UnitDataResource, matrix: BattlefieldMatrix, a
 		if ux != -1:
 			all_unit_coords[u_id] = Vector3i(ux, uy, uz)
 
-	var unit_coord = all_unit_coords.get(unit.unit_id, Vector3i.ZERO)
+	var unit_coord = all_unit_coords.get(unit.unit_id, NULL_COORD)
 	if not all_unit_coords.has(unit.unit_id):
 		# If the unit is not on the board, return NONE
 		return result
@@ -76,7 +78,7 @@ func evaluate_unit_behavior(unit: UnitDataResource, matrix: BattlefieldMatrix, a
 					ranged_targets.append({ "unit": enemy, "coord": enemy_coord })
 
 	# Determine closest visible enemy coord for defaults
-	var closest_visible_enemy_coord = Vector3i.ZERO
+	var closest_visible_enemy_coord = NULL_COORD
 	if visible_enemies.size() > 0:
 		visible_enemies.sort_custom(func(a, b): return a["dist"] < b["dist"])
 		closest_visible_enemy_coord = visible_enemies[0]["coord"]
@@ -255,6 +257,15 @@ func evaluate_unit_behavior(unit: UnitDataResource, matrix: BattlefieldMatrix, a
 				result["telemetry_entries"].append(telemetry_logger.log_ai_condition(current_tick, unit.unit_id, "No immediate threat, holding anchor tile."))
 
 	if result["action_type"] == ActionType.ADVANCE_TO_OBJECTIVE or result["action_type"] == ActionType.FALLBACK_TO_COVER:
+		if result["target_coord"] == NULL_COORD:
+			result["action_type"] = ActionType.HOLD_ANCHOR
+			result["target_coord"] = unit_coord
+			unit.template_parameters["fallback_lock_until_tick"] = current_tick + 10
+			unit.template_parameters["locked_action_type"] = ActionType.HOLD_ANCHOR
+			result["path_array"] = []
+			result["telemetry_entries"].append(telemetry_logger.log_ai_condition(current_tick, unit.unit_id, "No valid target coordinate found, holding anchor."))
+			return result
+
 		var recalc_cooldown = unit.template_parameters.get("path_recalculation_cooldown", 0)
 		if recalc_cooldown > 0:
 			unit.template_parameters["path_recalculation_cooldown"] = recalc_cooldown - 1
