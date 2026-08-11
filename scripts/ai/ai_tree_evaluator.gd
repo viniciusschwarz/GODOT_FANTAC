@@ -136,13 +136,14 @@ func evaluate_unit_behavior(unit: UnitDataResource, matrix: BattlefieldMatrix, a
 					else:
 						var current_path = unit.template_parameters.get("current_path", [])
 						if current_path.is_empty():
-							var new_path = pf.calculate_path(matrix, unit_coord, target_coord, unit)
+							var path_result = pf.calculate_path(matrix, unit_coord, target_coord, unit)
+							var new_path = path_result.get("path", [])
 							if new_path.size() > 0:
 								result["telemetry_entries"].append(telemetry_logger.log_pathfinding(current_tick, unit.unit_id, "Path generated (Length: " + str(new_path.size()) + ")"))
 								unit.template_parameters["current_path"] = new_path
 								result["path_array"] = new_path
 							else:
-								result["telemetry_entries"].append(telemetry_logger.log_pathfinding(current_tick, unit.unit_id, "Path failed (Unreachable)"))
+								result["telemetry_entries"].append(telemetry_logger.log_pathfinding(current_tick, unit.unit_id, "Path failed: Reason: " + path_result.get("reason", "Unknown")))
 								result["action_type"] = ActionType.HOLD_ANCHOR
 								result["target_coord"] = unit_coord
 								unit.template_parameters["fallback_lock_until_tick"] = current_tick + 10
@@ -273,13 +274,14 @@ func evaluate_unit_behavior(unit: UnitDataResource, matrix: BattlefieldMatrix, a
 		else:
 			var current_path = unit.template_parameters.get("current_path", [])
 			if current_path.is_empty():
-				var new_path = pf.calculate_path(matrix, unit_coord, result["target_coord"], unit)
+				var path_result = pf.calculate_path(matrix, unit_coord, result["target_coord"], unit)
+				var new_path = path_result.get("path", [])
 				if new_path.size() > 0:
 					result["telemetry_entries"].append(telemetry_logger.log_pathfinding(current_tick, unit.unit_id, "Path generated (Length: " + str(new_path.size()) + ")"))
 					unit.template_parameters["current_path"] = new_path
 					result["path_array"] = new_path
 				else:
-					result["telemetry_entries"].append(telemetry_logger.log_pathfinding(current_tick, unit.unit_id, "Path failed (Unreachable)"))
+					result["telemetry_entries"].append(telemetry_logger.log_pathfinding(current_tick, unit.unit_id, "Path failed: Reason: " + path_result.get("reason", "Unknown")))
 					result["action_type"] = ActionType.HOLD_ANCHOR
 					result["target_coord"] = unit_coord
 					unit.template_parameters["fallback_lock_until_tick"] = current_tick + 10
@@ -288,5 +290,15 @@ func evaluate_unit_behavior(unit: UnitDataResource, matrix: BattlefieldMatrix, a
 					result["path_array"] = []
 			else:
 				result["path_array"] = current_path
+
+	# Track AI State Transitions
+	var current_state_str = str(unit.active_template_id) + ":" + str(result["action_type"])
+	var previous_state = unit.template_parameters.get("previous_ai_state", "")
+	if current_state_str != previous_state:
+		var trigger_reason = "Behavior evaluation completed"
+		if previous_state == "":
+			trigger_reason = "Initial state setup"
+		result["telemetry_entries"].append(telemetry_logger.log_ai_state(current_tick, unit.unit_id, current_state_str, trigger_reason))
+		unit.template_parameters["previous_ai_state"] = current_state_str
 
 	return result
