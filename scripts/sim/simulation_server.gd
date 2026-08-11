@@ -333,8 +333,11 @@ func _cleanup_dead_units(working_units: Dictionary, working_matrix: BattlefieldM
 		if tile and tile.occupying_unit_id == dead_id:
 			tile.occupying_unit_id = -1
 
-		_append_telemetry(telemetry_events, {"tick": current_tick, "msg": "Unit " + str(dead_id) + " died."})
-		working_units.erase(dead_id)
+		# Mark dead without erasing, ensuring snapshot retention across ticks
+		if not dead_unit.template_parameters.get("is_dead", false):
+			_append_telemetry(telemetry_events, {"tick": current_tick, "msg": "Unit " + str(dead_id) + " died."})
+			dead_unit.template_parameters["is_dead"] = true
+
 		unit_intents.erase(dead_id)
 
 func _append_telemetry(events: Array, event: Dictionary) -> void:
