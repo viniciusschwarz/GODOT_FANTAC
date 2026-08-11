@@ -7,13 +7,6 @@ func calculate_path(matrix: BattlefieldMatrix, start: Vector3i, target: Vector3i
 	# Pre-Flight Target Checks
 	var target_tile = matrix.get_tile(target)
 	if target_tile:
-		if target_tile.occupying_unit_id != -1 and target_tile.occupying_unit_id != unit_data.unit_id:
-			# Even for melee, pathing usually fails to path inside the target.
-			# The final node stripping allows adjacent stopping, but if target is occupied, we must verify.
-			# Actually, the requirement specifically says:
-			# Check 1: Target tile occupied by entity.
-			return {"path": [] as Array[Vector3i], "reason": "Target tile occupied by enemy"}
-
 		if target_tile.base_traversal_cost >= INF or target_tile.prop_id != -1:
 			var prop_msg = "Target tile blocked by structure"
 			if target_tile.prop_id != -1:
