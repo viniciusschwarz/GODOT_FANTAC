@@ -302,3 +302,14 @@ func evaluate_unit_behavior(unit: UnitDataResource, matrix: BattlefieldMatrix, a
 		unit.template_parameters["previous_ai_state"] = current_state_str
 
 	return result
+
+static func preview_unit_intent(unit: UnitDataResource, matrix: BattlefieldMatrix, all_units: Dictionary, directive_override: Dictionary = {}) -> Dictionary:
+	var cloned_unit = unit.duplicate_data()
+	var evaluator = AITreeEvaluator.new()
+	var dummy_logger = TurnTelemetryLogger.new()
+	var result = evaluator.evaluate_unit_behavior(cloned_unit, matrix, all_units, 0, dummy_logger, directive_override)
+
+	return {
+		"predicted_target_coord": result.get("target_coord", NULL_COORD),
+		"predicted_path_array": result.get("path_array", [])
+	}
