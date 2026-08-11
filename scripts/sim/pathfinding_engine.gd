@@ -1,8 +1,26 @@
 class_name PathfindingEngine extends RefCounted
 
-func calculate_path(matrix: BattlefieldMatrix, start: Vector3i, target: Vector3i, unit_data: UnitDataResource) -> Array[Vector3i]:
+func calculate_path(matrix: BattlefieldMatrix, start: Vector3i, target: Vector3i, unit_data: UnitDataResource) -> Dictionary:
 	if start == target:
-		return []
+		return {"path": [] as Array[Vector3i], "reason": "Target equals start"}
+
+	# Pre-Flight Target Checks
+	var target_tile = matrix.get_tile(target)
+	if target_tile:
+		if target_tile.occupying_unit_id != -1 and target_tile.occupying_unit_id != unit_data.unit_id:
+			# Even for melee, pathing usually fails to path inside the target.
+			# The final node stripping allows adjacent stopping, but if target is occupied, we must verify.
+			# Actually, the requirement specifically says:
+			# Check 1: Target tile occupied by entity.
+			return {"path": [] as Array[Vector3i], "reason": "Target tile occupied by enemy"}
+
+		if target_tile.base_traversal_cost >= INF or target_tile.prop_id != -1:
+			var prop_msg = "Target tile blocked by structure"
+			if target_tile.prop_id != -1:
+				prop_msg = "Path blocked by terrain/prop " + str(target_tile.prop_id)
+			return {"path": [] as Array[Vector3i], "reason": prop_msg}
+	else:
+		return {"path": [] as Array[Vector3i], "reason": "Target tile is out of bounds"}
 
 	# Ensure the start tile's occupancy is explicitly bypassed.
 	# A* naturally ignores the origin passability check, but we verify here for safety
@@ -41,7 +59,7 @@ func calculate_path(matrix: BattlefieldMatrix, start: Vector3i, target: Vector3i
 				current_index = i
 
 		if current == target:
-			return _reconstruct_path(came_from, current, matrix)
+			return {"path": _reconstruct_path(came_from, current, matrix), "reason": ""}
 
 		open_set.remove_at(current_index)
 
@@ -68,7 +86,7 @@ func calculate_path(matrix: BattlefieldMatrix, start: Vector3i, target: Vector3i
 
 	# Path calculation failed
 	unit_data.recalculation_cooldown_ticks = 5
-	return []
+	return {"path": [] as Array[Vector3i], "reason": "No valid traversal/Z-connector found to target"}
 
 func _get_valid_neighbors(matrix: BattlefieldMatrix, current: Vector3i, unit_id: int, target: Vector3i) -> Array[Vector3i]:
 	var valid_neighbors: Array[Vector3i] = []

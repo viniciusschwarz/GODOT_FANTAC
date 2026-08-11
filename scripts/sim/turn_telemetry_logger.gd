@@ -28,8 +28,8 @@ func log_ai_decision(tick: int, unit_id: int, action_name: String, target_id: in
 
 func log_combat(attacker_id: int, target_id: int, tick: int, damage: float, resulting_hp: float, is_melee: bool) -> Dictionary:
 	var type_str = "MELEE" if is_melee else "RANGED"
-	var msg = "[Tick %d] [%s] Unit %d hit Unit %d for %s damage (Resulting HP: %s)" % [tick, type_str, attacker_id, target_id, str(damage), str(resulting_hp)]
-	var sig = "[%s] hit Unit %d for %s damage (Resulting HP: %s)" % [type_str, target_id, str(damage), str(resulting_hp)]
+	var msg = "[Tick %d] [COMBAT] [%s] Unit %d hit Unit %d for %s damage (Resulting HP: %s)" % [tick, type_str, attacker_id, target_id, str(damage), str(resulting_hp)]
+	var sig = "[COMBAT] [%s] hit Unit %d for %s damage (Resulting HP: %s)" % [type_str, target_id, str(damage), str(resulting_hp)]
 	return _deduplicate(target_id, "combat", tick, sig, msg)
 
 func log_movement(tick: int, unit_id: int, coord: Vector3i, cost_ticks: int, remaining_cooldown: int) -> Dictionary:
@@ -67,3 +67,23 @@ func log_ai_condition(tick: int, unit_id: int, condition_msg: String) -> Diction
 	var msg = "[Tick %d] [AI_CONDITION] Unit %d %s" % [tick, unit_id, condition_msg]
 	var sig = "[AI_CONDITION] %s" % [condition_msg]
 	return _deduplicate(unit_id, "ai_condition", tick, sig, msg)
+
+func log_stress_change(tick: int, unit_id: int, amount: float, current_stress: float, threshold: float, source: String) -> Dictionary:
+	var msg = "[Tick %d] [STRESS] Unit %d gained +%s Stress (Current: %s / %s Threshold) [Source: %s]" % [tick, unit_id, str(amount), str(current_stress), str(threshold), source]
+	var sig = "[STRESS] gained +%s Stress (Current: %s / %s Threshold) [Source: %s]" % [str(amount), str(current_stress), str(threshold), source]
+	return _deduplicate(unit_id, "stress", tick, sig, msg)
+
+func log_morale_fracture(tick: int, unit_id: int, current_stress: float) -> Dictionary:
+	var msg = "[Tick %d] [STRESS] Unit %d order fractured at %s stress! Falling back in panic." % [tick, unit_id, str(current_stress)]
+	var sig = "[STRESS] order fractured at %s stress! Falling back in panic." % [str(current_stress)]
+	return _deduplicate(unit_id, "morale_fracture", tick, sig, msg)
+
+func log_initiative_collision(tick: int, collision_msg: String) -> Dictionary:
+	var msg = "[Tick %d] [INITIATIVE] %s" % [tick, collision_msg]
+	var sig = "[INITIATIVE] %s" % [collision_msg]
+	return _deduplicate("collision", "initiative", tick, sig, msg)
+
+func log_ai_state(tick: int, unit_id: int, new_state: String, trigger_reason: String) -> Dictionary:
+	var msg = "[Tick %d] [AI_STATE] Unit %d transitioned to %s [Trigger: %s]" % [tick, unit_id, new_state, trigger_reason]
+	var sig = "[AI_STATE] transitioned to %s [Trigger: %s]" % [new_state, trigger_reason]
+	return _deduplicate(unit_id, "ai_state", tick, sig, msg)
