@@ -10,4 +10,5 @@ class_name TickSnapshotData extends Resource
 @export var unit_template_states: Dictionary = {}
 
 @export var active_projectiles: Array[Dictionary] = []
+@export var melee_events: Array[Dictionary] = []
 @export var telemetry_events: Array[Dictionary] = []

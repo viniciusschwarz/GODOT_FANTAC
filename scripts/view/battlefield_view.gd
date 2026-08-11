@@ -24,6 +24,8 @@ var _static_prop_coords: Dictionary = {} # prop_id -> Vector3i
 var active_z_level: int = 1
 var _current_tick: int = 0
 
+var threat_tiles: Array[Vector3i] = []
+var preview_intent: Dictionary = {}
 
 func _ready() -> void:
 	add_child(lines_container)
@@ -141,6 +143,7 @@ func _on_scrubber_tick_changed(target_tick: int) -> void:
 		return
 
 	_current_tick = target_tick
+	queue_redraw()
 
 	# [EXTERNAL DATA ACCESS] Accessing the replay buffer
 	var snapshot = current_replay_buffer.tick_snapshots[target_tick]
@@ -187,9 +190,17 @@ func _on_match_started(matrix: BattlefieldMatrix, units_cache: Dictionary) -> vo
 
 func _on_unit_selected(unit_id: int) -> void:
 	selected_unit_id = unit_id
+	preview_intent.clear()
+	if current_phase == EventBus.Phase.PLANNING and _static_unit_cache.has(unit_id):
+		var unit = _static_unit_cache[unit_id]
+		preview_intent = AITreeEvaluator.preview_unit_intent(unit, master_matrix, _static_unit_cache)
+	queue_redraw()
 
 func _on_phase_changed(phase: EventBus.Phase) -> void:
 	current_phase = phase
+	threat_tiles.clear()
+	preview_intent.clear()
+
 	if phase != EventBus.Phase.PLANNING:
 		lines_container.hide()
 	else:
@@ -200,6 +211,25 @@ func _on_phase_changed(phase: EventBus.Phase) -> void:
 		# To be safe, clear them visually when returning to planning.
 		active_waypoints.clear()
 		_redraw_intent_lines()
+
+		# Calculate Threat Envelopes
+		for u_id in _static_unit_cache:
+			var unit = _static_unit_cache[u_id]
+			if unit.faction_id != 0 and unit.current_hp > 0:
+				var max_movable_tiles = floor(100.0 / unit.movement_speed_ticks_per_tile)
+				var total_reach = max_movable_tiles + unit.attack_range_max
+				var start_coord = Vector3i(unit.template_parameters.get("last_coord_x", 0), unit.template_parameters.get("last_coord_y", 0), unit.template_parameters.get("last_coord_z", 0))
+
+				for x in range(master_matrix._width):
+					for y in range(master_matrix._depth):
+						for z in range(master_matrix._height_levels):
+							var target_coord = Vector3i(x, y, z)
+							if master_matrix.get_tile(target_coord) != null:
+								var dist = abs(start_coord.x - target_coord.x) + abs(start_coord.y - target_coord.y)
+								if dist <= total_reach:
+									threat_tiles.append(target_coord)
+
+	queue_redraw()
 
 func _on_tile_right_clicked(unit_id: int, grid_coord: Vector3i) -> void:
 	active_waypoints[unit_id] = grid_coord
@@ -227,7 +257,8 @@ func _redraw_intent_lines() -> void:
 func _set_active_z_level(level: int) -> void:
 	active_z_level = clampi(level, 0, 1)
 	rampart_layer_z1.visible = (active_z_level >= 1)
-	_on_scrubber_tick_changed(_current_tick) # Refresh tokens
+	_on_scrubber_tick_changed(_current_tick)
+	queue_redraw() # Refresh tokens
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
@@ -266,3 +297,56 @@ func _unhandled_input(event: InputEvent) -> void:
 			if current_phase == EventBus.Phase.PLANNING and selected_unit_id != -1:
 				if tile != null:
 					EventBus.tile_right_clicked.emit(selected_unit_id, clicked_coord)
+
+func _process(_delta: float) -> void:
+	if current_phase == EventBus.Phase.PLANNING:
+		queue_redraw()
+
+func _draw() -> void:
+	if current_phase == EventBus.Phase.PLANNING:
+		for coord in threat_tiles:
+			var screen_pos = Vector2(coord.x * 64, coord.y * 64) + Vector2(0, coord.z * Z1_VISUAL_Y_OFFSET)
+			draw_rect(Rect2(screen_pos, Vector2(64, 64)), Color(1.0, 0.0, 0.0, 0.25), true)
+
+		if not preview_intent.is_empty():
+			var target_coord = preview_intent.get("predicted_target_coord", Vector3i(-1, -1, -1))
+			if target_coord != Vector3i(-1, -1, -1):
+				var screen_pos = Vector2(target_coord.x * 64, target_coord.y * 64) + Vector2(0, target_coord.z * Z1_VISUAL_Y_OFFSET)
+				var alpha = (sin(Time.get_ticks_msec() * 0.006) + 1.0) * 0.4 + 0.2
+				draw_rect(Rect2(screen_pos, Vector2(64, 64)), Color(0.2, 0.8, 1.0, alpha), false, 2.0)
+
+			var path = preview_intent.get("predicted_path_array", [])
+			if path.size() > 1:
+				var points = PackedVector2Array()
+				for coord in path:
+					var screen_pos = Vector2(coord.x * 64 + 32, coord.y * 64 + 32) + Vector2(0, coord.z * Z1_VISUAL_Y_OFFSET)
+					points.append(screen_pos)
+				draw_polyline(points, Color(0.2, 0.8, 1.0, 1.0), 3.0)
+
+	if current_replay_buffer and _current_tick >= 0 and _current_tick < current_replay_buffer.tick_snapshots.size():
+		var snapshot = current_replay_buffer.tick_snapshots[_current_tick]
+
+		for proj in snapshot.active_projectiles:
+			var pos_3d = proj.current_pos_3d
+			var vel_3d = proj.velocity.normalized() * 2.0
+			var start_3d = pos_3d - vel_3d
+
+			var end_screen = Vector2(pos_3d.x * 64, pos_3d.y * 64) + Vector2(0, pos_3d.z * Z1_VISUAL_Y_OFFSET)
+			var start_screen = Vector2(start_3d.x * 64, start_3d.y * 64) + Vector2(0, start_3d.z * Z1_VISUAL_Y_OFFSET)
+
+			draw_line(start_screen, end_screen, Color(1.0, 0.9, 0.1), 2.0)
+			draw_circle(end_screen, 4.0, Color(1.0, 1.0, 1.0))
+
+		var recent_melee_events = []
+		for t in range(max(0, _current_tick - 2), _current_tick + 1):
+			var snap = current_replay_buffer.tick_snapshots[t]
+			recent_melee_events.append_array(snap.melee_events)
+
+		for event in recent_melee_events:
+			var a_c = event.attacker_coord
+			var d_c = event.target_coord
+			var a_screen = Vector2(a_c.x * 64 + 32, a_c.y * 64 + 32) + Vector2(0, a_c.z * Z1_VISUAL_Y_OFFSET)
+			var d_screen = Vector2(d_c.x * 64 + 32, d_c.y * 64 + 32) + Vector2(0, d_c.z * Z1_VISUAL_Y_OFFSET)
+
+			draw_line(a_screen, d_screen, Color(1.0, 0.2, 0.2), 4.0)
+			draw_arc(d_screen, 16.0, 0, TAU, 32, Color(1.0, 1.0, 1.0, 0.8), 2.0)

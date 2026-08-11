@@ -48,6 +48,7 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 	# WeGo 100-Micro-Tick Loop
 	for tick in range(100):
 		var telemetry_events: Array[Dictionary] = []
+		var melee_events_this_tick: Array[Dictionary] = []
 		var current_tick = tick
 
 		# STEP A: Process environment and active projectile positions
@@ -263,6 +264,18 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 					_append_telemetry(telemetry_events, telemetry_logger.log_combat(event.attacker_id, event.defender_id, current_tick, dmg, defender.current_hp, true))
 					_append_telemetry(telemetry_events, telemetry_logger.log_stress_change(current_tick, defender.unit_id, stress_dmg, defender.current_stress, defender.bravery_rating * defender.loyalty_rating, "Melee Damage"))
 					check_morale_fracture(defender, current_tick, telemetry_events, unit_intents, scheduled_melee_events)
+
+					if working_units.has(event.attacker_id):
+						var attacker = working_units[event.attacker_id]
+						var attacker_coord = Vector3i(attacker.template_parameters.get("last_coord_x", 0), attacker.template_parameters.get("last_coord_y", 0), attacker.template_parameters.get("last_coord_z", 0))
+						var defender_coord = Vector3i(defender.template_parameters.get("last_coord_x", 0), defender.template_parameters.get("last_coord_y", 0), defender.template_parameters.get("last_coord_z", 0))
+						melee_events_this_tick.append({
+							"attacker_id": event.attacker_id,
+							"target_id": event.defender_id,
+							"attacker_coord": attacker_coord,
+							"target_coord": defender_coord
+						})
+
 				scheduled_melee_events.remove_at(melee_idx)
 			melee_idx -= 1
 
@@ -288,6 +301,7 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 			snapshot.prop_states[prop_id] = working_matrix.get_prop(prop_id).current_degradation_state
 
 		snapshot.active_projectiles = active_projectiles.duplicate(true)
+		snapshot.melee_events = melee_events_this_tick.duplicate(true)
 		snapshot.telemetry_events = telemetry_events.duplicate(true)
 
 		replay_buffer.tick_snapshots.append(snapshot)
