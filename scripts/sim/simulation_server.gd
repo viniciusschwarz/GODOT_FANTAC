@@ -62,7 +62,10 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 				var target_unit = working_units[result.target_id]
 				var dmg = result.damage
 				target_unit.current_hp -= dmg
-				target_unit.current_stress += (dmg * 0.5)
+				_append_telemetry(telemetry_events, telemetry_logger.log_combat(proj.source_id, result.target_id, current_tick, dmg, target_unit.current_hp, false))
+				var stress_dmg = dmg * 0.5
+				target_unit.current_stress += stress_dmg
+				_append_telemetry(telemetry_events, telemetry_logger.log_stress_change(current_tick, target_unit.unit_id, stress_dmg, target_unit.current_stress, target_unit.bravery_rating * target_unit.loyalty_rating, "Ranged Damage"))
 				check_morale_fracture(target_unit, current_tick, telemetry_events, unit_intents, scheduled_melee_events)
 				active_projectiles.remove_at(proj_idx)
 			elif result.status == &"INTERCEPTED_TERRAIN":
@@ -183,8 +186,12 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 					var tile = working_matrix.get_tile(next_coord)
 					if tile:
 						# Note: signature in initiative_reservation_server.gd is:
-						# resolve_tile_reservation(tile, requesting_unit, units_map, micro_tick) -> int
-						var granted = reservation_server.resolve_tile_reservation(tile, unit, working_units, current_tick) == 1
+						# resolve_tile_reservation(tile, requesting_unit, units_map, micro_tick) -> Dictionary
+						var res_result = reservation_server.resolve_tile_reservation(tile, unit, working_units, current_tick)
+						var granted = res_result.get("success", false)
+						var log_msg = res_result.get("log_msg", "")
+						if log_msg != "":
+							_append_telemetry(telemetry_events, telemetry_logger.log_initiative_collision(current_tick, log_msg))
 
 						if granted:
 							# GRANTED
@@ -251,8 +258,10 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 					var defender = working_units[event.defender_id]
 					var dmg = event.damage
 					defender.current_hp -= dmg
-					defender.current_stress += (dmg * 0.5)
+					var stress_dmg = dmg * 0.5
+					defender.current_stress += stress_dmg
 					_append_telemetry(telemetry_events, telemetry_logger.log_combat(event.attacker_id, event.defender_id, current_tick, dmg, defender.current_hp, true))
+					_append_telemetry(telemetry_events, telemetry_logger.log_stress_change(current_tick, defender.unit_id, stress_dmg, defender.current_stress, defender.bravery_rating * defender.loyalty_rating, "Melee Damage"))
 					check_morale_fracture(defender, current_tick, telemetry_events, unit_intents, scheduled_melee_events)
 				scheduled_melee_events.remove_at(melee_idx)
 			melee_idx -= 1
@@ -303,7 +312,7 @@ func check_morale_fracture(unit: UnitDataResource, current_tick: int, telemetry_
 				scheduled_melee_events.remove_at(melee_idx)
 			melee_idx -= 1
 
-		_append_telemetry(telemetry_events, {"tick": current_tick, "msg": "[Tick " + str(current_tick) + "] Order Fractured! Falling back in panic."})
+		_append_telemetry(telemetry_events, telemetry_logger.log_morale_fracture(current_tick, unit.unit_id, unit.current_stress))
 
 func _cleanup_dead_units(working_units: Dictionary, working_matrix: BattlefieldMatrix, telemetry_events: Array, current_tick: int, unit_intents: Dictionary, scheduled_melee_events: Array):
 	var dead_units: Array = []
@@ -327,7 +336,9 @@ func _cleanup_dead_units(working_units: Dictionary, working_matrix: BattlefieldM
 						var ox = other.template_parameters.get("last_coord_x", 0)
 						var oy = other.template_parameters.get("last_coord_y", 0)
 						if abs(dead_x - ox) + abs(dead_y - oy) <= 3: # 3 cardinal tiles
-							other.current_stress += 15.0
+							var stress_dmg = 15.0
+							other.current_stress += stress_dmg
+							_append_telemetry(telemetry_events, telemetry_logger.log_stress_change(current_tick, other.unit_id, stress_dmg, other.current_stress, other.bravery_rating * other.loyalty_rating, "Death Shockwave"))
 							check_morale_fracture(other, current_tick, telemetry_events, unit_intents, scheduled_melee_events)
 
 			# Clear occupation
