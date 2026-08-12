@@ -26,9 +26,15 @@ var _current_tick: int = 0
 
 var threat_tiles: Array[Vector3i] = []
 var preview_intent: Dictionary = {}
+var is_playing: bool = false
+var overlay_layer: Node2D = null
 
 func _ready() -> void:
 	add_child(lines_container)
+	overlay_layer = Node2D.new()
+	add_child(overlay_layer)
+	overlay_layer.draw.connect(_draw_overlay)
+	EventBus.playback_state_changed.connect(_on_playback_state_changed)
 	EventBus.scrubber_tick_changed.connect(_on_scrubber_tick_changed)
 	EventBus.turn_simulation_completed.connect(_on_turn_simulation_completed)
 	EventBus.grid_initialized.connect(_on_grid_initialized)
@@ -144,6 +150,8 @@ func _on_scrubber_tick_changed(target_tick: int) -> void:
 
 	_current_tick = target_tick
 	queue_redraw()
+	if overlay_layer:
+		overlay_layer.queue_redraw()
 
 	# [EXTERNAL DATA ACCESS] Accessing the replay buffer
 	var snapshot = current_replay_buffer.tick_snapshots[target_tick]
@@ -179,6 +187,9 @@ func _on_scrubber_tick_changed(target_tick: int) -> void:
 func _on_grid_initialized(matrix: BattlefieldMatrix) -> void:
 	master_matrix = matrix
 	paint_debug_grid(matrix)
+
+func _on_playback_state_changed(playing: bool, _speed_multiplier: float) -> void:
+	is_playing = playing
 
 func _on_match_started(matrix: BattlefieldMatrix, units_cache: Dictionary) -> void:
 	_static_unit_cache = units_cache
@@ -301,6 +312,10 @@ func _unhandled_input(event: InputEvent) -> void:
 func _process(_delta: float) -> void:
 	if current_phase == EventBus.Phase.PLANNING:
 		queue_redraw()
+	elif current_phase == EventBus.Phase.PLAYBACK and is_playing:
+		queue_redraw()
+		if overlay_layer:
+			overlay_layer.queue_redraw()
 
 func _draw() -> void:
 	if current_phase == EventBus.Phase.PLANNING:
@@ -323,9 +338,12 @@ func _draw() -> void:
 					points.append(screen_pos)
 				draw_polyline(points, Color(0.2, 0.8, 1.0, 1.0), 3.0)
 
+func _draw_overlay() -> void:
 	if current_replay_buffer and _current_tick >= 0 and _current_tick < current_replay_buffer.tick_snapshots.size():
 		var snapshot = current_replay_buffer.tick_snapshots[_current_tick]
 
+		if snapshot.active_projectiles.size() > 0 and not overlay_layer.visible:
+			print_debug("Projectiles exist but overlay_layer is hidden, failing to render.")
 		for proj in snapshot.active_projectiles:
 			var pos_3d = proj.current_pos_3d
 			var vel_3d = proj.velocity.normalized() * 2.0
@@ -334,19 +352,27 @@ func _draw() -> void:
 			var end_screen = Vector2(pos_3d.x * 64, pos_3d.y * 64) + Vector2(0, pos_3d.z * Z1_VISUAL_Y_OFFSET)
 			var start_screen = Vector2(start_3d.x * 64, start_3d.y * 64) + Vector2(0, start_3d.z * Z1_VISUAL_Y_OFFSET)
 
-			draw_line(start_screen, end_screen, Color(1.0, 0.9, 0.1), 2.0)
-			draw_circle(end_screen, 4.0, Color(1.0, 1.0, 1.0))
+			overlay_layer.draw_line(start_screen, end_screen, Color(1.0, 0.9, 0.1), 2.0)
+			overlay_layer.draw_circle(end_screen, 4.0, Color(1.0, 1.0, 1.0))
 
+		if snapshot.melee_events.size() > 0 and not overlay_layer.visible:
+			print_debug("Melee events exist but overlay_layer is hidden, failing to render.")
 		var recent_melee_events = []
-		for t in range(max(0, _current_tick - 2), _current_tick + 1):
+		for t in range(max(0, _current_tick - 4), _current_tick + 1):
 			var snap = current_replay_buffer.tick_snapshots[t]
-			recent_melee_events.append_array(snap.melee_events)
+			for event in snap.melee_events:
+				recent_melee_events.append({"event": event, "tick": t})
 
-		for event in recent_melee_events:
+		for data in recent_melee_events:
+			var event = data["event"]
+			var event_tick = data["tick"]
+			var age = _current_tick - event_tick
+			var alpha = max(0.0, 1.0 - (age * 0.2))
+
 			var a_c = event.attacker_coord
 			var d_c = event.target_coord
 			var a_screen = Vector2(a_c.x * 64 + 32, a_c.y * 64 + 32) + Vector2(0, a_c.z * Z1_VISUAL_Y_OFFSET)
 			var d_screen = Vector2(d_c.x * 64 + 32, d_c.y * 64 + 32) + Vector2(0, d_c.z * Z1_VISUAL_Y_OFFSET)
 
-			draw_line(a_screen, d_screen, Color(1.0, 0.2, 0.2), 4.0)
-			draw_arc(d_screen, 16.0, 0, TAU, 32, Color(1.0, 1.0, 1.0, 0.8), 2.0)
+			overlay_layer.draw_line(a_screen, d_screen, Color(1.0, 0.2, 0.2, alpha), 4.0)
+			overlay_layer.draw_arc(d_screen, 16.0, 0, TAU, 32, Color(1.0, 1.0, 1.0, alpha * 0.8), 2.0)
