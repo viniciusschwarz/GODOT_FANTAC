@@ -1,3 +1,5 @@
+## Headless execution environment evaluating WeGo 100-micro-tick turns.
+## Mutates isolated working variables to populate a serialized playback timeline without modifying the core state.
 class_name SimulationServer extends RefCounted
 
 var telemetry_logger: TurnTelemetryLogger = TurnTelemetryLogger.new()
@@ -9,6 +11,7 @@ var ai_evaluator: AITreeEvaluator = AITreeEvaluator.new()
 
 var next_proj_id: int = 1
 
+## Deep-copies master states to build the local timeline cache, executing logic sequentially across 100 micro-ticks.
 func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatrix, initial_units: Dictionary) -> TurnReplayBufferResource:
 	var replay_buffer = TurnReplayBufferResource.new()
 	if plan:
@@ -17,6 +20,7 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 		replay_buffer.turn_number = 1
 	replay_buffer.tick_snapshots = [] as Array[TickSnapshotData]
 
+	# [STATE ISOLATION]: Deep-copying master context into localized variables for headless resolution.
 	var working_matrix = initial_matrix.duplicate_grid()
 	var working_units: Dictionary = {}
 	for unit_id in initial_units:
@@ -24,21 +28,17 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 		var cloned_unit = unit.duplicate_data()
 		working_units[cloned_unit.unit_id] = cloned_unit
 
-		# Apply plan templates
 		if plan and plan.unit_templates.has(cloned_unit.unit_id):
 			var template = plan.unit_templates[cloned_unit.unit_id]
 			if template != null:
 				cloned_unit.active_template_id = template.template_id
 
-		# Objective injection (PROMPT 8.2)
 		if plan and plan.unit_objectives.has(cloned_unit.unit_id):
-			cloned_unit.template_parameters["objective_coord"] = plan.unit_objectives[cloned_unit.unit_id] # [EXTERNAL DATA ACCESS]
+			cloned_unit.template_parameters["objective_coord"] = plan.unit_objectives[cloned_unit.unit_id]
 
-		# Reset path and cooldowns
 		cloned_unit.template_parameters["current_path"] = []
 		cloned_unit.template_parameters["path_recalculation_cooldown"] = 0
-		# Always reset movement cooldown at start of the turn
-		cloned_unit.template_parameters["unit_movement_cooldown"] = 0 # [EXTERNAL DATA ACCESS]
+		cloned_unit.template_parameters["unit_movement_cooldown"] = 0
 
 	telemetry_logger.reset_turn_cache()
 	var active_projectiles: Array[Dictionary] = []
@@ -232,7 +232,6 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 							unit.template_parameters["unit_movement_cooldown"] = 1
 
 
-		# STEP E: Resolve combat hits, damage application, and morale/order fracture checks
 		for unit_id in unit_intents:
 			var intent = unit_intents[unit_id]
 			if intent.action_type == AITreeEvaluator.ActionType.MELEE_ATTACK:
@@ -247,10 +246,8 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 					if melee_result.status == &"MELEE_SCHEDULED":
 						attacker.template_parameters["attack_cooldown"] = 20
 						scheduled_melee_events.append(melee_result)
-						# Consume the intent so it doesn't trigger multiple times
 						intent.action_type = AITreeEvaluator.ActionType.NONE
 
-		# Process scheduled melee damages that occur this tick
 		var melee_idx = scheduled_melee_events.size() - 1
 		while melee_idx >= 0:
 			var event = scheduled_melee_events[melee_idx]
@@ -281,7 +278,6 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 
 		_cleanup_dead_units(working_units, working_matrix, telemetry_events, current_tick, unit_intents, scheduled_melee_events)
 
-		# STEP F: Capture tick snapshot
 		var snapshot = TickSnapshotData.new()
 		snapshot.micro_tick_index = current_tick
 
@@ -294,7 +290,6 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 			snapshot.unit_hp_states[unit_id] = unit.current_hp
 			snapshot.unit_stress_states[unit_id] = unit.current_stress
 			snapshot.unit_template_states[unit_id] = unit.template_parameters.duplicate(true)
-			# Animation state could be derived, setting default 0 for now
 			snapshot.unit_animation_states[unit_id] = 0
 
 		for prop_id in working_matrix._props:
@@ -306,20 +301,19 @@ func run_turn_simulation(plan: TurnPlanResource, initial_matrix: BattlefieldMatr
 
 		replay_buffer.tick_snapshots.append(snapshot)
 
-	# Emit the result
 	EventBus.turn_simulation_completed.emit(replay_buffer)
 	return replay_buffer
 
+## Evaluates stress fracture thresholds against (bravery * loyalty).
+## Intercepts fracture breaches by purging intents/attacks and enforcing fallback templates.
 func check_morale_fracture(unit: UnitDataResource, current_tick: int, telemetry_events: Array, unit_intents: Dictionary, scheduled_melee_events: Array):
 	var max_allowed_stress = unit.bravery_rating * unit.loyalty_rating
 	if unit.current_stress >= max_allowed_stress and not unit.is_order_fractured:
 		unit.is_order_fractured = true
 		unit.active_template_id = &"UNCONTROLLED_FALLBACK"
 
-		# Purge active path reservations (intent)
 		unit_intents.erase(unit.unit_id)
 
-		# Purge scheduled attacks
 		var melee_idx = scheduled_melee_events.size() - 1
 		while melee_idx >= 0:
 			if scheduled_melee_events[melee_idx].attacker_id == unit.unit_id:
@@ -328,6 +322,7 @@ func check_morale_fracture(unit: UnitDataResource, current_tick: int, telemetry_
 
 		_append_telemetry(telemetry_events, telemetry_logger.log_morale_fracture(current_tick, unit.unit_id, unit.current_stress))
 
+## Emits lateral stress shockwaves across 3 adjacent tiles during death events while retaining snapshot footprint.
 func _cleanup_dead_units(working_units: Dictionary, working_matrix: BattlefieldMatrix, telemetry_events: Array, current_tick: int, unit_intents: Dictionary, scheduled_melee_events: Array):
 	var dead_units: Array = []
 	for unit_id in working_units:
@@ -337,9 +332,7 @@ func _cleanup_dead_units(working_units: Dictionary, working_matrix: BattlefieldM
 	for dead_id in dead_units:
 		var dead_unit = working_units[dead_id]
 
-		# Only process death logic once on the tick the unit dies
 		if not dead_unit.template_parameters.get("is_dead", false):
-			# Find units within 3 tiles and add stress
 			var dead_x = dead_unit.template_parameters.get("last_coord_x", 0)
 			var dead_y = dead_unit.template_parameters.get("last_coord_y", 0)
 
@@ -349,19 +342,17 @@ func _cleanup_dead_units(working_units: Dictionary, working_matrix: BattlefieldM
 					if other.faction_id == dead_unit.faction_id:
 						var ox = other.template_parameters.get("last_coord_x", 0)
 						var oy = other.template_parameters.get("last_coord_y", 0)
-						if abs(dead_x - ox) + abs(dead_y - oy) <= 3: # 3 cardinal tiles
+						if abs(dead_x - ox) + abs(dead_y - oy) <= 3:
 							var stress_dmg = 15.0
 							other.current_stress += stress_dmg
 							_append_telemetry(telemetry_events, telemetry_logger.log_stress_change(current_tick, other.unit_id, stress_dmg, other.current_stress, other.bravery_rating * other.loyalty_rating, "Death Shockwave"))
 							check_morale_fracture(other, current_tick, telemetry_events, unit_intents, scheduled_melee_events)
 
-			# Clear occupation
 			var cz = dead_unit.template_parameters.get("last_coord_z", 0)
 			var tile = working_matrix.get_tile(Vector3i(dead_x, dead_y, cz))
 			if tile and tile.occupying_unit_id == dead_id:
 				tile.occupying_unit_id = -1
 
-			# Mark dead without erasing, ensuring snapshot retention across ticks
 			_append_telemetry(telemetry_events, {"tick": current_tick, "msg": "Unit " + str(dead_id) + " died."})
 			dead_unit.template_parameters["is_dead"] = true
 

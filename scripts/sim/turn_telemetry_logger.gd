@@ -1,7 +1,11 @@
+## Stateful telemetry deduplicator for runtime headless logging.
+## Caches micro-tick signatures and formats standard bracket-tagged telemetry events preventing timeline log spam.
 class_name TurnTelemetryLogger extends RefCounted
 
+## Dictionary maintaining last generated signature strings per category per entity to enforce deduplication.
 var _last_logged_event_per_unit: Dictionary = {}
 
+## Purges the deduplication cache at the beginning of a new simulation sequence.
 func reset_turn_cache() -> void:
 	_last_logged_event_per_unit.clear()
 
@@ -15,6 +19,7 @@ func _deduplicate(unit_id: Variant, category: String, tick: int, signature: Stri
 	_last_logged_event_per_unit[unit_id][category] = signature
 	return { "tick": tick, "msg": full_msg }
 
+## Compiles [AI] intent payloads supporting generic physical targets or spatial fallback routes.
 func log_ai_decision(tick: int, unit_id: int, action_name: String, target_id: int, target_coord: Vector3i) -> Dictionary:
 	var msg = ""
 	var sig = ""

@@ -1,3 +1,5 @@
+## Source of truth for intent generation and behavior tree branching.
+## Transforms UI override directives and autonomous templates into strict actionable coordinates or locked states.
 class_name AITreeEvaluator extends Node
 
 enum ActionType {
@@ -10,9 +12,11 @@ enum ActionType {
 	HOLD_ENGAGEMENT
 }
 
+## Mathematical representation of 'No Target' preventing fallback routes to the physical origin (0, 0, 0).
 const NULL_COORD = Vector3i(-1, -1, -1)
 
 
+## Reusable modular helper injecting LOS verification rules before approving kinetic Ranged attacks.
 func evaluate_ranged_attack(unit: UnitDataResource, unit_coord: Vector3i, matrix: BattlefieldMatrix, ranged_targets: Array) -> Dictionary:
 	for target in ranged_targets:
 		var los_result = matrix.calculate_3d_line_of_sight(unit_coord, target.coord)
@@ -20,6 +24,7 @@ func evaluate_ranged_attack(unit: UnitDataResource, unit_coord: Vector3i, matrix
 			return { "success": true, "target": target }
 	return { "success": false }
 
+## Computes sequential behavior states, validating hysteresis locks and extracting player override directives.
 func evaluate_unit_behavior(unit: UnitDataResource, matrix: BattlefieldMatrix, all_units: Dictionary, current_tick: int, telemetry_logger: TurnTelemetryLogger, directive: Dictionary = {}) -> Dictionary:
 	var result := {
 		"action_type": ActionType.NONE,
@@ -29,10 +34,10 @@ func evaluate_unit_behavior(unit: UnitDataResource, matrix: BattlefieldMatrix, a
 
 	var pf = PathfindingEngine.new()
 
-	# Pre-compute all unit positions
 	var all_unit_coords: Dictionary = {}
 	for u_id in all_units:
 		var u = all_units[u_id]
+		# Accessing explicitly saved coordinates avoiding slow 3D matrix matrix scans
 		var ux = u.template_parameters.get("last_coord_x", -1)
 		var uy = u.template_parameters.get("last_coord_y", -1)
 		var uz = u.template_parameters.get("last_coord_z", -1)
@@ -41,10 +46,8 @@ func evaluate_unit_behavior(unit: UnitDataResource, matrix: BattlefieldMatrix, a
 
 	var unit_coord = all_unit_coords.get(unit.unit_id, NULL_COORD)
 	if not all_unit_coords.has(unit.unit_id):
-		# If the unit is not on the board, return NONE
 		return result
 
-	# Identify valid enemy targets
 	var melee_targets: Array[Dictionary] = []
 	var ranged_targets: Array[Dictionary] = []
 	var visible_enemies: Array[Dictionary] = []
@@ -166,14 +169,12 @@ func evaluate_unit_behavior(unit: UnitDataResource, matrix: BattlefieldMatrix, a
 	var active_template = unit.active_template_id
 
 	if active_template == &"AGGRESSIVE_ASSAULT":
-		# Branch 1: If current_hp / max_hp < 0.15 -> Action: Fallback_To_Cover.
 		if hp_pct < 0.15:
 			unit.template_parameters["fallback_lock_until_tick"] = current_tick + 15
 			unit.template_parameters["locked_action_type"] = ActionType.FALLBACK_TO_COVER
 			result["action_type"] = ActionType.FALLBACK_TO_COVER
 			result["target_coord"] = unit_coord
 			result["telemetry_entries"].append(telemetry_logger.log_ai_condition(current_tick, unit.unit_id, "Aggressive Assault: Falling back to cover due to low HP."))
-		# Branch 2: If enemy in melee range -> Action: Melee_Attack.
 		elif melee_targets.size() > 0:
 			if not on_cooldown:
 				result["action_type"] = ActionType.MELEE_ATTACK
@@ -184,7 +185,6 @@ func evaluate_unit_behavior(unit: UnitDataResource, matrix: BattlefieldMatrix, a
 				result["action_type"] = ActionType.HOLD_ENGAGEMENT
 				result["target_coord"] = unit_coord
 				result["telemetry_entries"].append(telemetry_logger.log_ai_condition(current_tick, unit.unit_id, "Enemy in melee range, holding engagement (on cooldown)."))
-		# Branch 3 (NEW): Ranged check before advancing
 		else:
 			var r_eval = evaluate_ranged_attack(unit, unit_coord, matrix, ranged_targets)
 			if r_eval.success:
@@ -203,14 +203,12 @@ func evaluate_unit_behavior(unit: UnitDataResource, matrix: BattlefieldMatrix, a
 				result["telemetry_entries"].append(telemetry_logger.log_ai_condition(current_tick, unit.unit_id, "No immediate threat, advancing to objective."))
 
 	elif active_template == &"CAUTIOUS_OVERWATCH":
-		# Branch 1: If current_hp / max_hp < 0.40 -> Action: Fallback_To_Cover.
 		if hp_pct < 0.40:
 			unit.template_parameters["fallback_lock_until_tick"] = current_tick + 15
 			unit.template_parameters["locked_action_type"] = ActionType.FALLBACK_TO_COVER
 			result["action_type"] = ActionType.FALLBACK_TO_COVER
 			result["target_coord"] = unit_coord
 			result["telemetry_entries"].append(telemetry_logger.log_ai_condition(current_tick, unit.unit_id, "Cautious Overwatch: Falling back to cover due to low HP."))
-		# Branch 2: If enemy in ranged threat envelope -> Action: Ranged_Trade_From_Cover (RANGED_ATTACK)
 		elif true:
 			var r_eval = evaluate_ranged_attack(unit, unit_coord, matrix, ranged_targets)
 			if r_eval.success:
@@ -229,7 +227,6 @@ func evaluate_unit_behavior(unit: UnitDataResource, matrix: BattlefieldMatrix, a
 				result["telemetry_entries"].append(telemetry_logger.log_ai_condition(current_tick, unit.unit_id, "No immediate threat, advancing to objective."))
 
 	elif active_template == &"POINT_GUARD":
-		# Branch 1: If enemy in melee/threat range -> Action: Attack_Target.
 		if melee_targets.size() > 0:
 			if not on_cooldown:
 				result["action_type"] = ActionType.MELEE_ATTACK
@@ -291,7 +288,6 @@ func evaluate_unit_behavior(unit: UnitDataResource, matrix: BattlefieldMatrix, a
 			else:
 				result["path_array"] = current_path
 
-	# Track AI State Transitions
 	var current_state_str = str(unit.active_template_id) + ":" + str(result["action_type"])
 	var previous_state = unit.template_parameters.get("previous_ai_state", "")
 	if current_state_str != previous_state:
@@ -303,6 +299,7 @@ func evaluate_unit_behavior(unit: UnitDataResource, matrix: BattlefieldMatrix, a
 
 	return result
 
+## Predicts and returns stateless intent rendering payloads without mutating live simulation data parameters.
 static func preview_unit_intent(unit: UnitDataResource, matrix: BattlefieldMatrix, all_units: Dictionary, directive_override: Dictionary = {}) -> Dictionary:
 	var cloned_unit = unit.duplicate_data()
 	var evaluator = AITreeEvaluator.new()

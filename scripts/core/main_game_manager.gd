@@ -1,9 +1,13 @@
+## Oversees global phase transitions and state persistence.
+## Triggers simulation headless runs and synchronizes the final snapshot back to the master state.
 class_name MainGameManager extends Node
 
 var current_phase: EventBus.Phase = EventBus.Phase.INITIALIZATION
 var current_turn: int = 1
 
+## Source of truth for all spatial data.
 var master_matrix: BattlefieldMatrix
+## Source of truth for all unit attributes mapped by unit_id.
 var master_units: Dictionary = {}
 var current_replay_buffer: TurnReplayBufferResource = null
 
@@ -11,6 +15,7 @@ func _ready() -> void:
 	EventBus.plan_submitted.connect(execute_simulation)
 	EventBus.playback_completed.connect(_on_playback_completed)
 
+## Injects master grid and entities into the game loop, generating initial Tick 0 snapshot.
 func initialize_match(matrix: BattlefieldMatrix, units: Dictionary) -> void:
 	master_matrix = matrix
 	master_units = units
@@ -24,20 +29,16 @@ func initialize_match(matrix: BattlefieldMatrix, units: Dictionary) -> void:
 	var snapshot = TickSnapshotData.new()
 	snapshot.micro_tick_index = 0
 
-	# Populate initial unit states
 	for unit_id in master_units.keys():
 		var unit = master_units[unit_id]
 		snapshot.unit_hp_states[unit_id] = unit.current_hp
-		# We need to find the unit's position in the matrix to populate transform_states
 
 	for coord in master_matrix._grid.keys():
-		# [EXTERNAL DATA ACCESS] Reading from the matrix
+		# [VIEW LAYER SAFETY]: Strictly reading initial spatial positioning without mutation.
 		var tile = master_matrix.get_tile(coord)
 		if tile.occupying_unit_id != -1 and master_units.has(tile.occupying_unit_id):
-			# [EXTERNAL DATA ACCESS] Populating the snapshot buffer
 			snapshot.unit_transform_states[tile.occupying_unit_id] = coord
 
-	# Populate initial prop states
 	for prop_id in master_matrix._props.keys():
 		var prop = master_matrix.get_prop(prop_id)
 		snapshot.prop_states[prop_id] = prop.current_degradation_state
@@ -49,12 +50,14 @@ func initialize_match(matrix: BattlefieldMatrix, units: Dictionary) -> void:
 
 	enter_planning_phase()
 
+## Starts the manual intent planning phase where users assign directives.
 func enter_planning_phase() -> void:
 	current_phase = EventBus.Phase.PLANNING
 	var plan = TurnPlanResource.new()
 	plan.turn_number = current_turn
 	EventBus.phase_changed.emit(EventBus.Phase.PLANNING)
 
+## Submits player intent for fully headless sandbox resolution.
 func execute_simulation(plan: TurnPlanResource) -> void:
 	if current_phase != EventBus.Phase.PLANNING:
 		return
@@ -67,16 +70,19 @@ func execute_simulation(plan: TurnPlanResource) -> void:
 
 	enter_playback_phase(replay_buffer)
 
+## Locks view interaction and streams compiled micro-tick snapshots to render logic.
 func enter_playback_phase(buffer: TurnReplayBufferResource) -> void:
 	current_phase = EventBus.Phase.PLAYBACK
 	current_replay_buffer = buffer
 	EventBus.turn_simulation_completed.emit(buffer)
 	EventBus.phase_changed.emit(EventBus.Phase.PLAYBACK)
 
+## Callback advancing simulation logic once front-end parsing finishes.
 func _on_playback_completed() -> void:
 	if current_phase == EventBus.Phase.PLAYBACK and current_replay_buffer != null:
 		advance_to_next_turn(current_replay_buffer)
 
+## Output telemetry data dump displaying micro-tick logic evaluations.
 func debug_print_turn_summary(buffer: TurnReplayBufferResource) -> void:
 	print("=== SIMULATION TURN %d COMPLETED ===" % current_turn)
 
@@ -121,56 +127,48 @@ func debug_print_turn_summary(buffer: TurnReplayBufferResource) -> void:
 				print(event.msg)
 	print("------------------------")
 
+## Applies the final Tick 99 snapshot values back into the master state dictionaries.
 func commit_simulation_state(start_snapshot: TickSnapshotData, final_snapshot: TickSnapshotData) -> void:
-	# 1. Update existing unit states and transforms
+	# [STATE COMMIT]: Synchronizing core variables and purging stale positional matrix data from dead entities.
 	for unit_id in master_units.keys():
 		var unit = master_units[unit_id]
 
-		# Update core stats
 		if final_snapshot.unit_hp_states.has(unit_id):
 			unit.current_hp = final_snapshot.unit_hp_states[unit_id]
 		if final_snapshot.unit_stress_states.has(unit_id):
 			unit.current_stress = final_snapshot.unit_stress_states[unit_id]
 
-		# Check for death
 		if unit.current_hp <= 0:
-			# Use final snapshot strictly, falling back to start snapshot
 			var target_coord = final_snapshot.unit_transform_states.get(unit_id, start_snapshot.unit_transform_states.get(unit_id, Vector3i(-1,-1,-1)))
 			if target_coord != Vector3i(-1,-1,-1):
-				var tile = master_matrix.get_tile(target_coord) # [EXTERNAL DATA ACCESS]
+				var tile = master_matrix.get_tile(target_coord)
 				if tile and tile.occupying_unit_id == unit_id:
 					tile.occupying_unit_id = -1
 
-		# Get old coordinates from template parameters BEFORE overwriting them
 		var old_coord_x = unit.template_parameters.get("last_coord_x", -1)
 		var old_coord_y = unit.template_parameters.get("last_coord_y", -1)
 		var old_coord_z = unit.template_parameters.get("last_coord_z", -1)
 		var old_coord = Vector3i(old_coord_x, old_coord_y, old_coord_z)
 		unit.template_parameters["__temp_old_coord"] = old_coord
 
-		# Update template parameters
 		if final_snapshot.unit_template_states.has(unit_id):
 			unit.template_parameters = final_snapshot.unit_template_states[unit_id].duplicate(true)
 			unit.template_parameters["__temp_old_coord"] = old_coord
 
-	# We must erase after the iteration, or erase immediately using `.keys()` iteration
 	var dead_units: Array = []
 	for unit_id in master_units.keys():
 		if master_units[unit_id].current_hp <= 0:
 			dead_units.append(unit_id)
 
 	for unit_id in dead_units:
-		master_units.erase(unit_id) # [EXTERNAL DATA ACCESS]
+		master_units.erase(unit_id)
 
-	# Now update position and matrix occupancy for alive units
 	for unit_id in master_units.keys():
 		var unit = master_units[unit_id]
 		if unit.current_hp > 0:
-			# Update position and matrix occupancy
 			if final_snapshot.unit_transform_states.has(unit_id):
 				var new_coord = final_snapshot.unit_transform_states[unit_id]
 
-				# Get the old coordinate extracted BEFORE updating template_parameters
 				var old_coord: Vector3i = unit.template_parameters.get("__temp_old_coord", Vector3i(-1, -1, -1))
 
 				if old_coord.x != -1 and old_coord != new_coord:
@@ -188,7 +186,6 @@ func commit_simulation_state(start_snapshot: TickSnapshotData, final_snapshot: T
 				if new_tile:
 					new_tile.occupying_unit_id = unit_id
 
-	# 2. Update prop states
 	for prop_id in final_snapshot.prop_states.keys():
 		var prop = master_matrix.get_prop(prop_id)
 		if prop:
@@ -196,6 +193,7 @@ func commit_simulation_state(start_snapshot: TickSnapshotData, final_snapshot: T
 
 	print("[STATE_COMMIT] master_units and master_matrix have been overwritten with end of Tick 99 state.")
 
+## Increments round counter and assesses match end conditions based on final state values.
 func advance_to_next_turn(buffer: TurnReplayBufferResource) -> void:
 	debug_print_turn_summary(buffer)
 	var start_state = buffer.tick_snapshots[0]
@@ -203,7 +201,6 @@ func advance_to_next_turn(buffer: TurnReplayBufferResource) -> void:
 
 	commit_simulation_state(start_state, final_state)
 
-	# Win Condition Check at (6, 11, 1)
 	var win_tile = master_matrix.get_tile(Vector3i(6, 11, 1))
 	if win_tile:
 		var occ_id = win_tile.occupying_unit_id
