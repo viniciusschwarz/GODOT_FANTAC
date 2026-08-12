@@ -1,3 +1,5 @@
+## View layer renderer projecting 3D simulation coordinates onto a 2D isometric canvas.
+## Strictly parses headless telemetry snapshots and matrix payloads without modifying data.
 class_name BattlefieldView extends Node2D
 
 const TILE_SIZE: int = 64
@@ -19,8 +21,9 @@ var selected_unit_id: int = -1
 var active_waypoints: Dictionary = {}
 var master_matrix: BattlefieldMatrix = null
 var current_phase: EventBus.Phase = EventBus.Phase.INITIALIZATION
-var _static_unit_cache: Dictionary = {} # READ-ONLY cache of UnitDataResource
-var _static_prop_coords: Dictionary = {} # prop_id -> Vector3i
+## [VIEW LAYER SAFETY]: READ-ONLY visual state cache populated from headless initializations.
+var _static_unit_cache: Dictionary = {}
+var _static_prop_coords: Dictionary = {}
 var active_z_level: int = 1
 var _current_tick: int = 0
 
@@ -93,13 +96,13 @@ func _on_turn_simulation_completed(replay_buffer: TurnReplayBufferResource) -> v
 	_initialize_tokens_from_buffer(replay_buffer)
 
 func _initialize_tokens_from_buffer(replay_buffer: TurnReplayBufferResource) -> void:
-	# Only initialize once at Tick 0
 	if not unit_tokens.is_empty():
 		return
 
 	if replay_buffer.tick_snapshots.is_empty():
 		return
 
+	# [VIEW LAYER SAFETY]: Reading initial headless matrix injection payloads mapping visuals for Tick 0.
 	var initial_snapshot = replay_buffer.tick_snapshots[0]
 
 	for unit_id in initial_snapshot.unit_transform_states.keys():
@@ -115,7 +118,6 @@ func _initialize_tokens_from_buffer(replay_buffer: TurnReplayBufferResource) -> 
 
 		token.setup_visuals(unit_id as int, faction_id, max_hp, false)
 
-		# [EXTERNAL DATA ACCESS] Apply initial unit visual position to fix stacking
 		var start_coord = initial_snapshot.unit_transform_states[unit_id]
 		var start_hp = initial_snapshot.unit_hp_states.get(unit_id, max_hp)
 		token.update_state(start_coord, start_hp)
@@ -126,18 +128,16 @@ func _initialize_tokens_from_buffer(replay_buffer: TurnReplayBufferResource) -> 
 		var token: UnitTokenView = unit_token_scene.instantiate()
 		tokens_container.add_child(token)
 
-		# Prop tokens use their own IDs, and faction is ignored
 		token.setup_visuals(prop_id as int, -1, 100.0, true)
 
-		# [EXTERNAL DATA ACCESS] Apply initial prop visual position to fix stacking
 		var p_coord = _static_prop_coords.get(prop_id, Vector3i.ZERO)
 		token.update_state(p_coord, 100.0)
 
 		unit_tokens[prop_id] = token
 
-	# Apply tick 0 state
 	_on_scrubber_tick_changed(0)
 
+## Interprets micro-tick array indexing mapping positional timelines onto dynamic sprite components.
 func _on_scrubber_tick_changed(target_tick: int) -> void:
 	if not current_replay_buffer or target_tick < 0 or target_tick >= current_replay_buffer.tick_snapshots.size():
 		return
@@ -145,14 +145,13 @@ func _on_scrubber_tick_changed(target_tick: int) -> void:
 	_current_tick = target_tick
 	queue_redraw()
 
-	# [EXTERNAL DATA ACCESS] Accessing the replay buffer
+	# [VIEW LAYER SAFETY]: Strictly iterating readonly serialized ticks preventing cross-thread state pollution.
 	var snapshot = current_replay_buffer.tick_snapshots[target_tick]
 
 	for token_id in unit_tokens.keys():
 		var token: UnitTokenView = unit_tokens[token_id]
 
 		if token_id in snapshot.unit_transform_states:
-			# [EXTERNAL DATA ACCESS] Retrieving the exact grid coordinate from the snapshot
 			var coord: Vector3i = snapshot.unit_transform_states[token_id]
 			if coord.z <= active_z_level:
 				token.visible = true
@@ -161,14 +160,13 @@ func _on_scrubber_tick_changed(target_tick: int) -> void:
 			else:
 				token.visible = false
 		elif token_id in snapshot.prop_states:
-			# [EXTERNAL DATA ACCESS] Retrieving the prop state from the snapshot
 			var state = snapshot.prop_states[token_id]
 
 			if _static_prop_coords.has(token_id):
 				var coord = _static_prop_coords[token_id]
-				if state == 0 and coord.z <= active_z_level: # Intact and on/below active Z
+				if state == 0 and coord.z <= active_z_level:
 					token.visible = true
-					token.update_state(coord, 100.0) # Props don't track HP in UI right now
+					token.update_state(coord, 100.0)
 				else:
 					token.visible = false
 			else:
@@ -176,10 +174,12 @@ func _on_scrubber_tick_changed(target_tick: int) -> void:
 		else:
 			token.visible = false
 
+## Receives the generated map, establishing grid visualization.
 func _on_grid_initialized(matrix: BattlefieldMatrix) -> void:
 	master_matrix = matrix
 	paint_debug_grid(matrix)
 
+## Initializes view caching reading master state dictionary payloads.
 func _on_match_started(matrix: BattlefieldMatrix, units_cache: Dictionary) -> void:
 	_static_unit_cache = units_cache
 
@@ -188,6 +188,7 @@ func _on_match_started(matrix: BattlefieldMatrix, units_cache: Dictionary) -> vo
 		var prop = matrix.get_prop(prop_id)
 		_static_prop_coords[prop_id] = prop.grid_position
 
+## Receives UI signals assigning active context highlighting and previews AITree paths.
 func _on_unit_selected(unit_id: int) -> void:
 	selected_unit_id = unit_id
 	preview_intent.clear()
@@ -196,6 +197,7 @@ func _on_unit_selected(unit_id: int) -> void:
 		preview_intent = AITreeEvaluator.preview_unit_intent(unit, master_matrix, _static_unit_cache)
 	queue_redraw()
 
+## Re-configures input bounds clearing UI context and threat envelopes.
 func _on_phase_changed(phase: EventBus.Phase) -> void:
 	current_phase = phase
 	threat_tiles.clear()
@@ -205,10 +207,6 @@ func _on_phase_changed(phase: EventBus.Phase) -> void:
 		lines_container.hide()
 	else:
 		lines_container.show()
-		# Waypoints are cleared by UI manager and simulation on new turn,
-		# but view just blindly draws what's in active_waypoints.
-		# We'll rely on UI to tell us or just keep it simple.
-		# To be safe, clear them visually when returning to planning.
 		active_waypoints.clear()
 		_redraw_intent_lines()
 
@@ -231,10 +229,12 @@ func _on_phase_changed(phase: EventBus.Phase) -> void:
 
 	queue_redraw()
 
+## Stores requested override coordinates visually before UI confirmation.
 func _on_tile_right_clicked(unit_id: int, grid_coord: Vector3i) -> void:
 	active_waypoints[unit_id] = grid_coord
 	_redraw_intent_lines()
 
+## Maps logical spatial lines bridging tokens to waypoints.
 func _redraw_intent_lines() -> void:
 	for child in lines_container.get_children():
 		child.queue_free()
@@ -254,11 +254,12 @@ func _redraw_intent_lines() -> void:
 			line.default_color = Color(1.0, 0.5, 0.0, 0.8) # Orange intent line
 			lines_container.add_child(line)
 
+## Adjusts visible terrain bounds.
 func _set_active_z_level(level: int) -> void:
 	active_z_level = clampi(level, 0, 1)
 	rampart_layer_z1.visible = (active_z_level >= 1)
 	_on_scrubber_tick_changed(_current_tick)
-	queue_redraw() # Refresh tokens
+	queue_redraw()
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:

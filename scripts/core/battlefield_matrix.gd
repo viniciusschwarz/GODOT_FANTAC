@@ -1,10 +1,12 @@
+## Pure stateless mathematical grid representing the 3D battlefield.
+## Holds spatial layouts, navigational masks, and destructible prop instances without executing simulation logic.
 class_name BattlefieldMatrix extends RefCounted
 
-# The matrix stores tiles in a nested dictionary: {x: {y: {z: TileSpatialNodeResource}}}
-# Using a 1D or 3D dictionary approach. Let's use a flat dictionary indexed by Vector3i for easier lookup.
+## Master mapping of spatial coordinates to TileSpatialNodeResource values.
 var _grid: Dictionary = {}
 
-var _props: Dictionary = {} # Maps prop_id (int) to MultiStagePropResource
+## Map of all destructible prop instances mapped by prop_id.
+var _props: Dictionary = {}
 
 var _width: int = 0
 var _depth: int = 0
@@ -13,6 +15,7 @@ var _height_levels: int = 0
 const Z0_HEIGHT_METERS: float = 0.0
 const Z1_HEIGHT_METERS: float = 3.0
 
+## Populates an empty volumetric matrix with default spatial tiles.
 func initialize_grid(width: int = 12, depth: int = 12, height_levels: int = 2) -> void:
 	_width = width
 	_depth = depth
@@ -28,6 +31,8 @@ func initialize_grid(width: int = 12, depth: int = 12, height_levels: int = 2) -
 				tile.height_offset_meters = Z1_HEIGHT_METERS if z == 1 else Z0_HEIGHT_METERS
 				_grid[coord] = tile
 
+## Produces a deep-copy of the internal grid for headless sandbox execution.
+## Produces a deep-copy of the internal grid for headless sandbox execution.
 func duplicate_grid() -> BattlefieldMatrix:
 	var copy = BattlefieldMatrix.new()
 	copy._width = _width
@@ -65,6 +70,7 @@ func duplicate_grid() -> BattlefieldMatrix:
 
 	return copy
 
+## Injects a prop definition into the master dictionary and links it to its spatial tile.
 func register_prop(prop_data: MultiStagePropResource) -> void:
 	if prop_data:
 		_props[prop_data.prop_id] = prop_data
@@ -72,12 +78,15 @@ func register_prop(prop_data: MultiStagePropResource) -> void:
 		if tile:
 			tile.prop_id = prop_data.prop_id
 
+## Retrieves a destructible prop instance by its ID.
 func get_prop(prop_id: int) -> MultiStagePropResource:
 	return _props.get(prop_id, null)
 
+## Retrieves the navigation layout tile at the specified 3D coordinate.
 func get_tile(coord: Vector3i) -> TileSpatialNodeResource:
 	return _grid.get(coord, null)
 
+## Returns true if lateral masks and vertical stair connectors allow valid mathematical movement.
 func is_cardinal_passable(from_coord: Vector3i, to_coord: Vector3i) -> bool:
 	var from_tile = get_tile(from_coord)
 	var to_tile = get_tile(to_coord)
@@ -90,7 +99,6 @@ func is_cardinal_passable(from_coord: Vector3i, to_coord: Vector3i) -> bool:
 	var dy = diff.y
 	var dz = diff.z
 
-	# Must be exactly 1 step away laterally and potentially 1 step vertically
 	if abs(dx) + abs(dy) != 1:
 		return false
 
@@ -98,59 +106,52 @@ func is_cardinal_passable(from_coord: Vector3i, to_coord: Vector3i) -> bool:
 		return false
 
 	var direction_bitmask: int = 0
-	if dy == -1: direction_bitmask = 1 # N
-	elif dy == 1: direction_bitmask = 2 # S
-	elif dx == 1: direction_bitmask = 4 # E
-	elif dx == -1: direction_bitmask = 8 # W
+	if dy == -1: direction_bitmask = 1
+	elif dy == 1: direction_bitmask = 2
+	elif dx == 1: direction_bitmask = 4
+	elif dx == -1: direction_bitmask = 8
 
-	# Check if the traversal mask permits passage from the origin tile
-	# Always check standard cardinal traversal masks, even during Z-level transitions
+	# Validates traversal bitmasks against inverted directions when navigating walls.
 	if (from_tile.cardinal_traversal_mask & direction_bitmask) == 0:
 		return false
 
 	var opposite_bitmask: int = 0
-	if dy == -1: opposite_bitmask = 2 # S
-	elif dy == 1: opposite_bitmask = 1 # N
-	elif dx == 1: opposite_bitmask = 8 # W
-	elif dx == -1: opposite_bitmask = 4 # E
+	if dy == -1: opposite_bitmask = 2
+	elif dy == 1: opposite_bitmask = 1
+	elif dx == 1: opposite_bitmask = 8
+	elif dx == -1: opposite_bitmask = 4
 
 	if (to_tile.cardinal_traversal_mask & opposite_bitmask) == 0:
 		return false
 
-	# Z-level transition logic
 	if dz != 0:
 		var expected_up_connector: TileSpatialNodeResource.VerticalConnectorType = TileSpatialNodeResource.VerticalConnectorType.NONE
 		var expected_down_connector: TileSpatialNodeResource.VerticalConnectorType = TileSpatialNodeResource.VerticalConnectorType.NONE
 
-		if dy == -1: # Moving North
+		if dy == -1:
 			expected_up_connector = TileSpatialNodeResource.VerticalConnectorType.STAIRS_S
 			expected_down_connector = TileSpatialNodeResource.VerticalConnectorType.STAIRS_N
-		elif dy == 1: # Moving South
+		elif dy == 1:
 			expected_up_connector = TileSpatialNodeResource.VerticalConnectorType.STAIRS_N
 			expected_down_connector = TileSpatialNodeResource.VerticalConnectorType.STAIRS_S
-		elif dx == 1: # Moving East
+		elif dx == 1:
 			expected_up_connector = TileSpatialNodeResource.VerticalConnectorType.STAIRS_W
 			expected_down_connector = TileSpatialNodeResource.VerticalConnectorType.STAIRS_E
-		elif dx == -1: # Moving West
+		elif dx == -1:
 			expected_up_connector = TileSpatialNodeResource.VerticalConnectorType.STAIRS_E
 			expected_down_connector = TileSpatialNodeResource.VerticalConnectorType.STAIRS_W
 
-		if dz == 1: # Moving UP
-			# The stair flag must strictly be on the Z=0 (from_tile)
+		# Validates Z-Axis stair transition logic requiring identical lateral coordinates mapping from Z0 base.
+		if dz == 1:
 			if from_tile.vertical_connector_type != expected_up_connector:
 				return false
-		elif dz == -1: # Moving DOWN
-			# The stair flag must strictly be on the Z=0 (to_tile)
+		elif dz == -1:
 			if to_tile.vertical_connector_type != expected_down_connector:
 				return false
 
-	elif from_tile.vertical_connector_type != TileSpatialNodeResource.VerticalConnectorType.NONE or to_tile.vertical_connector_type != TileSpatialNodeResource.VerticalConnectorType.NONE:
-		# Can we move laterally on a stairs tile without changing Z?
-		# It's usually allowed, but we don't need to explicitly block it unless specified.
-		pass
-
 	return true
 
+## Executes a 3D DDA Raycast algorithm to detect solid intercepting props or cover modifiers between coordinates.
 func calculate_3d_line_of_sight(origin: Vector3i, target: Vector3i) -> Dictionary:
 	var result = {
 		"has_los": true,
@@ -193,7 +194,6 @@ func calculate_3d_line_of_sight(origin: Vector3i, target: Vector3i) -> Dictionar
 
 	var reached = false
 	while not reached:
-		# Move to next voxel
 		if t_max_x < t_max_y and t_max_x < t_max_z:
 			voxel.x += step_x
 			t_max_x += t_delta_x
@@ -208,7 +208,6 @@ func calculate_3d_line_of_sight(origin: Vector3i, target: Vector3i) -> Dictionar
 			reached = true
 			break
 
-		# Out of bounds check
 		if voxel.x < 0 or voxel.x >= _width or voxel.y < 0 or voxel.y >= _depth or voxel.z < 0 or voxel.z >= _height_levels:
 			result["has_los"] = false
 			return result
@@ -220,18 +219,6 @@ func calculate_3d_line_of_sight(origin: Vector3i, target: Vector3i) -> Dictionar
 				result["intercepting_prop_id"] = current_tile.prop_id
 				return result
 
-			# Z1 Parapet Cover Check for intermediate tiles?
-			# Usually, only the target tile's cover provides cover, or full solid props block.
-			# If an intermediate tile is solid, it blocks LOS. (e.g. Z1 solid block while ray is on Z1)
-			# But discrete tile occlusion wasn't strictly asked for besides props and target parapet cover.
-			# Let's assume height differences naturally block.
-			# Actually, if we are tracing through (x, y, 1) and the tile has height_offset 3.0, it's air.
-			# Wait, how do we block LOS if we trace through a Z1 tile that is solid ground?
-			# In a 12x12x2 grid, Z1 tiles that aren't air should probably block LOS if the ray goes through them.
-			# A missing Z1 tile (null) or a Z1 tile with a specific property?
-			pass
-
-	# We reached the target. Now evaluate cover on the target tile.
 	var target_tile = get_tile(target)
 	if target_tile and target_tile.cover_type != TileSpatialNodeResource.CoverType.NONE:
 		var incoming_vector = Vector2i(
@@ -239,14 +226,7 @@ func calculate_3d_line_of_sight(origin: Vector3i, target: Vector3i) -> Dictionar
 			1 if origin.y > target.y else (-1 if origin.y < target.y else 0)
 		)
 
-		# For point-blank range we bypassed earlier, so this is > 1 step away.
-		# A parapet only protects if the incoming vector matches the cover's cardinal vector.
-		# A dot product > 0 means the vectors are pointing in roughly the same direction.
-		# Wait, if attacker is North of target (y < target.y), incoming_vector is (0, -1).
-		# If the cover is on the North side of the tile, its cover_cardinal_vector should be (0, -1) to face North.
-		# The incoming vector from attacker to target: Target is (0, 1), Origin is (0, 0).
-		# origin.y (0) - target.y (1) = -1. incoming_vector y is -1.
-		# So incoming_vector == cover_cardinal_vector.
+		# Parapet cover mitigates damage explicitly when the vector projection validates defensive orientation dot products.
 		var dot_prod = incoming_vector.x * target_tile.cover_cardinal_vector.x + incoming_vector.y * target_tile.cover_cardinal_vector.y
 		if dot_prod > 0:
 			result["cover_level"] = target_tile.cover_type
@@ -254,6 +234,7 @@ func calculate_3d_line_of_sight(origin: Vector3i, target: Vector3i) -> Dictionar
 
 	return result
 
+## Processes physical ballistic damage against the prop, evaluating material hardness thresholds before mutating HP.
 func apply_prop_damage(prop_id: int, amount: float, hardness: float) -> bool:
 	var prop = get_prop(prop_id)
 	if not prop:
@@ -268,9 +249,9 @@ func apply_prop_damage(prop_id: int, amount: float, hardness: float) -> bool:
 			collapse_prop(prop_id)
 		return true
 
-	# Log deflection if hardness is insufficient (could be a print or signal in the future)
 	return false
 
+## Triggers structural fragmentation logic altering terrain masks and clearing 3D LOS occlusions.
 func collapse_prop(prop_id: int) -> void:
 	var prop = get_prop(prop_id)
 	if not prop:
@@ -281,23 +262,19 @@ func collapse_prop(prop_id: int) -> void:
 	var tile = get_tile(prop.grid_position)
 	if tile:
 		tile.base_traversal_cost = 2.0
-		# Clear LOS occlusion by removing the prop reference from the tile blocking vision
 		tile.prop_id = -1
 		EventBus.navmesh_dirty.emit(prop.grid_position)
 
 	destroy_elevated_tiles(prop.attached_elevated_tile_coords)
 	EventBus.prop_state_changed.emit(prop_id, prop.current_degradation_state)
 
+## Strips traversal masks mathematically simulating unsupported upper-floor collapse without enforcing physical gravity.
 func destroy_elevated_tiles(tile_coords: Array[Vector3i]) -> void:
 	for coord in tile_coords:
 		var tile = get_tile(coord)
 		if tile:
-			# Mark as destroyed/impassable
 			tile.base_traversal_cost = INF
 			tile.cardinal_traversal_mask = 0
 			tile.vertical_connector_type = TileSpatialNodeResource.VerticalConnectorType.NONE
 
-			# If a unit was occupying, they would fall to Z0.
-			# We leave the logic for unit state change to SimulationServer,
-			# but we notify that the navmesh changed.
 			EventBus.navmesh_dirty.emit(coord)
