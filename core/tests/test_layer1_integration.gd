@@ -91,14 +91,14 @@ func _execute_reservation_claim(packet: Dictionary) -> Dictionary:
 func _validate_resource_transfer(packet: Dictionary) -> Dictionary:
 	var pl = packet["payload"]
 	if resource_reg.get_balance(pl["src_id"], pl["resource_type"]) < pl["amount"]:
-		return _error_res(packet, CoreEnums.ExecutionStatusCode.REJECTED_INSUFFICIENT_BALANCE, &"INSUFFICIENT_BALANCE")
+		return _error_res(packet, CoreEnums.ExecutionStatusCode.REJECTED_INSUFFICIENT_FUNDS, &"INSUFFICIENT_BALANCE")
 	return _success_res(packet)
 
 func _execute_resource_transfer(packet: Dictionary) -> Dictionary:
 	var pl = packet["payload"]
 	var res = resource_reg.transfer(pl["src_id"], pl["dst_id"], pl["resource_type"], pl["amount"])
 	if not res:
-		return _error_res(packet, CoreEnums.ExecutionStatusCode.REJECTED_INSUFFICIENT_BALANCE, &"TRANSFER_FAILED")
+		return _error_res(packet, CoreEnums.ExecutionStatusCode.REJECTED_INSUFFICIENT_FUNDS, &"TRANSFER_FAILED")
 	return _success_res(packet)
 
 func _error_res(packet: Dictionary, status: int, reason: StringName) -> Dictionary:

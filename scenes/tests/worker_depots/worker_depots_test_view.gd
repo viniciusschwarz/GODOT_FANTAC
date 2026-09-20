@@ -132,9 +132,30 @@ func _register_saves() -> void:
 	save_registry.register_domain(&"RESERVATION", Callable(reservation_reg, "get_save_state"), Callable(reservation_reg, "load_save_state"))
 
 func _register_events() -> void:
-	event_bus.subscribe(&"ENTITY_RELOCATED", func(e): _log_event("Entity %d moved to %s" % [e.get("entity_id", 0), str(e.get("to_coord", Vector2i()))]))
-	event_bus.subscribe(&"RESERVATION_CLAIMED", func(e): _log_event("Entity %d claimed %d" % [e.get("claimant_id", 0), e.get("target_id", 0)]))
-	event_bus.subscribe(&"RESOURCE_TRANSFERRED", func(e): _log_event("Transferred %d %s from %d to %d" % [e.get("amount", 0), str(e.get("resource_type", "")), e.get("src_id", 0), e.get("dst_id", 0)]))
+	event_bus.subscribe(&"ENTITY_RELOCATED", func(e: Dictionary):
+		var data: Dictionary = e.get("event_data", {})
+		_log_event("Entity %d moved to %s" % [
+			e.get("source_entity_id", 0),
+			str(data.get("to_coord", Vector2i()))
+		])
+	)
+
+	event_bus.subscribe(&"RESERVATION_CLAIMED", func(e: Dictionary):
+		_log_event("Entity %d claimed %d" % [
+			e.get("source_entity_id", 0),
+			e.get("target_entity_id", 0)
+		])
+	)
+
+	event_bus.subscribe(&"RESOURCE_TRANSFERRED", func(e: Dictionary):
+		var data: Dictionary = e.get("event_data", {})
+		_log_event("Transferred %d %s from %d to %d" % [
+			data.get("amount", 0),
+			str(data.get("resource_type", "")),
+			e.get("source_entity_id", 0),
+			e.get("target_entity_id", 0)
+		])
+	)
 
 # --- COMMAND EXECUTORS ---
 
@@ -160,9 +181,13 @@ func _execute_spatial_relocation(packet: Dictionary) -> Dictionary:
 
 	event_bus.emit_now({
 		"event_type": &"ENTITY_RELOCATED",
-		"entity_id": entity_id,
-		"from_coord": from_coord,
-		"to_coord": to_coord
+		"tick_timestamp": clock.current_tick,
+		"source_entity_id": entity_id,
+		"target_entity_id": 0,
+		"event_data": {
+			"from_coord": from_coord,
+			"to_coord": to_coord
+		}
 	})
 
 	return _success_res(packet)
@@ -180,9 +205,12 @@ func _execute_reservation_claim(packet: Dictionary) -> Dictionary:
 
 	event_bus.emit_now({
 		"event_type": &"RESERVATION_CLAIMED",
-		"claimant_id": claimant,
-		"target_id": target,
-		"claim_type": pl["claim_type"]
+		"tick_timestamp": clock.current_tick,
+		"source_entity_id": claimant,
+		"target_entity_id": target,
+		"event_data": {
+			"claim_type": pl["claim_type"]
+		}
 	})
 
 	return _success_res(packet)
@@ -190,7 +218,7 @@ func _execute_reservation_claim(packet: Dictionary) -> Dictionary:
 func _validate_resource_transfer(packet: Dictionary) -> Dictionary:
 	var pl = packet["payload"]
 	if resource_reg.get_balance(pl["src_id"], pl["resource_type"]) < pl["amount"]:
-		return _error_res(packet, CoreEnums.ExecutionStatusCode.REJECTED_INSUFFICIENT_BALANCE, &"INSUFFICIENT_BALANCE")
+		return _error_res(packet, CoreEnums.ExecutionStatusCode.REJECTED_INSUFFICIENT_FUNDS, &"INSUFFICIENT_BALANCE")
 	return _success_res(packet)
 
 func _execute_resource_transfer(packet: Dictionary) -> Dictionary:
@@ -201,14 +229,17 @@ func _execute_resource_transfer(packet: Dictionary) -> Dictionary:
 	var amount = pl["amount"]
 	var res = resource_reg.transfer(src, dst, res_type, amount)
 	if not res:
-		return _error_res(packet, CoreEnums.ExecutionStatusCode.REJECTED_INSUFFICIENT_BALANCE, &"TRANSFER_FAILED")
+		return _error_res(packet, CoreEnums.ExecutionStatusCode.REJECTED_INSUFFICIENT_FUNDS, &"TRANSFER_FAILED")
 
 	event_bus.emit_now({
 		"event_type": &"RESOURCE_TRANSFERRED",
-		"src_id": src,
-		"dst_id": dst,
-		"resource_type": res_type,
-		"amount": amount
+		"tick_timestamp": clock.current_tick,
+		"source_entity_id": src,
+		"target_entity_id": dst,
+		"event_data": {
+			"resource_type": res_type,
+			"amount": amount
+		}
 	})
 
 	return _success_res(packet)

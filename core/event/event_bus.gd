@@ -15,12 +15,19 @@ func unsubscribe(event_type: StringName, callback: Callable) -> void:
 		_subscribers[event_type].erase(callback)
 
 func emit_now(event: Dictionary) -> void:
+	if not EnvelopeValidator.is_valid_event(event):
+		printerr("[EventBus] Rejected invalid event envelope: ", event)
+		return
+
 	var event_type: StringName = event.get("event_type", &"")
 	if _subscribers.has(event_type):
 		for callback in _subscribers[event_type]:
 			callback.call(event)
 
 func enqueue(event: Dictionary) -> void:
+	if not EnvelopeValidator.is_valid_event(event):
+		printerr("[EventBus] Rejected invalid event envelope: ", event)
+		return
 	_queue.append(event)
 
 func flush_queue() -> void:

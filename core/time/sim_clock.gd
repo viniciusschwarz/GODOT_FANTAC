@@ -17,7 +17,7 @@ func advance_accumulator(delta_usec: int) -> int:
 	return available_ticks
 
 func step_tick() -> int:
-	accumulated_usec -= tick_step_usec
+	accumulated_usec = maxi(0, accumulated_usec - tick_step_usec)
 	current_tick += 1
 	return current_tick
 

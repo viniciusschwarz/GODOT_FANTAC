@@ -18,7 +18,7 @@ func submit(packet: Dictionary) -> Dictionary:
 	_priority_buffers[priority].append(packet)
 	return {
 		"command_id": packet["command_id"],
-		"status_code": CoreEnums.ExecutionStatusCode.ACCEPTED,
+		"status_code": CoreEnums.ExecutionStatusCode.SUCCESS,
 		"reason_code": &"NONE",
 		"mutated_entity_ids": PackedInt32Array()
 	}
@@ -33,7 +33,7 @@ func flush_tick(target_tick: int) -> Array[Dictionary]:
 				var cmd_type: StringName = packet["command_type"]
 
 				if not _validators.has(cmd_type):
-					results.append(_create_error_result(packet["command_id"], CoreEnums.ExecutionStatusCode.ERROR_MISSING_VALIDATOR, &"MISSING_VALIDATOR"))
+					results.append(_create_error_result(packet["command_id"], CoreEnums.ExecutionStatusCode.FAILED_INTERNAL_ERROR, &"MISSING_VALIDATOR"))
 					continue
 
 				var val_res: Dictionary = _validators[cmd_type].call(packet)
@@ -42,7 +42,7 @@ func flush_tick(target_tick: int) -> Array[Dictionary]:
 					continue
 
 				if not _executors.has(cmd_type):
-					results.append(_create_error_result(packet["command_id"], CoreEnums.ExecutionStatusCode.ERROR_MISSING_EXECUTOR, &"MISSING_EXECUTOR"))
+					results.append(_create_error_result(packet["command_id"], CoreEnums.ExecutionStatusCode.FAILED_INTERNAL_ERROR, &"MISSING_EXECUTOR"))
 					continue
 
 				var exec_res: Dictionary = _executors[cmd_type].call(packet)
