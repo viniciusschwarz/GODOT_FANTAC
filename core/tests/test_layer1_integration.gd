@@ -1,3 +1,5 @@
+# Test
+# &"C:\Users\vinic\Documents\DEV\Godot_v4.7.1-stable_win64.exe\Godot_v4.7.1-stable_win64.exe" --headless -s res://core/tests/test_layer1_integration.gd
 extends SceneTree
 
 var clock: SimClock

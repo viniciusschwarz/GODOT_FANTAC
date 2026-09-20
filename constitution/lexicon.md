@@ -6,6 +6,11 @@ Here is the exhaustive, complete lexicon framework categorized by structural rol
 
 ---
 
+### 0. The Headless Tests
+
+# Use this command to run the headless tests:
+ &"C:\Users\vinic\Documents\DEV\Godot_v4.7.1-stable_win64.exe\Godot_v4.7.1-stable_win64.exe" --headless -s res://
+
 ### 1. The Exhaustive Functional Archetype Taxonomy (Class/Script Suffixes)
 
 Every class, script, or structural component in the engine must terminate with an archetype that explicitly declares its computational behavior:
