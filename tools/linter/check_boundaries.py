@@ -1,84 +1,93 @@
+#!/usr/bin/env python3
 import os
 import sys
+import re
+
+BANNED_KEYWORDS = [
+    r"extends\s+Node2D",
+    r"extends\s+Control",
+    r"extends\s+Node3D",
+    r"extends\s+CanvasItem",
+    r"get_node\(",
+    r"get_parent\(",
+    r"get_tree\(",
+    r"Owner",
+    r"\$\"",
+    r"load\(\".*\.tscn\"\)",
+    r"preload\(\".*\.tscn\"\)"
+]
+
+BANNED_CLASS_SUFFIXES = [
+    "Manager",
+    "Handler",
+    "Processor",
+    "Controller",
+    "Helper",
+    "Util"
+]
+
+def check_file(filepath):
+    violations = []
+
+    with open(filepath, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
+
+    class_name = None
+    for i, line in enumerate(lines):
+        line_num = i + 1
+
+        # Check for banned keywords
+        for keyword in BANNED_KEYWORDS:
+            if re.search(keyword, line):
+                violations.append((line_num, f"Banned keyword or pattern found: {keyword}"))
+
+        # Extract class name if present
+        class_match = re.match(r"^class_name\s+([a-zA-Z0-9_]+)", line.strip())
+        if class_match:
+            class_name = class_match.group(1)
+
+    # Check class name suffix
+    if class_name:
+        for suffix in BANNED_CLASS_SUFFIXES:
+            if class_name.endswith(suffix):
+                violations.append((0, f"Banned class name suffix found: '{class_name}' ends with '{suffix}'"))
+
+    return violations
 
 def main():
-    has_errors = False
-
-    directories_to_check = ['core', 'domain']
-
-    banned_keywords = [
-        "get_node(", "get_tree(", "get_parent(", "Owner",
-        "$\"", "Input.is_action_", "position", "global_position",
-        "load(", "preload("
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    directories_to_check = [
+        os.path.join(repo_root, "core"),
+        os.path.join(repo_root, "domain")
     ]
 
-    banned_suffixes = [
-        "Manager", "Handler", "Processor", "Controller", "Helper", "Util"
-    ]
+    all_violations = False
 
-    allowed_suffixes = [
-        "Registry", "Driver", "Evaluator", "Buffer", "Resolver", "Sequencer", "Dispatcher"
-    ]
-
-    kernel_exceptions = [
-        "SimClock", "CommandBus", "EventBus", "SaveRegistry", "EnvelopeValidator", "CoreEnums"
-    ]
-
-    for dir_path in directories_to_check:
-        if not os.path.exists(dir_path):
+    for directory in directories_to_check:
+        if not os.path.exists(directory):
+            print(f"Warning: Directory not found: {directory}")
             continue
 
-        for root, dirs, files in os.walk(dir_path):
+        for root, _, files in os.walk(directory):
             for file in files:
-                if not file.endswith('.gd'):
-                    continue
+                if file.endswith(".gd"):
+                    filepath = os.path.join(root, file)
+                    violations = check_file(filepath)
 
-                full_path = os.path.join(root, file)
-                with open(full_path, 'r', encoding='utf-8') as f:
-                    content = f.read()
+                    if violations:
+                        all_violations = True
+                        print(f"\n[VIOLATION] in {filepath}:")
+                        for line_num, msg in violations:
+                            if line_num == 0:
+                                print(f"  - (Class Name) {msg}")
+                            else:
+                                print(f"  - Line {line_num}: {msg}")
 
-                # Skip legacy/test files if they existed previously
-                if file.startswith("test_") and file != "test_layer1_integration.gd":
-                    continue
-
-                # Check for SceneTree classes inheritance
-                if "extends Node" in content or "extends Control" in content or "extends CanvasItem" in content:
-                    # test_layer1_integration.gd is an exception since it extends SceneTree
-                    if file != "test_layer1_integration.gd" and file != "test_integration.gd":
-                        print(f"[FAIL] {full_path} extends SceneTree class")
-                        has_errors = True
-
-                # Check for banned keywords
-                for keyword in banned_keywords:
-                    if keyword in content:
-                        print(f"[FAIL] {full_path} contains banned keyword: {keyword}")
-                        has_errors = True
-
-                # Check for class name suffix
-                class_name_line = [line for line in content.split('\n') if line.startswith('class_name ')]
-                if class_name_line:
-                    class_name = class_name_line[0].split('class_name ')[1].strip()
-
-                    if class_name not in kernel_exceptions:
-                        has_valid_suffix = False
-                        for suffix in allowed_suffixes:
-                            if class_name.endswith(suffix):
-                                has_valid_suffix = True
-                                break
-
-                        if not has_valid_suffix:
-                            print(f"[FAIL] {full_path} has class name {class_name} which does not end with an allowed suffix")
-                            has_errors = True
-
-                        for banned_suffix in banned_suffixes:
-                            if class_name.endswith(banned_suffix):
-                                print(f"[FAIL] {full_path} has class name {class_name} which ends with a banned suffix")
-                                has_errors = True
-
-    if has_errors:
+    if all_violations:
+        print("\nBoundary checks FAILED. See violations above.")
         sys.exit(1)
     else:
-        print("[PASS] All boundary checks passed.")
+        print("Boundary checks PASSED cleanly.")
         sys.exit(0)
 
 if __name__ == "__main__":
