@@ -1,0 +1,106 @@
+[gd_scene load_steps=2 format=3 uid="uid://ddg15n2y4r75"]
+
+[ext_resource type="Script" path="res://scenes/tests/logistics/logistics_test_view.gd" id="1_testvw"]
+
+[node name="LogisticsTestView" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_testvw")
+
+[node name="HSplitContainer" type="HSplitContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+split_offset = 600
+
+[node name="LeftPanel" type="Control" parent="HSplitContainer"]
+layout_mode = 2
+
+[node name="GridCanvas" type="Control" parent="HSplitContainer/LeftPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="RightPanel" type="VBoxContainer" parent="HSplitContainer"]
+layout_mode = 2
+
+[node name="Dashboard" type="Control" parent="HSplitContainer/RightPanel"]
+custom_minimum_size = Vector2(0, 400)
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HSplitContainer/RightPanel/Dashboard"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TickLabel" type="Label" parent="HSplitContainer/RightPanel/Dashboard/VBoxContainer"]
+layout_mode = 2
+text = "Tick: 0"
+
+[node name="GoalLabel" type="Label" parent="HSplitContainer/RightPanel/Dashboard/VBoxContainer"]
+layout_mode = 2
+text = "Goal: None"
+
+[node name="ActionLabel" type="Label" parent="HSplitContainer/RightPanel/Dashboard/VBoxContainer"]
+layout_mode = 2
+text = "Action: None"
+
+[node name="PlanLabel" type="Label" parent="HSplitContainer/RightPanel/Dashboard/VBoxContainer"]
+layout_mode = 2
+text = "Plan: None"
+
+[node name="InvCourierLabel" type="Label" parent="HSplitContainer/RightPanel/Dashboard/VBoxContainer"]
+layout_mode = 2
+text = "Courier Wood: 0"
+
+[node name="InvSupplyLabel" type="Label" parent="HSplitContainer/RightPanel/Dashboard/VBoxContainer"]
+layout_mode = 2
+text = "Supply Wood: 0"
+
+[node name="InvDemandLabel" type="Label" parent="HSplitContainer/RightPanel/Dashboard/VBoxContainer"]
+layout_mode = 2
+text = "Demand Wood: 0"
+
+[node name="HBoxContainer" type="HBoxContainer" parent="HSplitContainer/RightPanel/Dashboard/VBoxContainer"]
+layout_mode = 2
+alignment = 1
+
+[node name="StepButton" type="Button" parent="HSplitContainer/RightPanel/Dashboard/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+text = "Step Tick (1x)"
+
+[node name="PlayPauseButton" type="Button" parent="HSplitContainer/RightPanel/Dashboard/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+text = "Play / Pause"
+
+[node name="ResetButton" type="Button" parent="HSplitContainer/RightPanel/Dashboard/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+text = "Reset Simulation"
+
+[node name="OptionButton" type="OptionButton" parent="HSplitContainer/RightPanel/Dashboard/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+
+[node name="EventLog" type="RichTextLabel" parent="HSplitContainer/RightPanel"]
+layout_mode = 2
+size_flags_vertical = 3
+scroll_following = true
+
+[node name="Timer" type="Timer" parent="."]
+
+[connection signal="pressed" from="HSplitContainer/RightPanel/Dashboard/VBoxContainer/HBoxContainer/StepButton" to="." method="_on_step_button_pressed"]
+[connection signal="pressed" from="HSplitContainer/RightPanel/Dashboard/VBoxContainer/HBoxContainer/PlayPauseButton" to="." method="_on_play_pause_button_pressed"]
+[connection signal="pressed" from="HSplitContainer/RightPanel/Dashboard/VBoxContainer/HBoxContainer/ResetButton" to="." method="_on_reset_button_pressed"]
+[connection signal="timeout" from="Timer" to="." method="_on_timer_timeout"]
