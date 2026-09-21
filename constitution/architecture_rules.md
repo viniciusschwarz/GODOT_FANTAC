@@ -1,167 +1,268 @@
-To prevent an AI coder from entangling systems as the codebase scales, architectural rules cannot be high-level philosophical suggestions. They must be **deterministic boundary constraints** that define who owns memory, who can alter state, how data traverses system lines, and what code is physically permitted to import.
+# Architectural Constitution & Implementation Lexicon
 
-Here is the exhaustive expansion of the architectural rules, categorized into five non-negotiable enforcement pillars.
+* **Document Path:** `res://docs/architecture_constitution.md`
+* **Status:** **FROZEN / PRODUCTION-LOCKED** for Layers 1, 2, and the Framework GOAP engine. Active for Layer 3 (Game Features) and Presentation Harnesses.
+
+
+* **Target Audience:** All AI agents, contributors, and human developers implementing or extending systems within this repository.
 
 ---
 
-### 1. The Strict Directional Dependency Law (The One-Way Wall)
+## 1. The Strict Directional Dependency Law (The One-Way Wall)
 
-The engine follows an absolute acyclic directed graph. Dependencies may only point **downward** toward infrastructure or inward toward data contracts.
+The codebase strictly adheres to an acyclic directed graph. Dependencies must point **downward** toward core infrastructure or inward toward data contracts:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ LAYER 4: DEFINITIONS & SCHEMAS (Static Config)              │
-│ (.json, .tres, static resource registries)                  │
+│ LAYER 4: STATIC DATA & SCHEMAS [FROZEN]                     │
+│ res://docs/schemas/ (Event envelopes, Command packet shapes)│
 └──────────────────────────────┬──────────────────────────────┘
                                │ Ingested by
 ┌──────────────────────────────▼──────────────────────────────┐
-│ LAYER 3: GAME SIMULATION (Domain Rules & Concrete Logic)    │
-│ (Custom mechanics, turn loops, combat resolution, AI trees) │
+│ LAYER 3: GAME SIMULATION (Domain Rules & Concrete Logic)    │ [ACTIVE]
+│ res://game/ (Actions, Resolvers, Evaluators, Goals)         │
 └──────────────────────────────┬──────────────────────────────┘
                                │ Imports / Inherits
 ┌──────────────────────────────▼──────────────────────────────┐
-│ LAYER 2: REUSABLE DOMAIN SUB-FRAMEWORKS                     │
-│ (Spatial grids, attribute modifier pipelines, item slots)   │
+│ LAYER 2: REUSABLE SUB-FRAMEWORKS & SIMULATION PRIMITIVES    │ [FROZEN]
+│ res://framework/goap/ (Snapshots, Rules, Actions, Arbitrator,│
+│                        Planner, Sequencer)                  │
+│ res://simulation/ (spatial, resource, reservation)          │
 └──────────────────────────────┬──────────────────────────────┘
                                │ Runs atop
 ┌──────────────────────────────▼──────────────────────────────┐
-│ LAYER 1: ENGINE-AGNOSTIC INFRASTRUCTURE                     │
-│ (SimClock, CommandBus, EventBus, SaveRegistry, RNGStream)   │
+│ LAYER 1: ENGINE-AGNOSTIC CORE INFRASTRUCTURE [FROZEN]       │
+│ res://core/ (SimClock, CommandBus, EventBus, RNG, Enums)    │
 └──────────────────────────────┬──────────────────────────────┘
                                │ Read-Only Render Snapshot (Down)
                                ▲ Command Packet Ingestion (Up)
 ┌──────────────────────────────┴──────────────────────────────┐
-│ PRESENTATION EXTENSION (The View / Godot Scene Tree)        │
-│ (Node2D, MultiMeshInstance2D, Control, UI, Audio, Shaders)  │
+│ PRESENTATION EXTENSION (The View / Godot Scene Tree)        │ [ACTIVE]
+│ res://scenes/ (Test Views, Canvas Drawing, HUD Controls)    │
 └─────────────────────────────────────────────────────────────┘
 
 ```
 
-#### Boundary Invariants:
+### Boundary Invariants
 
 * **The Downward Rule:** Layer $N$ may import Layer $N-1$, but Layer $N-1$ can **never** import, reference, cast to, or know about Layer $N$.
-* **The Sibling Isolation Rule:** Within Layer 2, modular sub-frameworks (e.g., `domain_spatial_grid` and `domain_attribute_pipeline`) are strictly isolated. They cannot import each other. If a game needs an entity's attribute to affect its spatial movement speed, that coordination happens **exclusively in Layer 3** (the game logic layer).
-* **The View Air Gap:** The Godot Scene Tree (`view_*`) exists purely as a peripheral device. It depends on Layers 1 and 4, and observes Layer 3 via read-only data snapshots. **Simulation code (Layers 1, 2, and 3) must never import `view_*` files or call engine scene-tree methods.**
+
+
+* **The Sibling Isolation Rule:** Sub-modules within Layer 2 (e.g., `res://simulation/spatial/` and `res://simulation/resource/`) are strictly isolated and cannot import each other. Any inter-domain coordination must happen exclusively in Layer 3 game logic.
+
+
+* **The View Air Gap:** Visual scripts in `res://scenes/` exist purely as peripheral presentation devices. Simulation code (Layers 1, 2, and 3) must never import view files, never call engine scene-tree methods, and never rely on visual node lifecycle hooks.
+
+
 
 ---
 
-### 2. State Mutation & Ownership (The Single-Writer Principle)
+## 2. Universal Hard Constraints & Architectural Policies
 
-LLM-generated codebases disintegrate when multiple systems mutate the same shared state dictionary or object fields directly.
+### A. Core Immutability & The Reverse-Responsibility Law
 
-#### A. Single Authority (One Writer per Domain)
+* **Core Immutability:** Files in `res://core/` and `res://simulation/` are **frozen contracts**. Under no circumstances may core infrastructure (such as `CommandBus` or `SimClock`) be modified, patched, or injected with ad-hoc normalizations or alias mappings to accommodate domain-level variations.
 
-* Every slice of state in memory has exactly **one designated Writer class**.
-* All other classes have **Read-Only access** (via immutable return values or copies).
 
-| State Domain | Authorized Writer (Single Authority) | Permitted Readers | Strictly Forbidden Writers |
-| --- | --- | --- | --- |
-| **Grid Cell Contents** | `SpatialCellRegistry` | Pathfinders, Sensors, View Renderers | AI Agents, Combat Resolvers, UI |
-| **Entity Attributes** | `AttributeModifierPipeline` | Needs Evaluators, Damage Resolvers, UI | Inventory, Input Handlers, Direct Scripts |
-| **Resource Reservations** | `ReservationRegistry` | Job Drivers, Worker Schedulers | Pawns/Agents directly, Pathfinders |
-| **Active Simulation Time** | `SimClock` | All systems (queries `current_tick`) | Any gameplay script, UI buttons |
+* **Caller Responsibility:** High-level domain code (`res://game/`) is strictly responsible for constructing canonical, schema-compliant envelopes directly.
 
-#### B. Command-Driven Mutations
 
-No game state can be altered by directly setting fields across module boundaries (e.g., forbidding `target_entity.current_health -= 10` or `cell.is_occupied = true`).
 
-* **External intents must be submitted as Commands:** A caller creates a `CommandPacket` and submits it to the `CommandBus`.
-* **Validation Phase:** The targeted domain’s `Validator` tests whether the command is legal given the current tick's state.
-* **Commit Phase:** Only upon successful validation does the Single Authority mutate the state and emit a domain event.
+### B. Single-Writer Authority & CQS (Command-Query Separation)
 
-#### C. Temporal Boundaries (The Phase Lock)
+* Every slice of simulation state in memory has exactly **one designated Writer class**.
 
-A tick is not a continuous, free-for-all execution. It executes in explicit, sequential phases to eliminate order-of-execution bugs:
+
+* Direct mutations across module boundaries (e.g., `cell.occupant = id` or `depot.balance += 10`) are strictly banned.
+
+
+* External changes are submitted exclusively via `command_bus.submit(packet)`.
+
+
+* Evaluators, sensors, and state mappers access registries strictly in a **read-only** manner.
+
+
+
+### C. Engine Purity & Headless Standard
+
+* Any file in Layers 1, 2, or 3 must inherit from `RefCounted` or be a standalone script.
+
+
+* **Strictly Blacklisted in Simulation Code:** `extends Node`, `Node2D`, `Control`, `CanvasItem`, `get_node()`, `get_tree()`, `$"..."`, `Input.*`, `position`, `rotation`, and `.tscn` preloads.
+
+
+* **No `.tres` or Godot `Resource` files:** Everything in the framework and simulation layers must be pure code objects to guarantee full portability to C#/Unity.
+
+### D. Canonical Null Standard
+
+* The integer value `0` is the project-wide universal standard for empty cells, unassigned entities, system handles, and unreserved locks. Negative numbers or `null` must not be used as sentinel entity handles.
+
+
+
+---
+
+## 3. Communication Contracts & Envelopes
+
+### A. The Canonical Command Envelope (`CommandBus`)
+
+Actions and controllers must dispatch commands conforming strictly to `EnvelopeValidator.is_valid_command()`:
+
+```gdscript
+{
+    "command_id": int,              # 0 for automatic sequential assignment
+    "priority": int,                # CoreEnums.ExecutionPriority.INPUT_DIRECT
+    "issuer_id": int,               # ID of the issuing pawn/entity
+    "target_tick": int,             # Target simulation tick
+    "payload": Dictionary           # Domain-specific parameters
+}
 
 ```
-[Phase 1: Ingestion]    Flushes incoming CommandPackets from UI/Input buffer.
-        ↓
-[Phase 2: Sensory]      Sensors query world state; update Blackboards (Read-Only).
-        ↓
-[Phase 3: Evaluation]   AI/Rules evaluate Blackboards and queue actions (No world mutation).
-        ↓
-[Phase 4: Resolution]   Atomic execution of actions via single-writer domain authorities.
-        ↓
-[Phase 5: Commit/Emit]  SimClock increments tick counter; emits StateSnapshot to View.
+
+#### Approved Command Payloads:
+
+* **`&"SPATIAL_RELOCATION"`:**
+```gdscript
+"payload": { "from_coord": Vector2i, "to_coord": Vector2i }
+
+```
+
+
+* **`&"RESERVATION_CLAIM"`:**
+```gdscript
+"payload": { "claimant_id": int, "target_id": int, "claim_type": int, "duration": int }
+
+```
+
+
+* **`&"RESERVATION_RELEASE"`:**
+```gdscript
+"payload": { "claimant_id": int, "target_id": int }
+
+```
+
+
+* **`&"RESOURCE_TRANSFER"`:**
+```gdscript
+"payload": { "source_id": int, "destination_id": int, "resource_type": StringName, "amount": int }
+
+```
+
+
+
+### B. The Two-Stage CommandBus Contract
+
+`CommandBus.register_command` enforces a two-stage pipeline:
+
+```gdscript
+command_bus.register_command(command_type: StringName, validator: Callable, executor: Callable) -> void
+
+```
+
+* **Validator:** Returns an `ExecutionResult` dictionary. For presentation testbeds, use a pass-through validator returning `ExecutionStatusCode.SUCCESS`.
+
+
+* **Executor:** Mutates the underlying registry upon successful validation.
+
+
+
+### C. The Canonical Event Envelope (`EventBus`)
+
+Framework components (such as `GoapSequencer`) emit events as single dictionary payloads:
+
+```gdscript
+{
+    "event_type": StringName,       # e.g., &"GOAP_ACTION_STARTED"
+    "tick_timestamp": int,          # current tick
+    "source_entity_id": int,        # agent/issuer ID
+    "target_entity_id": int,        # target ID or 0
+    "event_data": Dictionary        # context-specific telemetry
+}
 
 ```
 
 ---
 
-### 3. Engine Import & Syntax Sanity Bouncers
+## 4. Hard-Learned Lessons & Anti-Patterns (Forensic Insights)
 
-To guarantee that the simulation core remains 100% headless, testable, and immune to Godot-specific scene-tree bugs, the codebase enforces structural import rules.
+The following failure modes occurred during previous sprints and must be actively avoided:
 
-#### A. The Blacklisted Symbols in Simulation Layers (Layers 1, 2, 3)
-
-If any file outside of `view/` contains these keywords, it is rejected by the static boundary checker:
-
-* `extends Node2D`, `extends Control`, `extends Node3D`, `extends CanvasItem`.
-* `get_node()`, `get_parent()`, `get_tree()`, `Owner`, `$"..."`.
-* `Input.is_action_pressed()`, `InputEvent`.
-* `position`, `global_position`, `rotation` (Spatial logic must use discrete `Vector2i` cells or abstract math coordinates).
-* `load()`, `preload()` of `.tscn` scene files.
-
-#### B. Permitted Types in Simulation
-
-Simulation code is strictly restricted to:
-
-* Primitives: `int`, `float`, `bool`, `StringName`, `Vector2i`, `Rect2i`.
-* Native Data Structures: `Array`, `PackedInt32Array`, `PackedFloat32Array`, `Dictionary`.
-* Engine Math: `Mathf`, `Vector2` (pure arithmetic only), `AStar2D` (headless).
-* Abstract Core Classes: Inheriting from `RefCounted` or standalone plain GDScript/C# objects.
-
----
-
-### 4. Data Transfer Protocols: DTOs vs. Live References
-
-An AI will naturally pass live object instances into methods, allowing functions to poke at internal variables. This is banned.
-
-#### A. The "Data Transfer Object" (DTO) Mandate
-
-Communication across layer boundaries must use **flat, serialized-safe data shapes** (Dictionaries or flat Structs):
-
-* **No Class Reference Leaking:** A combat calculation does not accept a `PlayerCharacter` or `Monster` instance. It accepts an `AttackContext` dictionary containing only the necessary scalar values (`base_damage: float`, `penetration: float`, `target_armor: float`).
-* **Stateless Calculations:** When passing data to an `*Evaluator` or `*Resolver`, the method must be pure: inputs go in, a result dictionary comes out, with zero mutation of the input parameters.
-
-#### B. Handle-Based Identity
-
-Entities and cells never store direct pointers to other entities:
-
-* Entities are referenced across systems solely by integer handles (`actor_id: int`, `item_id: int`, `cell_coord: Vector2i`).
-* If a system needs to know about an actor, it passes the `actor_id` to the appropriate `Registry` to query a read-only snapshot.
-* **Why this is critical:** When an entity is destroyed or deleted, there are no dangling object references in other systems to cause memory leaks or `null instance` crashes.
-
----
-
-### 5. Memory Allocation & Performance Boundaries
-
-Because the engine must support high-speed simulation ($1\times, 3\times, 5\times$) with thousands of entities, the AI must not generate memory-churning code.
-
-1. **Zero Allocations Inside Ticks:**
-* Methods that run every tick (`tick_*`, `evaluate_*`, `resolve_*`) cannot call `.new()` or dynamically allocate large arrays.
-* Collections that receive temporary calculations must be pre-allocated buffers or reused scratchpads cleared via `.clear()`.
+1. **The Static Class Method Trap:**
+* *Problem:* A class authored as an instance utility (no `static` keyword) cannot be called directly via `ClassName.method()` without triggering Godot parser errors.
 
 
-2. **Contiguous Flat Arrays Over Deep Trees:**
-* World grids are stored as flat 1D packed arrays (`width * height`), never as nested arrays of arrays (`grid[x][y]`).
-* Cell coordinates are mapped using integer indices: `cell_index = (coord.y * grid_width) + coord.x`.
+* *Rule:* All stateless evaluators, target resolvers, and mappers (e.g., `LogisticsStateMapper`, `TargetDepotResolver`) **must** declare their methods as `static func`.
 
 
-3. **Dirty-Flag State Propagation:**
-* The simulation must not emit full state dumps to the presentation layer every tick.
-* Domains maintain a `dirty_mask` or `dirty_indices_buffer`. Only the cells, entities, or stats that mutated during the current tick are copied into the delta snapshot for rendering.
+
+
+2. **The Missing Binding Parameter Trap:**
+* *Problem:* Inheriting `GoapAction` without overriding `generate_bindings()` produces empty binding parameters (`{}`). When `action.on_step()` calls `binding.get_param(...)`, it returns `null`, silently breaking arithmetic or coordinate progression.
+
+
+* *Rule:* Actions must always implement defensive parameter resolution with fallback to the execution `context`:
+
+
+```gdscript
+var target_coord = binding.get_param(&"target_coord", Vector2i(-1, -1))
+if target_coord == Vector2i(-1, -1) and context.has("target_depot"):
+    target_coord = context["target_depot"].get("coord", Vector2i(-1, -1))
+
+```
+
+
+
+
+3. **Untyped Duck-Typing at Framework Boundaries:**
+* *Problem:* Typing `command_bus` or `event_bus` with concrete classes inside `res://framework/` couples the framework to specific project implementations.
+* *Rule:* Framework classes (like `GoapSequencer`) must type bus parameters as `Object = null` and invoke methods using duck-typing checks.
+
+
+
+
+4. **Discrete State Synchronization (Instant Snapping):**
+* *Problem:* Attempting to visually tween or lerp pawns across discrete simulation grids creates frame latency that desynchronizes visual presentation from underlying registry states.
+* *Rule:* Test presentation harnesses must **snap immediately** to discrete cell coordinates on each tick without continuous interpolation.
+
+
+
+
+5. **`SimClock` Contract Adherence:**
+* *Problem:* Calling non-existent methods like `advance()` or `get_tick()` on `SimClock` causes runtime crashes.
+
+
+* *Rule:* Use `sim_clock.step_tick() -> int` to atomically advance the clock and read `sim_clock.current_tick`.
+
+
 
 
 
 ---
 
-### Summary of Architectural Invariants
+## 5. System Milestone & Status Ledger
 
-| Category | The Rule | Machine Verification Method |
-| --- | --- | --- |
-| **Dependencies** | Strict one-way downward flow; no upward or sibling imports. | Static linter checks import paths in file headers. |
-| **Mutation** | Only the registered Authority can write to its domain state. | Write methods restricted to package-private access or assertion guards. |
-| **Engine Isolation** | No SceneTree or Node2D references in Layers 1, 2, or 3. | RegEx scanner rejects `get_node`, `Node2D`, `$"`, etc. |
-| **Data Flow** | Cross-boundary communication uses flat DTOs and integer IDs. | Linter flags passing object instances into public API signatures. |
-| **Lifecycle** | Discrete 5-phase tick execution; zero memory allocation in ticks. | Performance profiler and allocation tests in headless test runner. |
+| Layer / Subsystem | Folder Path | Archetype | Status | Audit Score |
+| --- | --- | --- | --- | --- |
+| **Core Infrastructure** | `res://core/` | Time, Event, Command, RNG | **FROZEN**<br> | **Tier A (100%)** |
+| **Simulation Primitives** | `res://simulation/` | Spatial, Resource, Reservation | **FROZEN**<br> | **Tier A (100%)** |
+| **GOAP Phase 1** | `res://framework/goap/common/` | StateSnapshot, Rules, Effects | **FROZEN**<br> | **Tier A (100%)** |
+| **GOAP Phase 2** | `res://framework/goap/goals/` | Actions, Bindings, Arbitrator | **FROZEN**<br> | **Tier A (100%)** |
+| **GOAP Phase 3** | `res://framework/goap/planner/` | Bounded A* Planner, Plan DTO | **FROZEN**<br> | **Tier A (99.7%)** |
+| **GOAP Phase 4** | `res://framework/goap/sequencer/` | Runtime Sequencer & Preemption | **FROZEN**<br> | **Tier A (100%)** |
+| **Logistics Domain** | `res://game/logistics/` | Actions, Evaluators, Goals | **COMPLETE** | **Tier A (100%)** |
+| **Logistics Test View** | `res://scenes/tests/logistics/` | Presentation Canvas & Harness | **OPERATIONAL** | **Tier A (100%)** |
+
+---
+
+## 6. Mandatory AI Context Reminder Prompt Snippet
+
+When initiating new tasks or prompts for AI collaborators (such as Jules), **always prepend or include this directive**:
+
+```markdown
+IMPORTANT CONTEXT & INVARIANTS:
+1. Review and adhere strictly to `res://docs/architecture_constitution.md`.
+2. Core and Framework Immutability: Do NOT modify any file under `res://core/`, `res://simulation/`, or `res://framework/goap/`. These layers are FROZEN at Tier A.
+3. CQS & Envelopes: All state changes must be submitted as canonical CommandPacket dictionaries (`command_id`, `priority`, `issuer_id`, `target_tick`, `payload`) to CommandBus. Never mutate registries directly.
+4. Evaluator Purity: All standalone evaluators and mappers must declare their methods as `static func`.
+5. Canonical Null Standard: Always use integer `0` for unassigned entities, unreserved locks, or empty cells.
+
+```
