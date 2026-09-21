@@ -1,3 +1,4 @@
+# &"C:\Users\vinic\Documents\DEV\Godot_v4.7.1-stable_win64.exe\Godot_v4.7.1-stable_win64.exe" --headless -s res://core/tests/test_goap_planner.gd
 extends SceneTree
 
 func _init() -> void:
