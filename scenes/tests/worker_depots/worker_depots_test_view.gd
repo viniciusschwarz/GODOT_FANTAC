@@ -11,11 +11,22 @@ var spatial_reg: SpatialCellRegistry
 var resource_reg: ResourceContainerRegistry
 var reservation_reg: ReservationRegistry
 
+# Agent Driver
+var worker_driver: CourierAgentDriver
+
 # State tracking for rendering
 var cell_size_pixels: float = 48.0
 var grid_offset: Vector2 = Vector2(80, 80)
 var worker_pos: Vector2i = Vector2i(0, 0)
 var _command_id_counter: int = 1
+
+# Depot Configuration
+var depots: Array[Dictionary] = [
+	{"id": 101, "container_id": 101, "coord": Vector2i(1, 1), "type": &"SUPPLY", "demand_needed": 0, "name": "A1"},
+	{"id": 102, "container_id": 102, "coord": Vector2i(1, 8), "type": &"SUPPLY", "demand_needed": 0, "name": "A2"},
+	{"id": 201, "container_id": 201, "coord": Vector2i(8, 2), "type": &"DEMAND", "demand_needed": 20, "name": "B1"},
+	{"id": 202, "container_id": 202, "coord": Vector2i(8, 7), "type": &"DEMAND", "demand_needed": 60, "name": "B2"}
+]
 
 # UI Nodes
 @onready var status_label: Label = $HUD/Panel/VBoxContainer/StatusLabel
@@ -53,22 +64,25 @@ func _init_simulation() -> void:
 	reservation_reg = ReservationRegistry.new()
 
 	_command_id_counter = 1
-	worker_pos = Vector2i(0, 0)
+	worker_pos = Vector2i(0, 0) # Start at (0, 0)
 
 	_register_commands()
 	_register_saves()
 	_register_events()
 
-	# Setup Depot A (100) at (0,0) with 50 wood
-	resource_reg.create_container(100)
-	resource_reg.deposit(100, &"WOOD", 50)
-
-	# Setup Depot B (200) at (0,2) with 0 wood
-	resource_reg.create_container(200)
+	# Setup Depots based on configuration
+	for depot in depots:
+		resource_reg.create_container(depot["container_id"])
+		if depot["name"] == "A1":
+			resource_reg.deposit(depot["container_id"], &"WOOD", 20)
+		elif depot["name"] == "A2":
+			resource_reg.deposit(depot["container_id"], &"WOOD", 100)
 
 	# Setup Worker (1) at (0,0)
 	resource_reg.create_container(1)
-	spatial_reg.set_occupant(Vector2i(0, 0), 1)
+	spatial_reg.set_occupant(worker_pos, 1)
+
+	worker_driver = CourierAgentDriver.new(1, 1, command_bus, event_bus)
 
 	_update_ui()
 	queue_redraw()
@@ -85,41 +99,19 @@ func _step_simulation() -> void:
 	clock.step_tick()
 	var tick = clock.current_tick
 
-	if tick == 1:
-		var c = _create_cmd(&"RESERVATION_CLAIM", {"claimant_id": 1, "target_id": 100, "claim_type": CoreEnums.ReservationClaimType.EXCLUSIVE_WRITE, "duration": 10}, tick)
-		command_bus.submit(c)
-	elif tick == 2:
-		var c = _create_cmd(&"RESOURCE_TRANSFER", {"src_id": 100, "dst_id": 1, "resource_type": &"WOOD", "amount": 10}, tick)
-		command_bus.submit(c)
-	elif tick == 3:
-		var c = _create_cmd(&"SPATIAL_RELOCATION", {"entity_id": 1, "from": Vector2i(0, 0), "to": Vector2i(0, 1)}, tick)
-		command_bus.submit(c)
-	elif tick == 4:
-		var c = _create_cmd(&"SPATIAL_RELOCATION", {"entity_id": 1, "from": Vector2i(0, 1), "to": Vector2i(0, 2)}, tick)
-		command_bus.submit(c)
-	elif tick == 5:
-		var c = _create_cmd(&"RESOURCE_TRANSFER", {"src_id": 1, "dst_id": 200, "resource_type": &"WOOD", "amount": 10}, tick)
-		command_bus.submit(c)
-	elif tick == 6:
-		reservation_reg.release_claim(1, 100)
-		_log_event("Worker released reservation on Depot A")
+	reservation_reg.tick_prune_expired(tick)
 
-	command_bus.flush_tick(tick)
+	# Driver decides actions
+	worker_driver.tick(tick, worker_pos, depots, spatial_reg, resource_reg, reservation_reg)
+
+	# Execute commands
+	var results = command_bus.flush_tick(tick)
+	for res in results:
+		if res["status_code"] != CoreEnums.ExecutionStatusCode.SUCCESS:
+			worker_driver.notify_command_failed()
 
 	_update_ui()
 	queue_redraw()
-
-func _create_cmd(type: StringName, payload: Dictionary, tick: int) -> Dictionary:
-	var packet = {
-		"command_id": _command_id_counter,
-		"priority": CoreEnums.ExecutionPriority.INPUT_DIRECT,
-		"command_type": type,
-		"issuer_id": 1,
-		"target_tick": tick,
-		"payload": payload
-	}
-	_command_id_counter += 1
-	return packet
 
 func _register_commands() -> void:
 	command_bus.register_command(&"SPATIAL_RELOCATION", _validate_spatial_relocation, _execute_spatial_relocation)
@@ -157,13 +149,20 @@ func _register_events() -> void:
 		])
 	)
 
+	event_bus.subscribe(&"GOAP_PLAN_FORMULATED", func(e: Dictionary):
+		var data: Dictionary = e.get("event_data", {})
+		var seq: Array = data.get("action_sequence", [])
+		var plan_str = " -> ".join(seq)
+		_log_event("[GOAP Plan] " + plan_str)
+	)
+
 # --- COMMAND EXECUTORS ---
 
 func _validate_spatial_relocation(packet: Dictionary) -> Dictionary:
 	var pl = packet["payload"]
 	var from_coord = pl["from"]
 	var to_coord = pl["to"]
-	var dist = spatial_reg.calculate_distance(from_coord, to_coord, CoreEnums.SpatialDistanceMetric.MANHATTAN)
+	var dist = spatial_reg.calculate_distance(from_coord, to_coord, CoreEnums.SpatialDistanceMetric.CHEBYSHEV)
 	if dist > 1:
 		return _error_res(packet, CoreEnums.ExecutionStatusCode.REJECTED_OUT_OF_BOUNDS, &"TOO_FAR")
 	return _success_res(packet)
@@ -242,6 +241,12 @@ func _execute_resource_transfer(packet: Dictionary) -> Dictionary:
 		}
 	})
 
+	# If deposited to demand, adjust demand_needed
+	if dst > 100 and dst < 300: # Simple check for depot
+		for depot in depots:
+			if depot["container_id"] == dst and depot["type"] == &"DEMAND":
+				depot["demand_needed"] = max(0, depot["demand_needed"] - amount)
+
 	return _success_res(packet)
 
 func _error_res(packet: Dictionary, status: int, reason: StringName) -> Dictionary:
@@ -296,21 +301,16 @@ func _draw() -> void:
 	for y in range(grid_height + 1):
 		draw_line(grid_offset + Vector2(0, y * cell_size_pixels), grid_offset + Vector2(grid_width * cell_size_pixels, y * cell_size_pixels), Color(0.5, 0.5, 0.5, 0.5))
 
-	# Draw Depot A (0, 0)
-	var depot_a_pos = grid_offset + Vector2(0, 0) * cell_size_pixels
-	var depot_a_rect = Rect2(depot_a_pos, Vector2(cell_size_pixels, cell_size_pixels))
-	draw_rect(depot_a_rect, Color(0, 0, 1, 0.5)) # Blue
-	draw_string(ThemeDB.fallback_font, depot_a_pos + Vector2(5, 20), "A", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color.WHITE)
-	var depot_a_wood = resource_reg.get_balance(100, &"WOOD") if resource_reg else 0
-	draw_string(ThemeDB.fallback_font, depot_a_pos + Vector2(5, 40), str(depot_a_wood), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color.WHITE)
+	# Draw Depots
+	for depot in depots:
+		var pos = grid_offset + Vector2(depot["coord"]) * cell_size_pixels
+		var rect = Rect2(pos, Vector2(cell_size_pixels, cell_size_pixels))
+		var color = Color(0, 0, 1, 0.5) if depot["type"] == &"SUPPLY" else Color(0, 1, 0, 0.5)
+		draw_rect(rect, color)
+		draw_string(ThemeDB.fallback_font, pos + Vector2(5, 20), depot["name"], HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color.WHITE)
 
-	# Draw Depot B (0, 2)
-	var depot_b_pos = grid_offset + Vector2(0, 2) * cell_size_pixels
-	var depot_b_rect = Rect2(depot_b_pos, Vector2(cell_size_pixels, cell_size_pixels))
-	draw_rect(depot_b_rect, Color(0, 1, 0, 0.5)) # Green
-	draw_string(ThemeDB.fallback_font, depot_b_pos + Vector2(5, 20), "B", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color.WHITE)
-	var depot_b_wood = resource_reg.get_balance(200, &"WOOD") if resource_reg else 0
-	draw_string(ThemeDB.fallback_font, depot_b_pos + Vector2(5, 40), str(depot_b_wood), HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color.WHITE)
+		var val_str = str(resource_reg.get_balance(depot["container_id"], &"WOOD")) if depot["type"] == &"SUPPLY" else str(depot["demand_needed"])
+		draw_string(ThemeDB.fallback_font, pos + Vector2(5, 40), val_str, HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color.WHITE)
 
 	# Draw Worker
 	var worker_draw_pos = grid_offset + Vector2(worker_pos) * cell_size_pixels
