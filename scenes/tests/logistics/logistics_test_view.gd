@@ -183,8 +183,7 @@ func _on_grid_canvas_draw() -> void:
 	grid_canvas.draw_string(default_font, pawn_center - Vector2(18, 5), "P: %d" % resource_reg.get_balance(pawn_container_id, &"wood"), HorizontalAlignment.HORIZONTAL_ALIGNMENT_LEFT, -1, 10)
 
 func _step_simulation() -> void:
-	sim_clock.advance(1)
-	var current_tick = sim_clock.get_tick()
+	var current_tick: int = sim_clock.step_tick()
 	last_tick = current_tick
 
 	reservation_reg.tick_prune_expired(current_tick)
