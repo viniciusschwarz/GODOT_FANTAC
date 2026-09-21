@@ -10,14 +10,13 @@ func on_enter(binding: GoapActionBinding, context: Dictionary) -> void:
 	pass
 
 func on_step(tick: int, binding: GoapActionBinding, context: Dictionary, cmd_bus: Object = null) -> int:
-	var target_coord = binding.get_param(&"target_coord")
-	if target_coord == null:
-		var target_depot = context.get("target_depot", {})
-		target_coord = target_depot.get("coord", Vector2i(-1, -1))
-	else:
-		target_coord = target_coord as Vector2i
+	var target_coord: Vector2i = binding.get_param(&"target_coord", Vector2i(-1, -1))
+	if target_coord == Vector2i(-1, -1) and context.has("target_depot"):
+		target_coord = context["target_depot"].get("coord", Vector2i(-1, -1))
 
 	var current_coord: Vector2i = context.get("pawn_coord", Vector2i(-1, -1))
+	if target_coord == Vector2i(-1, -1) or current_coord == -Vector2i.ONE:
+		return GoapTypes.ActionStatus.FAILED
 
 	if current_coord == target_coord:
 		return GoapTypes.ActionStatus.COMPLETED
@@ -33,10 +32,12 @@ func on_step(tick: int, binding: GoapActionBinding, context: Dictionary, cmd_bus
 
 	if cmd_bus != null:
 		cmd_bus.submit({
+			"command_id": 1,
+			"priority": CoreEnums.ExecutionPriority.INPUT_DIRECT,
 			"command_type": &"SPATIAL_RELOCATION",
-			"issuer_entity_id": context.get("pawn_id", 0),
-			"tick_timestamp": tick,
-			"command_payload": {
+			"issuer_id": context.get("pawn_id", 0),
+			"target_tick": tick,
+			"payload": {
 				"from_coord": current_coord,
 				"to_coord": next_step
 			}
@@ -48,3 +49,4 @@ func on_step(tick: int, binding: GoapActionBinding, context: Dictionary, cmd_bus
 		return GoapTypes.ActionStatus.COMPLETED
 	else:
 		return GoapTypes.ActionStatus.RUNNING
+

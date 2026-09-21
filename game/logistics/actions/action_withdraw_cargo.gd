@@ -26,10 +26,12 @@ func on_step(tick: int, binding: GoapActionBinding, context: Dictionary, cmd_bus
 
 	if cmd_bus != null:
 		cmd_bus.submit({
+			"command_id": 1,
+			"priority": CoreEnums.ExecutionPriority.INPUT_DIRECT,
 			"command_type": &"RESOURCE_TRANSFER",
-			"issuer_entity_id": pawn_id,
-			"tick_timestamp": tick,
-			"command_payload": {
+			"issuer_id": pawn_id,
+			"target_tick": tick,
+			"payload": {
 				"source_id": depot_id,
 				"destination_id": pawn_container_id,
 				"resource_type": resource_type,

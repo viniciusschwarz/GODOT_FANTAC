@@ -275,31 +275,35 @@ func _pass_validator(packet: Dictionary) -> Dictionary:
 	return command_bus._create_error_result(packet.get("cmd_id", 0), 0, &"OK")
 
 func _handle_spatial_relocation(packet: Dictionary) -> Dictionary:
-	var new_coord = packet.get("to_coord", Vector2i(-1, -1))
+	var payload = packet.get("command_payload", packet.get("payload", packet))
+	var new_coord = payload.get("to_coord", Vector2i(-1, -1))
 	if new_coord != Vector2i(-1, -1):
 		spatial_reg.clear_cell(pawn_coord)
 		pawn_coord = new_coord
 		spatial_reg.set_occupant(pawn_coord, pawn_id)
-	return command_bus._create_error_result(packet.get("cmd_id", 0), 0, &"")
+	return command_bus._create_error_result(packet.get("cmd_id", packet.get("command_id", 0)), 0, &"")
 
 func _handle_reservation_claim(packet: Dictionary) -> Dictionary:
-	var claimant_id = packet.get("claimant_id", 0)
-	var target_id = packet.get("target_id", 0)
-	var claim_type = packet.get("claim_type", 0)
-	var duration = packet.get("duration", 0)
+	var payload = packet.get("command_payload", packet.get("payload", packet))
+	var claimant_id = payload.get("claimant_id", 0)
+	var target_id = payload.get("target_id", 0)
+	var claim_type = payload.get("claim_type", 0)
+	var duration = payload.get("duration", 0)
 	reservation_reg.try_claim(claimant_id, target_id, claim_type, duration, last_tick)
-	return command_bus._create_error_result(packet.get("cmd_id", 0), 0, &"")
+	return command_bus._create_error_result(packet.get("cmd_id", packet.get("command_id", 0)), 0, &"")
 
 func _handle_reservation_release(packet: Dictionary) -> Dictionary:
-	var claimant_id = packet.get("claimant_id", 0)
-	var target_id = packet.get("target_id", 0)
+	var payload = packet.get("command_payload", packet.get("payload", packet))
+	var claimant_id = payload.get("claimant_id", 0)
+	var target_id = payload.get("target_id", 0)
 	reservation_reg.release_claim(claimant_id, target_id)
-	return command_bus._create_error_result(packet.get("cmd_id", 0), 0, &"")
+	return command_bus._create_error_result(packet.get("cmd_id", packet.get("command_id", 0)), 0, &"")
 
 func _handle_resource_transfer(packet: Dictionary) -> Dictionary:
-	var src_id = packet.get("source_id", 0)
-	var dst_id = packet.get("destination_id", 0)
-	var type = packet.get("resource_type", &"")
-	var amount = packet.get("amount", 0)
+	var payload = packet.get("command_payload", packet.get("payload", packet))
+	var src_id = payload.get("source_id", 0)
+	var dst_id = payload.get("destination_id", 0)
+	var type = payload.get("resource_type", &"")
+	var amount = payload.get("amount", 0)
 	resource_reg.transfer(src_id, dst_id, type, amount)
-	return command_bus._create_error_result(packet.get("cmd_id", 0), 0, &"")
+	return command_bus._create_error_result(packet.get("cmd_id", packet.get("command_id", 0)), 0, &"")

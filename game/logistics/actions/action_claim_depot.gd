@@ -20,10 +20,12 @@ func on_step(tick: int, binding: GoapActionBinding, context: Dictionary, cmd_bus
 
 	if cmd_bus != null:
 		cmd_bus.submit({
+			"command_id": 1,
+			"priority": CoreEnums.ExecutionPriority.INPUT_DIRECT,
 			"command_type": &"RESERVATION_CLAIM",
-			"issuer_entity_id": pawn_id,
-			"tick_timestamp": tick,
-			"command_payload": {
+			"issuer_id": pawn_id,
+			"target_tick": tick,
+			"payload": {
 				"claimant_id": pawn_id,
 				"target_id": depot_id,
 				"claim_type": 1,
