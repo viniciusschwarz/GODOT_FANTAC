@@ -1,7 +1,7 @@
 class_name LogisticsStateMapper
 extends RefCounted
 
-func build_snapshot(pawn_id: int, pawn_coord: Vector2i, pawn_container_id: int, resource_reg: Object, reservation_reg: Object, target_depot_info: Dictionary) -> GoapStateSnapshot:
+static func build_snapshot(pawn_id: int, pawn_coord: Vector2i, pawn_container_id: int, resource_reg: Object, reservation_reg: Object, target_depot_info: Dictionary) -> GoapStateSnapshot:
 	var snapshot = GoapStateSnapshot.new()
 
 	# Set numbers
