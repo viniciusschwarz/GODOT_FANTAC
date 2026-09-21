@@ -91,7 +91,7 @@ func _reset_simulation() -> void:
 	command_bus = CommandBus.new()
 	event_bus = EventBus.new()
 	sim_clock = SimClock.new()
-	sim_clock.set_tick(0)
+	sim_clock.reset()
 	last_tick = 0
 
 	spatial_reg = SpatialCellRegistry.new()
