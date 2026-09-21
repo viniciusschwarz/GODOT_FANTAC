@@ -13,6 +13,9 @@ func get_symbol(key: StringName, default_value: Variant = null) -> Variant:
 func has_symbol(key: StringName) -> bool:
 	return symbols.has(key)
 
+func erase_symbol(key: StringName) -> void:
+	symbols.erase(key)
+
 func set_number(key: StringName, value: float) -> void:
 	numbers[key] = value
 
@@ -21,6 +24,9 @@ func get_number(key: StringName, default_value: float = 0.0) -> float:
 
 func has_number(key: StringName) -> bool:
 	return numbers.has(key)
+
+func erase_number(key: StringName) -> void:
+	numbers.erase(key)
 
 func duplicate_snapshot() -> GoapStateSnapshot:
 	var copy = GoapStateSnapshot.new()
