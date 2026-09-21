@@ -91,7 +91,7 @@ func _reset_simulation() -> void:
 	command_bus = CommandBus.new()
 	event_bus = EventBus.new()
 	sim_clock = SimClock.new()
-	sim_clock.set_tick(0)
+	sim_clock.reset()
 	last_tick = 0
 
 	spatial_reg = SpatialCellRegistry.new()
@@ -105,10 +105,10 @@ func _reset_simulation() -> void:
 	sequencer = GoapSequencer.new(pawn_id, planner, arbitrator, command_bus, event_bus)
 
 	# Register handlers
-	command_bus.register_handler(&"SPATIAL_RELOCATION", _handle_spatial_relocation)
-	command_bus.register_handler(&"RESERVATION_CLAIM", _handle_reservation_claim)
-	command_bus.register_handler(&"RESERVATION_RELEASE", _handle_reservation_release)
-	command_bus.register_handler(&"RESOURCE_TRANSFER", _handle_resource_transfer)
+	command_bus.register_command(&"SPATIAL_RELOCATION", _pass_validator, _handle_spatial_relocation)
+	command_bus.register_command(&"RESERVATION_CLAIM", _pass_validator, _handle_reservation_claim)
+	command_bus.register_command(&"RESERVATION_RELEASE", _pass_validator, _handle_reservation_release)
+	command_bus.register_command(&"RESOURCE_TRANSFER", _pass_validator, _handle_resource_transfer)
 
 	# Connect events
 	event_bus.event_emitted.connect(_on_event_emitted)
@@ -183,8 +183,7 @@ func _on_grid_canvas_draw() -> void:
 	grid_canvas.draw_string(default_font, pawn_center - Vector2(18, 5), "P: %d" % resource_reg.get_balance(pawn_container_id, &"wood"), HorizontalAlignment.HORIZONTAL_ALIGNMENT_LEFT, -1, 10)
 
 func _step_simulation() -> void:
-	sim_clock.advance(1)
-	var current_tick = sim_clock.get_tick()
+	var current_tick: int = sim_clock.step_tick()
 	last_tick = current_tick
 
 	reservation_reg.tick_prune_expired(current_tick)
@@ -272,6 +271,9 @@ func _on_speed_changed(index: int) -> void:
 		3: timer.wait_time = 0.1 # 10x
 
 # --- Command Handlers ---
+func _pass_validator(packet: Dictionary) -> Dictionary:
+	return command_bus._create_error_result(packet.get("cmd_id", 0), 0, &"OK")
+
 func _handle_spatial_relocation(packet: Dictionary) -> Dictionary:
 	var new_coord = packet.get("to_coord", Vector2i(-1, -1))
 	if new_coord != Vector2i(-1, -1):
