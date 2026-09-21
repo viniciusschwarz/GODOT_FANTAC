@@ -15,4 +15,4 @@ func apply_to(snapshot: GoapStateSnapshot) -> void:
 		GoapTypes.SymbolicEffectOp.ASSIGN:
 			snapshot.set_symbol(key, value)
 		GoapTypes.SymbolicEffectOp.UNSET:
-			snapshot.symbols.erase(key)
+			snapshot.erase_symbol(key)
