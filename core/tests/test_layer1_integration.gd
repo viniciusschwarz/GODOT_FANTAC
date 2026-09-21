@@ -50,6 +50,7 @@ func _register_commands() -> void:
 	cmd_bus.register_command(&"SPATIAL_RELOCATION", _validate_spatial_relocation, _execute_spatial_relocation)
 	cmd_bus.register_command(&"RESERVATION_CLAIM", _validate_reservation_claim, _execute_reservation_claim)
 	cmd_bus.register_command(&"RESOURCE_TRANSFER", _validate_resource_transfer, _execute_resource_transfer)
+	cmd_bus.register_command(&"RESERVATION_RELEASE", _validate_reservation_release, _execute_reservation_release)
 
 func _register_saves() -> void:
 	save_reg.register_domain(&"SPATIAL", Callable(spatial_reg, "get_save_state"), Callable(spatial_reg, "load_save_state"))
@@ -73,6 +74,26 @@ func _execute_spatial_relocation(packet: Dictionary) -> Dictionary:
 	var entity_id = pl["entity_id"]
 	spatial_reg.clear_cell(from_coord)
 	spatial_reg.set_occupant(to_coord, entity_id)
+	return _success_res(packet)
+
+# --- RESERVATION RELEASE ---
+func _validate_reservation_release(packet: Dictionary) -> Dictionary:
+	var pl = packet.get("payload", {})
+	var claimant = pl.get("claimant_id", 0)
+	var target = pl.get("target_id", 0)
+	if claimant <= 0 or target <= 0:
+		return _error_res(packet, CoreEnums.ExecutionStatusCode.REJECTED_PRECONDITION, &"INVALID_PARAMETERS")
+	if reservation_reg.get_claimant(target) != claimant:
+		return _error_res(packet, CoreEnums.ExecutionStatusCode.REJECTED_UNAUTHORIZED, &"NOT_CLAIM_OWNER")
+	return _success_res(packet)
+
+func _execute_reservation_release(packet: Dictionary) -> Dictionary:
+	var pl = packet["payload"]
+	var claimant = pl["claimant_id"]
+	var target = pl["target_id"]
+	var success = reservation_reg.release_claim(claimant, target)
+	if not success:
+		return _error_res(packet, CoreEnums.ExecutionStatusCode.FAILED_INTERNAL_ERROR, &"RELEASE_FAILED")
 	return _success_res(packet)
 
 # --- RESERVATION CLAIM ---
@@ -197,8 +218,10 @@ func _run_scenario() -> void:
 
 	# Step 9 (Tick 8): Worker releases reservation on Depot A
 	clock.current_tick = 8
-	var c9 = reservation_reg.release_claim(1, 100)
-	_assert_true(c9, "Claim released")
+	var c9 = _create_cmd(&"RESERVATION_RELEASE", {"claimant_id": 1, "target_id": 100}, 8)
+	cmd_bus.submit(c9)
+	results = cmd_bus.flush_tick(8)
+	_assert_true(results[0]["status_code"] == CoreEnums.ExecutionStatusCode.SUCCESS, "Claim released successfully")
 	_assert_true(not reservation_reg.is_reserved(100), "Depot A lock released")
 
 	print("[INTEGRATION PASS] Worker & Depots headless simulation passed cleanly.")

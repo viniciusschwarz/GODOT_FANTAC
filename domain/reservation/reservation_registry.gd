@@ -32,6 +32,13 @@ func release_claim(claimant_id: int, target_resource_id: int) -> bool:
 func is_reserved(target_resource_id: int) -> bool:
 	return _claims.has(target_resource_id)
 
+## Returns the integer ID of the entity currently holding the reservation on target_resource_id.
+## Returns 0 if unreserved or expired.
+func get_claimant(target_resource_id: int) -> int:
+	if _claims.has(target_resource_id):
+		return _claims[target_resource_id].get("claimant_id", 0)
+	return 0
+
 func tick_prune_expired(current_tick: int) -> void:
 	var to_remove: Array = []
 	for target_id in _claims:
