@@ -105,10 +105,10 @@ func _reset_simulation() -> void:
 	sequencer = GoapSequencer.new(pawn_id, planner, arbitrator, command_bus, event_bus)
 
 	# Register handlers
-	command_bus.register_handler(&"SPATIAL_RELOCATION", _handle_spatial_relocation)
-	command_bus.register_handler(&"RESERVATION_CLAIM", _handle_reservation_claim)
-	command_bus.register_handler(&"RESERVATION_RELEASE", _handle_reservation_release)
-	command_bus.register_handler(&"RESOURCE_TRANSFER", _handle_resource_transfer)
+	command_bus.register_command(&"SPATIAL_RELOCATION", _pass_validator, _handle_spatial_relocation)
+	command_bus.register_command(&"RESERVATION_CLAIM", _pass_validator, _handle_reservation_claim)
+	command_bus.register_command(&"RESERVATION_RELEASE", _pass_validator, _handle_reservation_release)
+	command_bus.register_command(&"RESOURCE_TRANSFER", _pass_validator, _handle_resource_transfer)
 
 	# Connect events
 	event_bus.event_emitted.connect(_on_event_emitted)
@@ -272,6 +272,9 @@ func _on_speed_changed(index: int) -> void:
 		3: timer.wait_time = 0.1 # 10x
 
 # --- Command Handlers ---
+func _pass_validator(packet: Dictionary) -> Dictionary:
+	return command_bus._create_error_result(packet.get("cmd_id", 0), 0, &"OK")
+
 func _handle_spatial_relocation(packet: Dictionary) -> Dictionary:
 	var new_coord = packet.get("to_coord", Vector2i(-1, -1))
 	if new_coord != Vector2i(-1, -1):
