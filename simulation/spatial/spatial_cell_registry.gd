@@ -9,14 +9,14 @@ func init(width: int, height: int) -> void:
 	_width = width
 	_height = height
 	_cells.resize(_width * _height)
-	_cells.fill(-1)
+	_cells.fill(0)
 
 func is_within_bounds(coord: Vector2i) -> bool:
 	return coord.x >= 0 and coord.x < _width and coord.y >= 0 and coord.y < _height
 
 func get_occupant(coord: Vector2i) -> int:
 	if not is_within_bounds(coord):
-		return -1
+		return 0
 	return _cells[coord.y * _width + coord.x]
 
 func set_occupant(coord: Vector2i, entity_id: int) -> bool:
@@ -27,15 +27,14 @@ func set_occupant(coord: Vector2i, entity_id: int) -> bool:
 
 func clear_cell(coord: Vector2i) -> void:
 	if is_within_bounds(coord):
-		_cells[coord.y * _width + coord.x] = -1
+		_cells[coord.y * _width + coord.x] = 0
 
-func calculate_distance(a: Vector2i, b: Vector2i, metric: int = 0) -> int:
-	# 0 = Manhattan, 1 = Chebyshev, etc. Defaulting to Manhattan for now.
-	if metric == 0:
+func calculate_distance(a: Vector2i, b: Vector2i, metric: int = CoreEnums.SpatialDistanceMetric.MANHATTAN) -> int:
+	if metric == CoreEnums.SpatialDistanceMetric.MANHATTAN:
 		return abs(a.x - b.x) + abs(a.y - b.y)
-	elif metric == 1:
+	elif metric == CoreEnums.SpatialDistanceMetric.CHEBYSHEV:
 		return maxi(abs(a.x - b.x), abs(a.y - b.y))
-	return -1 # Unsupported metric
+	return -1
 
 func get_save_state() -> Dictionary:
 	return {

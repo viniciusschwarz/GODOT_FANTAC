@@ -51,12 +51,12 @@ func transfer(src_id: int, dst_id: int, type: StringName, amount: int) -> bool:
 
 func get_save_state() -> Dictionary:
 	return {
-		"containers": _containers
+		"containers": _containers.duplicate(true)
 	}
 
 func load_save_state(state: Dictionary) -> bool:
 	if not state.has("containers"):
 		return false
 
-	_containers = state["containers"]
+	_containers = state["containers"].duplicate(true)
 	return true
