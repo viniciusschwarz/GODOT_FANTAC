@@ -102,7 +102,7 @@ func _reset_simulation() -> void:
 
 	planner = GoapPlanner.new()
 	arbitrator = GoapGoalArbitrator.new()
-	sequencer = GoapSequencer.new(planner, arbitrator, event_bus)
+	sequencer = GoapSequencer.new(pawn_id, planner, arbitrator, command_bus, event_bus)
 
 	# Register handlers
 	command_bus.register_handler(&"SPATIAL_RELOCATION", _handle_spatial_relocation)
@@ -214,23 +214,23 @@ func _step_simulation() -> void:
 func _update_ui() -> void:
 	label_tick.text = "Tick: %d" % last_tick
 
-	var active_goal = sequencer._active_goal
-	if active_goal:
-		label_goal.text = "Goal: %s" % active_goal.get_goal_id()
+	var active_goal = sequencer.active_goal
+	if active_goal != null:
+		label_goal.text = "Goal: %s" % active_goal.goal_name
 	else:
 		label_goal.text = "Goal: None"
 
-	var active_action = sequencer._active_action
-	if active_action:
-		label_action.text = "Action: %s" % active_action.get_action_name()
+	var active_binding = sequencer.active_binding
+	if active_binding != null:
+		label_action.text = "Action: %s" % active_binding.get_action_name()
 	else:
 		label_action.text = "Action: None"
 
-	var active_plan = sequencer._active_plan
-	if active_plan and active_plan.bindings.size() > 0:
+	var active_plan = sequencer.active_plan
+	if active_plan != null and not active_plan.bindings.is_empty():
 		var steps_str = ""
 		for binding in active_plan.bindings:
-			steps_str += binding.action.get_action_name() + ", "
+			steps_str += str(binding.action.action_name) + ", "
 		label_plan.text = "Plan: %s" % steps_str
 	else:
 		label_plan.text = "Plan: None"
@@ -273,14 +273,11 @@ func _on_speed_changed(index: int) -> void:
 
 # --- Command Handlers ---
 func _handle_spatial_relocation(packet: Dictionary) -> Dictionary:
-	var target_id = packet.get("target_id", 0)
-	var new_coord = packet.get("new_coord", Vector2i(-1, -1))
-
-	if target_id == pawn_id:
+	var new_coord = packet.get("to_coord", Vector2i(-1, -1))
+	if new_coord != Vector2i(-1, -1):
 		spatial_reg.clear_cell(pawn_coord)
 		pawn_coord = new_coord
 		spatial_reg.set_occupant(pawn_coord, pawn_id)
-
 	return command_bus._create_error_result(packet.get("cmd_id", 0), 0, &"")
 
 func _handle_reservation_claim(packet: Dictionary) -> Dictionary:
@@ -288,22 +285,19 @@ func _handle_reservation_claim(packet: Dictionary) -> Dictionary:
 	var target_id = packet.get("target_id", 0)
 	var claim_type = packet.get("claim_type", 0)
 	var duration = packet.get("duration", 0)
-
 	reservation_reg.try_claim(claimant_id, target_id, claim_type, duration, last_tick)
 	return command_bus._create_error_result(packet.get("cmd_id", 0), 0, &"")
 
 func _handle_reservation_release(packet: Dictionary) -> Dictionary:
 	var claimant_id = packet.get("claimant_id", 0)
 	var target_id = packet.get("target_id", 0)
-
 	reservation_reg.release_claim(claimant_id, target_id)
 	return command_bus._create_error_result(packet.get("cmd_id", 0), 0, &"")
 
 func _handle_resource_transfer(packet: Dictionary) -> Dictionary:
-	var src_id = packet.get("src_id", 0)
-	var dst_id = packet.get("dst_id", 0)
+	var src_id = packet.get("source_id", 0)
+	var dst_id = packet.get("destination_id", 0)
 	var type = packet.get("resource_type", &"")
 	var amount = packet.get("amount", 0)
-
 	resource_reg.transfer(src_id, dst_id, type, amount)
 	return command_bus._create_error_result(packet.get("cmd_id", 0), 0, &"")
