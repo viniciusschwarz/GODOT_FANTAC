@@ -28,7 +28,7 @@ static func evaluate_blackboard(
 			var is_reserved = reservation_reg.is_reserved(depot["id"])
 			# Check if we own the reservation
 			var owns_reservation = false
-			if is_reserved and reservation_reg._claims[depot["id"]]["claimant_id"] == worker_entity_id:
+			if is_reserved and reservation_reg.get_claimant(depot["id"]) == worker_entity_id:
 				owns_reservation = true
 
 			if not is_reserved or owns_reservation:
@@ -52,7 +52,7 @@ static func evaluate_blackboard(
 		if depot["type"] == &"DEMAND":
 			var is_reserved = reservation_reg.is_reserved(depot["id"])
 			var owns_reservation = false
-			if is_reserved and reservation_reg._claims[depot["id"]]["claimant_id"] == worker_entity_id:
+			if is_reserved and reservation_reg.get_claimant(depot["id"]) == worker_entity_id:
 				owns_reservation = true
 
 			if not is_reserved or owns_reservation:

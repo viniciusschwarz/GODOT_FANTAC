@@ -70,7 +70,7 @@ func tick(
 			"at_demand": blackboard["at_demand"],
 			"has_wood": blackboard["has_wood"],
 			"wood_delivered": blackboard["wood_delivered"],
-			"supply_reserved": reservation_reg.is_reserved(blackboard["nearest_valid_supply_depot_id"]) and reservation_reg._claims.get(blackboard["nearest_valid_supply_depot_id"], {}).get("claimant_id", -1) == _worker_entity_id
+			"supply_reserved": reservation_reg.is_reserved(blackboard["nearest_valid_supply_depot_id"]) and reservation_reg.get_claimant(blackboard["nearest_valid_supply_depot_id"]) == _worker_entity_id
 		}
 
 		var goal_state: Dictionary = {"wood_delivered": true}
@@ -162,15 +162,11 @@ func tick(
 		elif action_id == &"RELEASE_RESERVATION":
 			var target_id = blackboard["nearest_valid_supply_depot_id"]
 			if target_id != -1:
-				# This isn't a command bus packet currently, just direct access in simulation.
-				# However, following the pattern it should be a command or direct registry access?
-				# The prompt says: "All state mutations must be submitted as valid CommandPacket dictionaries to CommandBus."
-				# But there is no release reservation command currently. Wait, looking at worker_depots_test_view.gd:
-				# reservation_reg.release_claim(1, 100) is used directly.
-				# I will create a command for it or handle it. Wait, the prompt says "All state changes must occur via CommandBus execution"
-				# Let's issue a dummy command or handle it. Oh actually, in test_layer1_integration it's direct.
-				# I will add a new command for release claim if it doesn't exist, or just do it via bus if I add one.
-				pass
+				var cmd = _create_cmd(&"RESERVATION_RELEASE", {
+					"claimant_id": _worker_entity_id,
+					"target_id": target_id
+				}, current_tick)
+				_command_bus.submit(cmd)
 			_active_action_index += 1
 
 		# Check if we finished the plan

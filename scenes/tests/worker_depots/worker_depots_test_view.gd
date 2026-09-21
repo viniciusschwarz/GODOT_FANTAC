@@ -117,6 +117,7 @@ func _register_commands() -> void:
 	command_bus.register_command(&"SPATIAL_RELOCATION", _validate_spatial_relocation, _execute_spatial_relocation)
 	command_bus.register_command(&"RESERVATION_CLAIM", _validate_reservation_claim, _execute_reservation_claim)
 	command_bus.register_command(&"RESOURCE_TRANSFER", _validate_resource_transfer, _execute_resource_transfer)
+	command_bus.register_command(&"RESERVATION_RELEASE", _validate_reservation_release, _execute_reservation_release)
 
 func _register_saves() -> void:
 	save_registry.register_domain(&"SPATIAL", Callable(spatial_reg, "get_save_state"), Callable(spatial_reg, "load_save_state"))
@@ -134,6 +135,13 @@ func _register_events() -> void:
 
 	event_bus.subscribe(&"RESERVATION_CLAIMED", func(e: Dictionary):
 		_log_event("Entity %d claimed %d" % [
+			e.get("source_entity_id", 0),
+			e.get("target_entity_id", 0)
+		])
+	)
+
+	event_bus.subscribe(&"RESERVATION_RELEASED", func(e: Dictionary):
+		_log_event("Entity %d released reservation on %d" % [
 			e.get("source_entity_id", 0),
 			e.get("target_entity_id", 0)
 		])
@@ -187,6 +195,34 @@ func _execute_spatial_relocation(packet: Dictionary) -> Dictionary:
 			"from_coord": from_coord,
 			"to_coord": to_coord
 		}
+	})
+
+	return _success_res(packet)
+
+func _validate_reservation_release(packet: Dictionary) -> Dictionary:
+	var pl = packet.get("payload", {})
+	var claimant = pl.get("claimant_id", 0)
+	var target = pl.get("target_id", 0)
+	if claimant <= 0 or target <= 0:
+		return _error_res(packet, CoreEnums.ExecutionStatusCode.REJECTED_PRECONDITION, &"INVALID_PARAMETERS")
+	if reservation_reg.get_claimant(target) != claimant:
+		return _error_res(packet, CoreEnums.ExecutionStatusCode.REJECTED_UNAUTHORIZED, &"NOT_CLAIM_OWNER")
+	return _success_res(packet)
+
+func _execute_reservation_release(packet: Dictionary) -> Dictionary:
+	var pl = packet["payload"]
+	var claimant = pl["claimant_id"]
+	var target = pl["target_id"]
+	var success = reservation_reg.release_claim(claimant, target)
+	if not success:
+		return _error_res(packet, CoreEnums.ExecutionStatusCode.FAILED_INTERNAL_ERROR, &"RELEASE_FAILED")
+
+	event_bus.emit_now({
+		"event_type": &"RESERVATION_RELEASED",
+		"tick_timestamp": clock.current_tick,
+		"source_entity_id": claimant,
+		"target_entity_id": target,
+		"event_data": {}
 	})
 
 	return _success_res(packet)
