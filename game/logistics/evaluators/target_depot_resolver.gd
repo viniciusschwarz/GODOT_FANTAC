@@ -1,7 +1,7 @@
 class_name TargetDepotResolver
 extends RefCounted
 
-func resolve_best_supply(pawn_coord: Vector2i, resource_type: StringName, min_amount: int, depots: Array[Dictionary], reservation_reg: Object, resource_reg: Object, pawn_id: int) -> Dictionary:
+static func resolve_best_supply(pawn_coord: Vector2i, resource_type: StringName, min_amount: int, depots: Array[Dictionary], reservation_reg: Object, resource_reg: Object, pawn_id: int) -> Dictionary:
 	var best_depot: Dictionary = {}
 	var best_dist: int = -1
 
@@ -31,7 +31,7 @@ func resolve_best_supply(pawn_coord: Vector2i, resource_type: StringName, min_am
 
 	return best_depot
 
-func resolve_best_demand(pawn_coord: Vector2i, depots: Array[Dictionary], reservation_reg: Object, pawn_id: int) -> Dictionary:
+static func resolve_best_demand(pawn_coord: Vector2i, depots: Array[Dictionary], reservation_reg: Object, pawn_id: int) -> Dictionary:
 	var best_depot: Dictionary = {}
 	var best_dist: int = -1
 
