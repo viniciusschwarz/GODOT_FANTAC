@@ -55,8 +55,13 @@ func _init() -> void:
 
 	# Keep track of events
 	var emitted_events: Array[StringName] = []
-	evt_bus.event_emitted.connect(func(evt: StringName, _tick: int, _src: int, _dst: int, _data: Dictionary):
-		emitted_events.append(evt)
+	evt_bus.event_emitted.connect(func(payload: Dictionary):
+		emitted_events.append(payload.get("event_type", &""))
+		_assert_true(payload.has("event_type"), "Has event_type")
+		_assert_true(payload.has("tick_timestamp"), "Has tick_timestamp")
+		_assert_true(payload.has("source_entity_id"), "Has source_entity_id")
+		_assert_true(payload.has("target_entity_id"), "Has target_entity_id")
+		_assert_true(payload.has("event_data"), "Has event_data")
 	)
 
 	agent.tick(1, agent_state, agent_goal)

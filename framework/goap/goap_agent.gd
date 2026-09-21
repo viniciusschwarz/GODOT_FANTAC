@@ -27,9 +27,21 @@ func tick(current_tick: int, blackboard: Dictionary, goal_state: Dictionary) -> 
 		var plan = GoapPlanner.plan(blackboard, goal_state, available_actions, blackboard)
 		if not plan.is_empty():
 			active_plan = plan
-			event_bus.emit_now(&"GOAP_PLAN_FORMULATED", current_tick, agent_id, -1, {"plan_size": active_plan.size()})
+			event_bus.emit_now({
+				"event_type": &"GOAP_PLAN_FORMULATED",
+				"tick_timestamp": current_tick,
+				"source_entity_id": agent_id,
+				"target_entity_id": 0,
+				"event_data": {"plan_size": active_plan.size()}
+			})
 		else:
-			event_bus.emit_now(&"GOAP_PLAN_FAILED", current_tick, agent_id, -1, {"reason": "no_plan_possible"})
+			event_bus.emit_now({
+				"event_type": &"GOAP_PLAN_FAILED",
+				"tick_timestamp": current_tick,
+				"source_entity_id": agent_id,
+				"target_entity_id": 0,
+				"event_data": {"reason": "no_plan_possible"}
+			})
 			return
 
 	# 2. If active_action is null and active_plan has actions:
@@ -39,12 +51,24 @@ func tick(current_tick: int, blackboard: Dictionary, goal_state: Dictionary) -> 
 		# Verify active_action.check_procedural_precondition(blackboard). If false, abort plan.
 		if not active_action.check_procedural_precondition(blackboard):
 			abort_plan(blackboard)
-			event_bus.emit_now(&"GOAP_PLAN_FAILED", current_tick, agent_id, -1, {"reason": "procedural_precondition_failed", "action": active_action.action_name})
+			event_bus.emit_now({
+				"event_type": &"GOAP_PLAN_FAILED",
+				"tick_timestamp": current_tick,
+				"source_entity_id": agent_id,
+				"target_entity_id": 0,
+				"event_data": {"reason": "procedural_precondition_failed", "action": active_action.action_name}
+			})
 			active_action = null
 			return
 
 		active_action.start(blackboard)
-		event_bus.emit_now(&"GOAP_ACTION_STARTED", current_tick, agent_id, -1, {"action": active_action.action_name})
+		event_bus.emit_now({
+			"event_type": &"GOAP_ACTION_STARTED",
+			"tick_timestamp": current_tick,
+			"source_entity_id": agent_id,
+			"target_entity_id": 0,
+			"event_data": {"action": active_action.action_name}
+		})
 
 	# 3. Step the active action:
 	if active_action != null:
@@ -52,12 +76,24 @@ func tick(current_tick: int, blackboard: Dictionary, goal_state: Dictionary) -> 
 
 		if status == GoapAction.Status.COMPLETED:
 			active_action.terminate(blackboard)
-			event_bus.emit_now(&"GOAP_ACTION_COMPLETED", current_tick, agent_id, -1, {"action": active_action.action_name})
+			event_bus.emit_now({
+				"event_type": &"GOAP_ACTION_COMPLETED",
+				"tick_timestamp": current_tick,
+				"source_entity_id": agent_id,
+				"target_entity_id": 0,
+				"event_data": {"action": active_action.action_name}
+			})
 			active_action = null
 
 		elif status == GoapAction.Status.FAILED:
 			active_action.terminate(blackboard)
-			event_bus.emit_now(&"GOAP_ACTION_FAILED", current_tick, agent_id, -1, {"action": active_action.action_name})
+			event_bus.emit_now({
+				"event_type": &"GOAP_ACTION_FAILED",
+				"tick_timestamp": current_tick,
+				"source_entity_id": agent_id,
+				"target_entity_id": 0,
+				"event_data": {"action": active_action.action_name}
+			})
 			active_action = null
 			active_plan.clear() # Forces replan next tick
 

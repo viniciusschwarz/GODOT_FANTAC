@@ -39,17 +39,17 @@ func tick_prune_expired(current_tick: int) -> void:
 
 func get_claimant(target_resource_id: int) -> int:
 	if not _claims.has(target_resource_id):
-		return -1
+		return 0
 	return _claims[target_resource_id]["claimant_id"]
 
 func get_save_state() -> Dictionary:
 	return {
-		"claims": _claims
+		"claims": _claims.duplicate(true)
 	}
 
 func load_save_state(state: Dictionary) -> bool:
 	if not state.has("claims"):
 		return false
 
-	_claims = state["claims"]
+	_claims = state["claims"].duplicate(true)
 	return true

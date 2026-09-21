@@ -1,6 +1,8 @@
 class_name EventBus
 extends RefCounted
 
+signal event_emitted(payload: Dictionary)
+
 var _subscribers: Dictionary = {} # event_type: StringName -> Array[Callable]
 var _queue: Array[Dictionary] = []
 
@@ -23,6 +25,8 @@ func emit_now(event: Dictionary) -> void:
 	if _subscribers.has(event_type):
 		for callback in _subscribers[event_type]:
 			callback.call(event)
+
+	event_emitted.emit(event)
 
 func enqueue(event: Dictionary) -> void:
 	if not EnvelopeValidator.is_valid_event(event):
