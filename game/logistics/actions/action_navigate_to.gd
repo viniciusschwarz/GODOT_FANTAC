@@ -10,7 +10,13 @@ func on_enter(binding: GoapActionBinding, context: Dictionary) -> void:
 	pass
 
 func on_step(tick: int, binding: GoapActionBinding, context: Dictionary, cmd_bus: Object = null) -> int:
-	var target_coord: Vector2i = binding.get_param(&"target_coord")
+	var target_coord = binding.get_param(&"target_coord")
+	if target_coord == null:
+		var target_depot = context.get("target_depot", {})
+		target_coord = target_depot.get("coord", Vector2i(-1, -1))
+	else:
+		target_coord = target_coord as Vector2i
+
 	var current_coord: Vector2i = context.get("pawn_coord", Vector2i(-1, -1))
 
 	if current_coord == target_coord:

@@ -9,8 +9,18 @@ func _init():
 
 func on_step(tick: int, binding: GoapActionBinding, context: Dictionary, cmd_bus: Object = null) -> int:
 	var depot_id = binding.get_param(&"depot_id")
+	if depot_id == null:
+		var target_depot = context.get("target_depot", {})
+		depot_id = target_depot.get("id", 0)
+
 	var resource_type = binding.get_param(&"resource_type")
+	if resource_type == null:
+		var target_depot = context.get("target_depot", {})
+		resource_type = target_depot.get("resource_type", &"wood")
+
 	var amount = binding.get_param(&"amount")
+	if amount == null:
+		amount = 10
 	var pawn_id = context.get("pawn_id", 0)
 	var pawn_container_id = context.get("pawn_container_id", 0)
 
