@@ -3,7 +3,7 @@ extends Control
 const CommandBus = preload("res://core/command/command_bus.gd")
 const EventBus = preload("res://core/event/event_bus.gd")
 const SimClock = preload("res://core/time/sim_clock.gd")
-const CoreEnums = preload("res://core/core_enums.gd")
+const CoreEnums = preload("res://core/schemas/core_enums.gd")
 
 const SpatialCellRegistry = preload("res://simulation/spatial/spatial_cell_registry.gd")
 const ResourceContainerRegistry = preload("res://simulation/resource/resource_container_registry.gd")
@@ -20,9 +20,9 @@ const TacticalQueryResolver = preload("res://framework/pathfinding/evaluators/ta
 const GoapSequencer = preload("res://framework/goap/sequencer/goap_sequencer.gd")
 const GoapPlanner = preload("res://framework/goap/planner/goap_planner.gd")
 const GoapGoalArbitrator = preload("res://framework/goap/goals/goap_goal_arbitrator.gd")
-const GoapAction = preload("res://framework/goap/goals/goap_action.gd")
-const GoapActionBinding = preload("res://framework/goap/goals/goap_action_binding.gd")
-const GoapSymbolicEffect = preload("res://framework/goap/common/goap_symbolic_effect.gd")
+const GoapAction = preload("res://framework/goap/actions/goap_action.gd")
+const GoapActionBinding = preload("res://framework/goap/actions/goap_action_binding.gd")
+const GoapSymbolicEffect = preload("res://framework/goap/effects/goap_symbolic_effect.gd")
 const GoapTypes = preload("res://framework/goap/common/goap_types.gd")
 
 const GoalRestockCargo = preload("res://game/logistics/goals/goal_restock_cargo.gd")
